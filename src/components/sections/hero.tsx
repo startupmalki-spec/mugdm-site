@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, Mail } from "lucide-react";
-import { AnimatedText, AuroraBackground, Magnetic } from "@/lib/animations";
+import { AnimatedText, AuroraBackground, Magnetic, ReactiveShadda } from "@/lib/animations";
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -174,19 +174,8 @@ export function Hero() {
         />
       </div>
 
-      {/* شدة background mark */}
-      <img
-        src="/brand/logo-shadda.png"
-        alt=""
-        data-speed="0.015"
-        data-parallax-type="shadda"
-        className="absolute top-1/2 left-1/2 w-[420px] h-[420px] object-contain z-0 brightness-150 transition-transform duration-150 ease-out"
-        style={{
-          transform: "translate(-50%,-50%) scale(0.8)",
-          animation: "shadda-entrance 2s cubic-bezier(0.25,0.8,0.25,1) 0.5s forwards",
-          opacity: 0,
-        }}
-      />
+      {/* شدة background mark — reactive to mouse */}
+      <ReactiveShadda />
 
       {/* Hero content */}
       <div

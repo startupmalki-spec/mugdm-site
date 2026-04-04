@@ -386,6 +386,127 @@ export function FloatingElements({ className = "" }: { className?: string }) {
   );
 }
 
+/* ─── Reactive Shadda (hero) — scales, glows, breathes, rotates on mouse proximity ─── */
+export function ReactiveShadda() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    // Entrance delay
+    const t = setTimeout(() => setEntered(true), 600);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const section = el.closest("section");
+    if (!section) return;
+
+    function handleMouseMove(e: MouseEvent) {
+      if (!el || !section) return;
+      const rect = section.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = e.clientX - cx;
+      const dy = e.clientY - cy;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = Math.sqrt(rect.width * rect.width + rect.height * rect.height) / 2;
+      const proximity = 1 - Math.min(dist / maxDist, 1); // 0 = far, 1 = center
+
+      const scale = 1 + proximity * 0.15;
+      const rotate = (dx / maxDist) * 8;
+      const glow = proximity * 0.4;
+      const translateX = (dx / maxDist) * -15;
+      const translateY = (dy / maxDist) * -15;
+
+      el.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${scale}) rotate(${rotate}deg)`;
+      el.style.filter = `brightness(${1.5 + proximity * 0.8}) drop-shadow(0 0 ${20 + glow * 40}px rgba(91,91,255,${0.1 + glow}))`;
+    }
+
+    function handleMouseLeave() {
+      if (!el) return;
+      el.style.transform = "translate(-50%, -50%) scale(1) rotate(0deg)";
+      el.style.filter = "brightness(1.5) drop-shadow(0 0 20px rgba(91,91,255,0.1))";
+    }
+
+    section.addEventListener("mousemove", handleMouseMove);
+    section.addEventListener("mouseleave", handleMouseLeave);
+    return () => {
+      section.removeEventListener("mousemove", handleMouseMove);
+      section.removeEventListener("mouseleave", handleMouseLeave);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute top-1/2 left-1/2 w-[420px] h-[420px] z-0 pointer-events-none"
+      style={{
+        transform: "translate(-50%,-50%) scale(0.8)",
+        opacity: entered ? 0.04 : 0,
+        transition: "opacity 2s cubic-bezier(0.25,0.8,0.25,1), transform 0.2s ease-out, filter 0.2s ease-out",
+        filter: "brightness(1.5) drop-shadow(0 0 20px rgba(91,91,255,0.1))",
+        animation: entered ? "shadda-breathe 4s ease-in-out infinite" : "none",
+      }}
+    >
+      <img
+        src="/brand/logo-shadda.png"
+        alt=""
+        className="w-full h-full object-contain"
+      />
+    </div>
+  );
+}
+
+/* ─── Floating Shaddas — scattered across sections ─── */
+export function FloatingShaddas({ count = 5, className = "" }: { count?: number; className?: string }) {
+  const shaddas = Array.from({ length: count }, (_, i) => ({
+    id: i,
+    size: 20 + Math.random() * 30,
+    left: `${5 + Math.random() * 90}%`,
+    top: `${5 + Math.random() * 90}%`,
+    duration: 15 + Math.random() * 20,
+    delay: Math.random() * 5,
+    opacity: 0.015 + Math.random() * 0.02,
+    rotate: Math.random() * 360,
+  }));
+
+  return (
+    <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className}`}>
+      {shaddas.map((s) => (
+        <motion.img
+          key={s.id}
+          src="/brand/logo-shadda.png"
+          alt=""
+          className="absolute object-contain"
+          style={{
+            width: s.size,
+            height: s.size,
+            left: s.left,
+            top: s.top,
+            opacity: s.opacity,
+            rotate: s.rotate,
+            filter: "brightness(2)",
+          }}
+          animate={{
+            y: [0, -20, 10, -15, 0],
+            x: [0, 10, -8, 12, 0],
+            rotate: [s.rotate, s.rotate + 15, s.rotate - 10, s.rotate + 8, s.rotate],
+            scale: [1, 1.1, 0.95, 1.05, 1],
+          }}
+          transition={{
+            duration: s.duration,
+            delay: s.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /* ─── Glowing Section Divider ─── */
 export function GlowDivider({ className = "" }: { className?: string }) {
   const ref = useRef(null);

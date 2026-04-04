@@ -1,7 +1,7 @@
 "use client";
 
 import { Globe, Smartphone, Rocket, Layout } from "lucide-react";
-import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas } from "@/lib/animations";
 
 const services = [
   {
@@ -30,6 +30,7 @@ export function Services() {
   return (
     <section id="services" className="relative py-24 sm:py-32">
       <FloatingElements />
+      <FloatingShaddas count={4} />
       <div className="shadda-pattern" />
       <div className="relative z-[1] max-w-[1280px] mx-auto px-6">
         {/* Header */}

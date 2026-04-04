@@ -119,6 +119,11 @@
 }
 
 /* ─── Aurora / Floating ambient keyframes ─── */
+@keyframes shadda-breathe {
+  0%, 100% { opacity: 0.04; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  50% { opacity: 0.06; transform: translate(-50%, -50%) scale(1.06) rotate(2deg); }
+}
+
 @keyframes aurora-drift-1 {
   0% { transform: translate(0, 0) scale(1) rotate(0deg); }
   50% { transform: translate(60px, -40px) scale(1.15) rotate(8deg); }

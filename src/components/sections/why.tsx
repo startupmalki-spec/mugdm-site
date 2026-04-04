@@ -1,7 +1,7 @@
 "use client";
 
 import { Zap, Shield, Users, Brain } from "lucide-react";
-import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingElements } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingElements, FloatingShaddas } from "@/lib/animations";
 
 const differentiators = [
   {
@@ -31,9 +31,9 @@ const differentiators = [
   },
   {
     icon: Brain,
-    title: "SMB-Focused",
-    description: "Built for small and medium businesses. Enterprise-quality solutions without enterprise complexity or pricing.",
-    stat: "SMB",
+    title: "SME-Focused",
+    description: "Built for small and medium enterprises. Enterprise-quality solutions without enterprise complexity or pricing.",
+    stat: "SME",
     statLabel: "First",
   },
 ];
@@ -42,6 +42,7 @@ export function Why() {
   return (
     <section id="why" className="relative py-24 sm:py-32">
       <FloatingElements />
+      <FloatingShaddas count={3} />
       <div className="shadda-pattern" />
       <div className="relative z-[1] max-w-[1280px] mx-auto px-6">
         <Reveal className="text-center mb-16">
