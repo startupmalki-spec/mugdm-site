@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Send, MessageCircle, Calendar, Loader2 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 export function Contact() {
   const [formState, setFormState] = useState<"idle" | "sending" | "sent" | "error">("idle");
@@ -29,8 +30,12 @@ export function Contact() {
     e.preventDefault();
     setFormState("sending");
     try {
-      // TODO: Connect to Supabase
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const { error } = await supabase.from("leads").insert({
+        name: formData.name,
+        email: formData.email,
+        message: formData.message,
+      });
+      if (error) throw error;
       setFormState("sent");
       setFormData({ name: "", email: "", message: "" });
     } catch {
