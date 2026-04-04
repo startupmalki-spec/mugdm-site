@@ -5,6 +5,7 @@ import { Process } from "@/components/sections/process";
 import { Why } from "@/components/sections/why";
 import { Contact } from "@/components/sections/contact";
 import { Footer } from "@/components/sections/footer";
+import { GlowDivider } from "@/lib/animations";
 
 export default function Home() {
   return (
@@ -12,9 +13,13 @@ export default function Home() {
       <Navbar />
       <main>
         <Hero />
+        <GlowDivider className="my-0" />
         <Services />
+        <GlowDivider className="my-0" />
         <Process />
+        <GlowDivider className="my-0" />
         <Why />
+        <GlowDivider className="my-0" />
         <Contact />
       </main>
       <Footer />

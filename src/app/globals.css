@@ -118,6 +118,23 @@
   to { --form-angle: 360deg; }
 }
 
+/* ─── Aurora / Floating ambient keyframes ─── */
+@keyframes aurora-drift-1 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(60px, -40px) scale(1.15) rotate(8deg); }
+  100% { transform: translate(-30px, 20px) scale(0.95) rotate(-5deg); }
+}
+@keyframes aurora-drift-2 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(-50px, 30px) scale(1.1) rotate(-10deg); }
+  100% { transform: translate(40px, -20px) scale(0.9) rotate(6deg); }
+}
+@keyframes aurora-drift-3 {
+  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+  50% { transform: translate(35px, 25px) scale(1.08) rotate(5deg); }
+  100% { transform: translate(-45px, -15px) scale(1.05) rotate(-8deg); }
+}
+
 /* ─── Custom شدة Cursor ─── */
 * {
   cursor: url('/cursor-shadda.png') 16 16, auto;

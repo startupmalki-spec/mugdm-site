@@ -1,7 +1,7 @@
 "use client";
 
 import { Zap, Shield, Users, Brain } from "lucide-react";
-import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingElements } from "@/lib/animations";
 
 const differentiators = [
   {
@@ -41,6 +41,7 @@ const differentiators = [
 export function Why() {
   return (
     <section id="why" className="relative py-24 sm:py-32">
+      <FloatingElements />
       <div className="shadda-pattern" />
       <div className="relative z-[1] max-w-[1280px] mx-auto px-6">
         <Reveal className="text-center mb-16">

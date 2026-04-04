@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect, useState, useCallback } from "react";
-import { motion, useInView, useSpring, useTransform, MotionValue } from "framer-motion";
+import { motion, useInView, useScroll, useTransform } from "framer-motion";
 
 /* ─── Scroll-triggered reveal wrapper ─── */
 export function Reveal({
@@ -233,5 +233,175 @@ export function Counter({
       {count}
       {suffix}
     </span>
+  );
+}
+
+/* ─── Aurora Gradient Background ─── */
+export function AuroraBackground({ className = "" }: { className?: string }) {
+  return (
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+      <div
+        className="absolute w-[800px] h-[600px] top-[-10%] left-[10%] rounded-full opacity-30 blur-[120px]"
+        style={{
+          background: "linear-gradient(135deg, rgba(91,91,255,0.3), rgba(139,92,246,0.2), rgba(59,130,246,0.15))",
+          animation: "aurora-drift-1 12s ease-in-out infinite alternate",
+        }}
+      />
+      <div
+        className="absolute w-[600px] h-[500px] top-[20%] right-[-5%] rounded-full opacity-20 blur-[100px]"
+        style={{
+          background: "linear-gradient(225deg, rgba(139,92,246,0.25), rgba(91,91,255,0.2), rgba(34,211,238,0.1))",
+          animation: "aurora-drift-2 15s ease-in-out infinite alternate",
+        }}
+      />
+      <div
+        className="absolute w-[500px] h-[400px] bottom-[10%] left-[30%] rounded-full opacity-15 blur-[90px]"
+        style={{
+          background: "linear-gradient(45deg, rgba(59,130,246,0.2), rgba(91,91,255,0.15), rgba(168,85,247,0.1))",
+          animation: "aurora-drift-3 18s ease-in-out infinite alternate",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ─── Magnetic Element ─── */
+export function Magnetic({
+  children,
+  className = "",
+  strength = 0.3,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  strength?: number;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      const el = ref.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = (e.clientX - cx) * strength;
+      const dy = (e.clientY - cy) * strength;
+      setPos({ x: dx, y: dy });
+    },
+    [strength]
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    setPos({ x: 0, y: 0 });
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: pos.x, y: pos.y }}
+      transition={{ type: "spring", stiffness: 200, damping: 15, mass: 0.5 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/* ─── Scroll-driven Progress Line ─── */
+export function ScrollProgressLine({
+  className = "",
+}: {
+  className?: string;
+}) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 0.8", "end 0.5"],
+  });
+  const width = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+
+  return (
+    <div ref={ref} className={`relative ${className}`}>
+      {/* Track */}
+      <div className="absolute top-10 left-[12.5%] right-[12.5%] h-px bg-border/50" />
+      {/* Animated fill */}
+      <motion.div
+        className="absolute top-10 left-[12.5%] right-[12.5%] h-px origin-left"
+        style={{
+          width,
+          background: "linear-gradient(90deg, rgba(91,91,255,0.8), rgba(139,92,246,0.6), rgba(91,91,255,0.4))",
+          boxShadow: "0 0 12px rgba(91,91,255,0.4), 0 0 4px rgba(91,91,255,0.6)",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ─── Floating Particles / Ambient Elements ─── */
+export function FloatingElements({ className = "" }: { className?: string }) {
+  const elements = [
+    { size: 4, x: "10%", y: "20%", duration: 8, delay: 0 },
+    { size: 3, x: "85%", y: "15%", duration: 10, delay: 1 },
+    { size: 5, x: "70%", y: "60%", duration: 12, delay: 2 },
+    { size: 3, x: "25%", y: "75%", duration: 9, delay: 0.5 },
+    { size: 4, x: "55%", y: "35%", duration: 11, delay: 1.5 },
+    { size: 2, x: "40%", y: "85%", duration: 7, delay: 3 },
+    { size: 3, x: "90%", y: "45%", duration: 13, delay: 0.8 },
+    { size: 2, x: "15%", y: "50%", duration: 10, delay: 2.5 },
+  ];
+
+  return (
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
+      {elements.map((el, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            width: el.size,
+            height: el.size,
+            left: el.x,
+            top: el.y,
+            background: `rgba(91,91,255,${0.2 + Math.random() * 0.3})`,
+            boxShadow: `0 0 ${el.size * 3}px rgba(91,91,255,0.3)`,
+          }}
+          animate={{
+            y: [0, -30, 0, 20, 0],
+            x: [0, 15, -10, 5, 0],
+            opacity: [0.3, 0.7, 0.4, 0.8, 0.3],
+            scale: [1, 1.3, 0.9, 1.2, 1],
+          }}
+          transition={{
+            duration: el.duration,
+            delay: el.delay,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Glowing Section Divider ─── */
+export function GlowDivider({ className = "" }: { className?: string }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+
+  return (
+    <div ref={ref} className={`relative h-px w-full max-w-[800px] mx-auto ${className}`}>
+      <motion.div
+        className="absolute inset-0"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={isInView ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 0 }}
+        transition={{ duration: 1.2, ease: [0.25, 0.8, 0.25, 1] }}
+        style={{
+          background: "linear-gradient(90deg, transparent, rgba(91,91,255,0.5), rgba(139,92,246,0.3), rgba(91,91,255,0.5), transparent)",
+          boxShadow: "0 0 20px rgba(91,91,255,0.2)",
+        }}
+      />
+    </div>
   );
 }

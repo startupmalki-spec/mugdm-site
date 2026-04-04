@@ -1,7 +1,7 @@
 "use client";
 
 import { MessageSquare, Palette, Code2, Rocket } from "lucide-react";
-import { Reveal, StaggerContainer, StaggerItem } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, ScrollProgressLine } from "@/lib/animations";
 
 const steps = [
   {
@@ -47,8 +47,8 @@ export function Process() {
         </Reveal>
 
         <StaggerContainer stagger={0.15} className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Connecting line */}
-          <div className="hidden lg:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          {/* Scroll-driven connecting line */}
+          <ScrollProgressLine className="hidden lg:block" />
 
           {steps.map((step) => (
             <StaggerItem key={step.step} className="relative text-center">

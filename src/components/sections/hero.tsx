@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, Mail } from "lucide-react";
-import { AnimatedText } from "@/lib/animations";
+import { AnimatedText, AuroraBackground, Magnetic } from "@/lib/animations";
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -132,6 +132,9 @@ export function Hero() {
         className="absolute inset-0 z-[1] pointer-events-none"
       />
 
+      {/* Aurora gradient background */}
+      <AuroraBackground className="z-0" />
+
       {/* Background orbs */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {/* Grid pattern */}
@@ -230,21 +233,25 @@ export function Hero() {
           className="flex items-center justify-center gap-4 flex-wrap opacity-0"
           style={{ animation: "fade-up 0.8s ease-out 0.45s forwards" }}
         >
-          <a
-            href="#contact"
-            className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(91,91,255,0.3)] hover:shadow-[0_12px_40px_rgba(91,91,255,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
-            style={{ animation: "glow 3s ease-in-out infinite" }}
-          >
-            Start a Project
-            <ArrowRight size={20} />
-          </a>
-          <a
-            href="mailto:contact@mugdm.com"
-            className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl border border-border bg-transparent text-foreground text-lg font-medium transition-all duration-250 hover:bg-surface-2 hover:border-primary/40"
-          >
-            <Mail size={20} />
-            Email Us
-          </a>
+          <Magnetic strength={0.15}>
+            <a
+              href="#contact"
+              className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(91,91,255,0.3)] hover:shadow-[0_12px_40px_rgba(91,91,255,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
+              style={{ animation: "glow 3s ease-in-out infinite" }}
+            >
+              Start a Project
+              <ArrowRight size={20} />
+            </a>
+          </Magnetic>
+          <Magnetic strength={0.15}>
+            <a
+              href="mailto:contact@mugdm.com"
+              className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl border border-border bg-transparent text-foreground text-lg font-medium transition-all duration-250 hover:bg-surface-2 hover:border-primary/40"
+            >
+              <Mail size={20} />
+              Email Us
+            </a>
+          </Magnetic>
         </div>
       </div>
 
