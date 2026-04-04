@@ -1,30 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Send, Mail, Calendar, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { Reveal } from "@/lib/animations";
 
 export function Contact() {
   const [formState, setFormState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
-  const sectionRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("opacity-100", "translate-y-0");
-            entry.target.classList.remove("opacity-0", "translate-y-8");
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
-    );
-    const els = sectionRef.current?.querySelectorAll("[data-animate]");
-    els?.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +27,7 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" className="relative py-24 sm:py-32" ref={sectionRef}>
+    <section id="contact" className="relative py-24 sm:py-32">
       {/* Pulsing glow */}
       <div
         className="absolute bottom-0 left-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
@@ -56,7 +39,7 @@ export function Contact() {
       />
 
       <div className="relative max-w-[1280px] mx-auto px-6">
-        <div className="text-center mb-16 opacity-0 translate-y-8 transition-all duration-700" data-animate>
+        <Reveal className="text-center mb-16">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-6">
             Contact
           </span>
@@ -66,14 +49,11 @@ export function Contact() {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Tell us about your project. We&apos;ll get back to you within 24 hours.
           </p>
-        </div>
+        </Reveal>
 
         {/* Glass form card */}
-        <div
-          data-animate
-          className="relative max-w-[640px] mx-auto p-10 sm:p-10 rounded-2xl border border-border bg-[rgba(37,37,54,0.5)] backdrop-blur-[20px] transition-all duration-400 hover:border-primary/30 hover:shadow-[0_20px_60px_rgba(91,91,255,0.08)] opacity-0 translate-y-8"
-          style={{ transitionDelay: "200ms" }}
-        >
+        <Reveal delay={0.2} className="relative max-w-[640px] mx-auto p-10 sm:p-10 rounded-2xl border border-border bg-[rgba(37,37,54,0.5)] backdrop-blur-[20px] transition-all duration-400 hover:border-primary/30 hover:shadow-[0_20px_60px_rgba(91,91,255,0.08)]">
+        <div>
           {/* Spinning conic gradient border */}
           <div
             className="absolute inset-[-1px] rounded-[17px] p-px pointer-events-none opacity-50"
@@ -156,12 +136,13 @@ export function Contact() {
               </button>
               {formState === "error" && (
                 <p className="text-sm text-red-400 text-center mt-4">
-                  Something went wrong. Please try again or reach out via WhatsApp.
+                  Something went wrong. Please try again or email us directly.
                 </p>
               )}
             </form>
           )}
         </div>
+        </Reveal>
 
         {/* Alternative CTAs */}
         <div className="flex items-center justify-center gap-6 mt-8">

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { MessageSquare, Palette, Code2, Rocket } from "lucide-react";
+import { Reveal, StaggerContainer, StaggerItem } from "@/lib/animations";
 
 const steps = [
   {
@@ -31,29 +31,10 @@ const steps = [
 ];
 
 export function Process() {
-  const sectionRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("opacity-100", "translate-y-0");
-            entry.target.classList.remove("opacity-0", "translate-y-8");
-          }
-        });
-      },
-      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
-    );
-    const els = sectionRef.current?.querySelectorAll("[data-animate]");
-    els?.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
   return (
-    <section id="process" className="relative py-24 sm:py-32 bg-surface-1/50" ref={sectionRef}>
+    <section id="process" className="relative py-24 sm:py-32 bg-surface-1/50">
       <div className="max-w-[1280px] mx-auto px-6">
-        <div className="text-center mb-16 opacity-0 translate-y-8 transition-all duration-700" data-animate>
+        <Reveal className="text-center mb-16">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-6">
             Process
           </span>
@@ -63,19 +44,14 @@ export function Process() {
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             A simple, transparent process from first conversation to launch day.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <StaggerContainer stagger={0.15} className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Connecting line */}
           <div className="hidden lg:block absolute top-10 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-          {steps.map((step, i) => (
-            <div
-              key={step.step}
-              data-animate
-              className="relative text-center opacity-0 translate-y-8 transition-all duration-700"
-              style={{ transitionDelay: `${(i + 1) * 100}ms` }}
-            >
+          {steps.map((step) => (
+            <StaggerItem key={step.step} className="relative text-center">
               <div className="relative w-20 h-20 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-5 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(91,91,255,0.1)]">
                 <step.icon size={28} className="text-primary" />
                 <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shadow-[0_4px_10px_rgba(91,91,255,0.3)]">
@@ -86,9 +62,9 @@ export function Process() {
               <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
                 {step.description}
               </p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerContainer>
       </div>
     </section>
   );

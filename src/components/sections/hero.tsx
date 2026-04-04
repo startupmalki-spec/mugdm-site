@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, Mail } from "lucide-react";
+import { AnimatedText } from "@/lib/animations";
 
 export function Hero() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -202,20 +203,16 @@ export function Hero() {
         </div>
 
         {/* Headline */}
-        <h1
-          className="text-[clamp(40px,6vw,76px)] font-extrabold tracking-[-0.04em] leading-[1.08] mb-6 opacity-0"
-          style={{ animation: "fade-up 0.8s ease-out 0.15s forwards" }}
-        >
-          We build your software.
-          <br />
+        <h1 className="text-[clamp(40px,6vw,76px)] font-extrabold tracking-[-0.04em] leading-[1.08] mb-6">
+          <AnimatedText text="We build your software." delay={0.2} as="span" className="block" />
           <span
-            className="text-gradient"
+            className="text-gradient block"
             style={{
               backgroundSize: "200% 200%",
-              animation: "fade-up 0.8s ease-out 0.15s forwards, gradient-shift 4s ease infinite",
+              animation: "gradient-shift 4s ease infinite",
             }}
           >
-            Incredibly fast.
+            <AnimatedText text="Incredibly fast." delay={0.6} as="span" />
           </span>
         </h1>
 
@@ -242,13 +239,11 @@ export function Hero() {
             <ArrowRight size={20} />
           </a>
           <a
-            href="https://wa.me/966500000000"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:contact@mugdm.com"
             className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl border border-border bg-transparent text-foreground text-lg font-medium transition-all duration-250 hover:bg-surface-2 hover:border-primary/40"
           >
-            <MessageCircle size={20} />
-            WhatsApp
+            <Mail size={20} />
+            Email Us
           </a>
         </div>
       </div>
