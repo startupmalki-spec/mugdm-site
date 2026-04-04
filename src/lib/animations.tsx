@@ -326,12 +326,13 @@ export function ScrollProgressLine({
   return (
     <div ref={ref} className={`relative ${className}`}>
       {/* Track */}
-      <div className="absolute top-10 left-[12.5%] right-[12.5%] h-px bg-border/50" />
+      <div className="absolute top-[40px] left-[12.5%] right-[12.5%] h-px bg-border/50" />
       {/* Animated fill */}
       <motion.div
-        className="absolute top-10 left-[12.5%] right-[12.5%] h-px origin-left"
+        className="absolute top-[40px] left-[12.5%] h-px origin-left"
         style={{
           width,
+          maxWidth: "75%",
           background: "linear-gradient(90deg, rgba(91,91,255,0.8), rgba(139,92,246,0.6), rgba(91,91,255,0.4))",
           boxShadow: "0 0 12px rgba(91,91,255,0.4), 0 0 4px rgba(91,91,255,0.6)",
         }}

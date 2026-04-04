@@ -47,8 +47,10 @@ export function Process() {
         </Reveal>
 
         <StaggerContainer stagger={0.15} className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Scroll-driven connecting line */}
-          <ScrollProgressLine className="hidden lg:block" />
+          {/* Scroll-driven connecting line — absolutely positioned so it doesn't take a grid cell */}
+          <div className="hidden lg:block absolute inset-0 pointer-events-none z-0">
+            <ScrollProgressLine className="h-full" />
+          </div>
 
           {steps.map((step) => (
             <StaggerItem key={step.step} className="relative text-center">
