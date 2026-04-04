@@ -166,11 +166,11 @@ export function Contact() {
         {/* Alternative CTAs */}
         <div className="flex items-center justify-center gap-6 mt-8">
           <a
-            href="mailto:contact@mugdm.sa"
+            href="mailto:contact@mugdm.com"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-lg transition-all duration-300 hover:text-foreground hover:bg-primary/[0.08]"
           >
             <Mail size={18} className="text-primary transition-transform duration-300 group-hover:scale-115" />
-            contact@mugdm.sa
+            contact@mugdm.com
           </a>
           <span className="text-border">|</span>
           <a
