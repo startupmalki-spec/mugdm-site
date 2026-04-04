@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, MessageCircle, Calendar, Loader2 } from "lucide-react";
+import { Send, Mail, Calendar, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export function Contact() {
@@ -166,13 +166,11 @@ export function Contact() {
         {/* Alternative CTAs */}
         <div className="flex items-center justify-center gap-6 mt-8">
           <a
-            href="https://wa.me/966500000000"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:contact@mugdm.sa"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-lg transition-all duration-300 hover:text-foreground hover:bg-primary/[0.08]"
           >
-            <MessageCircle size={18} className="text-green-400 transition-transform duration-300 group-hover:scale-115" />
-            WhatsApp us
+            <Mail size={18} className="text-primary transition-transform duration-300 group-hover:scale-115" />
+            contact@mugdm.sa
           </a>
           <span className="text-border">|</span>
           <a
