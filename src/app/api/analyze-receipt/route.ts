@@ -7,6 +7,9 @@ import type { TransactionCategory } from '@/lib/supabase/types'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
+const MAX_BASE64_SIZE = 10 * 1024 * 1024
+const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+
 const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   'REVENUE',
   'OTHER_INCOME',
@@ -127,14 +130,19 @@ function parseClaudeResponse(text: string): ReceiptExtractionResult {
 }
 
 export async function POST(request: Request) {
+  let userId: string | undefined
+  let businessId: string | undefined
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    userId = user.id
 
     const body = (await request.json()) as AnalyzeReceiptRequest
+    businessId = body.businessId
 
     if (!body.base64Data) {
       return NextResponse.json(
@@ -150,6 +158,27 @@ export async function POST(request: Request) {
       )
     }
 
+    if (body.base64Data.length > MAX_BASE64_SIZE) {
+      return NextResponse.json(
+        { error: 'Image data exceeds maximum size (10MB)' },
+        { status: 413 }
+      )
+    }
+
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('id', body.businessId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!business) {
+      return NextResponse.json(
+        { error: 'Business not found or access denied' },
+        { status: 403 }
+      )
+    }
+
     {
       const rateCheck = await checkRateLimit(body.businessId)
       if (!rateCheck.allowed) {
@@ -162,8 +191,9 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic()
 
-    const mediaType =
-      (body.mediaType as Anthropic.Base64ImageSource['media_type']) ?? 'image/jpeg'
+    const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as any)
+      ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
+      : 'image/jpeg'
 
     const response = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -194,7 +224,12 @@ export async function POST(request: Request) {
     const result = parseClaudeResponse(responseText)
 
     return NextResponse.json(result)
-  } catch {
+  } catch (error) {
+    console.error('[API] analyze-receipt failed:', {
+      userId,
+      businessId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
     return NextResponse.json(buildFallbackResponse())
   }
 }

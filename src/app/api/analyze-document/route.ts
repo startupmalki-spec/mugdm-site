@@ -7,6 +7,19 @@ import type { DocumentType } from '@/lib/supabase/types'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
+const ALLOWED_URL_PATTERN = /^https:\/\/[a-z]+\.supabase\.co\/storage\//
+const MAX_BASE64_SIZE = 10 * 1024 * 1024
+const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+
+function isAllowedFileUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === 'https:' && ALLOWED_URL_PATTERN.test(url)
+  } catch {
+    return false
+  }
+}
+
 const DOCUMENT_TYPES: DocumentType[] = [
   'CR',
   'GOSI_CERT',
@@ -115,14 +128,19 @@ function parseClaudeResponse(text: string): ExtractedDocumentData {
 }
 
 export async function POST(request: Request) {
+  let userId: string | undefined
+  let businessId: string | undefined
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    userId = user.id
 
     const body = (await request.json()) as AnalyzeDocumentRequest
+    businessId = body.businessId
 
     if (!body.businessId) {
       return NextResponse.json(
@@ -138,6 +156,38 @@ export async function POST(request: Request) {
       )
     }
 
+    if (body.fileUrl && !isAllowedFileUrl(body.fileUrl)) {
+      return NextResponse.json(
+        { error: 'fileUrl must be a valid Supabase storage URL' },
+        { status: 400 }
+      )
+    }
+
+    if (body.base64Data && body.base64Data.length > MAX_BASE64_SIZE) {
+      return NextResponse.json(
+        { error: 'Image data exceeds maximum size (10MB)' },
+        { status: 413 }
+      )
+    }
+
+    // During onboarding, businessId is the user's ID (no business exists yet)
+    const isOnboarding = body.businessId === user.id
+    if (!isOnboarding) {
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('id', body.businessId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (!business) {
+        return NextResponse.json(
+          { error: 'Business not found or access denied' },
+          { status: 403 }
+        )
+      }
+    }
+
     const rateCheck = await checkRateLimit(body.businessId)
     if (!rateCheck.allowed) {
       return NextResponse.json(
@@ -151,7 +201,9 @@ export async function POST(request: Request) {
     let imageContent: Anthropic.ImageBlockParam
 
     if (body.base64Data) {
-      const mediaType = (body.mediaType as Anthropic.Base64ImageSource['media_type']) ?? 'image/jpeg'
+      const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as any)
+        ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
+        : 'image/jpeg'
       imageContent = {
         type: 'image',
         source: {
@@ -192,7 +244,12 @@ export async function POST(request: Request) {
     const result = parseClaudeResponse(responseText)
 
     return NextResponse.json(result)
-  } catch {
+  } catch (error) {
+    console.error('[API] analyze-document failed:', {
+      userId,
+      businessId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
     return NextResponse.json(buildFallbackResponse())
   }
 }

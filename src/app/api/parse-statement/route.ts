@@ -163,14 +163,19 @@ function parseClaudeResponse(text: string): ParseStatementResponse {
 const MAX_CSV_CHARS = 80_000
 
 export async function POST(request: Request) {
+  let userId: string | undefined
+  let businessId: string | undefined
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    userId = user.id
 
     const body = (await request.json()) as ParseStatementRequest
+    businessId = body.businessId
 
     if (!body.csvContent || typeof body.csvContent !== 'string') {
       return NextResponse.json(
@@ -183,6 +188,20 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'businessId is required' },
         { status: 400 }
+      )
+    }
+
+    const { data: business } = await supabase
+      .from('businesses')
+      .select('id')
+      .eq('id', body.businessId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!business) {
+      return NextResponse.json(
+        { error: 'Business not found or access denied' },
+        { status: 403 }
       )
     }
 
@@ -221,7 +240,12 @@ export async function POST(request: Request) {
     const result = parseClaudeResponse(responseText)
 
     return NextResponse.json(result)
-  } catch {
+  } catch (error) {
+    console.error('[API] parse-statement failed:', {
+      userId,
+      businessId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
     return NextResponse.json(buildFallbackResponse())
   }
 }
