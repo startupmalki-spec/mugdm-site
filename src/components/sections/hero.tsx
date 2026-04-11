@@ -224,7 +224,7 @@ export function Hero() {
         >
           <Magnetic strength={0.15}>
             <a
-              href="/en/signup"
+              href="/signup"
               className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(91,91,255,0.3)] hover:shadow-[0_12px_40px_rgba(91,91,255,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
               style={{ animation: "glow 3s ease-in-out infinite" }}
             >

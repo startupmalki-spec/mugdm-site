@@ -56,7 +56,7 @@ export function Navbar() {
             </a>
           ))}
           <a
-            href="/en/signup"
+            href="/signup"
             className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-all duration-200 shadow-[0_4px_15px_rgba(91,91,255,0.25)] hover:bg-[#4a4aee] hover:shadow-[0_6px_25px_rgba(91,91,255,0.4)] hover:-translate-y-px active:scale-[0.98]"
           >
             Get Started
@@ -87,7 +87,7 @@ export function Navbar() {
               </a>
             ))}
             <a
-              href="/en/signup"
+              href="/signup"
               className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium mt-2"
               onClick={() => setMobileOpen(false)}
             >

@@ -49,7 +49,6 @@ function isActiveRoute(pathname: string, href: string, locale: string): boolean 
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav')
-  const tCommon = useTranslations('common')
   const locale = useLocale()
   const pathname = usePathname()
   const router = useRouter()

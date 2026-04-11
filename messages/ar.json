@@ -73,7 +73,8 @@
     "completeSetup": "إكمال الإعداد",
     "skipForNow": "تخطي الآن",
     "previousStep": "السابق",
-    "nextStep": "التالي"
+    "nextStep": "التالي",
+    "crAlreadyRegistered": "رقم السجل التجاري مسجل مسبقاً"
   },
   "profile": {
     "title": "ملف الشركة",

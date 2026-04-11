@@ -129,10 +129,7 @@ export default function OnboardingPage() {
 
       if (existing) {
         setErrors({
-          crNumber:
-            tCommon('next') === 'Next'
-              ? 'This CR number is already registered'
-              : 'رقم السجل التجاري مسجل مسبقاً',
+          crNumber: t('crAlreadyRegistered'),
         })
         return
       }

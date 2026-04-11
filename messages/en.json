@@ -73,7 +73,8 @@
     "completeSetup": "Complete Setup",
     "skipForNow": "Skip for now",
     "previousStep": "Previous",
-    "nextStep": "Next"
+    "nextStep": "Next",
+    "crAlreadyRegistered": "This CR number is already registered"
   },
   "profile": {
     "title": "Business Profile",
