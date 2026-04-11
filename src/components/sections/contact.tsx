@@ -13,6 +13,7 @@ export function Contact() {
     e.preventDefault();
     setFormState("sending");
     try {
+      if (!supabase) throw new Error("Not configured");
       const { error } = await supabase.from("leads").insert({
         name: formData.name,
         email: formData.email,

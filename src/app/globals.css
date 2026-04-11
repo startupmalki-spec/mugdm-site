@@ -207,6 +207,15 @@ html { scroll-behavior: smooth; }
   -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
 }
 
+/* ─── Stagger animation utility ─── */
+.stagger > * { opacity: 0; animation: fade-up 0.6s ease-out forwards; }
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 100ms; }
+.stagger > *:nth-child(3) { animation-delay: 200ms; }
+.stagger > *:nth-child(4) { animation-delay: 300ms; }
+.stagger > *:nth-child(5) { animation-delay: 400ms; }
+.stagger > *:nth-child(6) { animation-delay: 500ms; }
+
 /* ─── @property for conic gradient animation ─── */
 @property --form-angle {
   syntax: '<angle>';
