@@ -1,0 +1,73 @@
+"use client";
+
+import { MessageSquare, Palette, Code2, Rocket } from "lucide-react";
+
+const steps = [
+  {
+    icon: MessageSquare,
+    step: "01",
+    title: "Share Your Idea",
+    description: "Tell us what you need. We listen, ask the right questions, and define the scope together.",
+  },
+  {
+    icon: Palette,
+    step: "02",
+    title: "We Design",
+    description: "Clean, modern UI/UX tailored to your brand. You review, we refine until it's perfect.",
+  },
+  {
+    icon: Code2,
+    step: "03",
+    title: "We Build",
+    description: "AI-accelerated development with human oversight. Production-ready code, built to scale.",
+  },
+  {
+    icon: Rocket,
+    step: "04",
+    title: "You Launch",
+    description: "Deployed, tested, and live. We hand over everything and support you post-launch.",
+  },
+];
+
+export function Process() {
+  return (
+    <section id="process" className="relative py-24 sm:py-32 bg-surface-1/50">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <span className="inline-block text-xs font-medium text-primary uppercase tracking-widest mb-4">
+            Process
+          </span>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
+            How it <span className="text-gradient">works</span>
+          </h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            A simple, transparent process from first conversation to launch day.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {steps.map((step, i) => (
+            <div key={step.step} className="relative">
+              {/* Connector line */}
+              {i < steps.length - 1 && (
+                <div className="hidden lg:block absolute top-10 left-[calc(50%+40px)] w-[calc(100%-40px)] h-px bg-gradient-to-r from-border to-transparent" />
+              )}
+              <div className="text-center">
+                <div className="relative w-20 h-20 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-5">
+                  <step.icon size={28} className="text-primary" />
+                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center">
+                    {step.step}
+                  </span>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 tracking-tight">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-xs mx-auto">
+                  {step.description}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
