@@ -16,7 +16,6 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
-  Loader2,
   Building2,
 } from 'lucide-react'
 import { differenceInDays, format, startOfMonth } from 'date-fns'
@@ -24,6 +23,8 @@ import { ar, enUS } from 'date-fns/locale'
 
 import { Link } from '@/i18n/routing'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToastContainer, useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { toHijri, formatHijri } from '@/lib/hijri'
 import { getExpiryStatus } from '@/lib/documents'
@@ -404,12 +405,14 @@ export default function DashboardPage() {
   const locale = useLocale()
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const { toasts, showToast, dismissToast } = useToast()
 
   useEffect(() => {
     fetchDashboardData()
       .then(setData)
+      .catch(() => showToast(locale === 'ar' ? 'فشل في تحميل البيانات' : 'Failed to load data', 'error'))
       .finally(() => setIsLoading(false))
-  }, [])
+  }, [locale, showToast])
 
   const emptyData: DashboardData = {
     docCounts: { valid: 0, expiring: 0, expired: 0 },
@@ -468,8 +471,13 @@ export default function DashboardPage() {
 
       {/* Loading state */}
       {isLoading ? (
-        <motion.div variants={ITEM_VARIANTS} className="flex justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <motion.div variants={ITEM_VARIANTS} className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Skeleton className="h-36" />
+            <Skeleton className="h-36" />
+            <Skeleton className="h-36" />
+          </div>
+          <Skeleton className="h-24" />
         </motion.div>
       ) : data === null ? (
         <motion.div variants={ITEM_VARIANTS}>
@@ -497,6 +505,8 @@ export default function DashboardPage() {
           <AiWarningsCard />
         </>
       )}
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </motion.div>
   )
 }

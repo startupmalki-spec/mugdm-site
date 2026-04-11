@@ -171,14 +171,15 @@
       "id": "112",
       "title": "Implement Claude API Bank Statement Parsing (PDF)",
       "description": "Build PDF bank statement parser using Claude Vision API. Convert PDF pages to images and extract transactions.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "111"
       ],
       "priority": "high",
       "details": "Extend /api/parse-statement/route.ts to handle PDF. Use pdf-to-image conversion (pdf-lib or similar) to extract pages as images. Send each page image to Claude Vision API with extraction prompt. Merge results across pages, deduplicate. Same output format as CSV parser. Handle Arabic+English mixed content in statements.",
       "testStrategy": "Upload a multi-page PDF statement. Verify all pages processed. Verify transaction count matches expected. No duplicate entries across page boundaries.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.260Z"
     },
     {
       "id": "113",
@@ -242,27 +243,29 @@
       "id": "117",
       "title": "Email Reminder System",
       "description": "Set up email service (Resend) and cron job to send compliance deadline reminders at 30/15/7/1 day intervals.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "107"
       ],
       "priority": "medium",
       "details": "Install Resend SDK. Create email templates (bilingual AR/EN) for: obligation_reminder_30d, obligation_reminder_15d, obligation_reminder_7d, obligation_reminder_1d, document_expiry_warning. Create /api/cron/reminders route. Query obligations where next_due_date falls within reminder windows and corresponding reminder_sent flag is false. Send email, set flag. Use Vercel Cron (vercel.json) to run daily.",
       "testStrategy": "Create obligation due in 7 days. Run cron endpoint. Verify email sent. Verify reminder_7d_sent=true. Run again — no duplicate email.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.268Z"
     },
     {
       "id": "118",
       "title": "VAT Estimation from Real Data",
       "description": "Calculate VAT liability estimation from actual transaction data. Show in bookkeeper dashboard.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "108"
       ],
       "priority": "medium",
       "details": "Use calculateVATEstimate() from calculations.ts with real transaction data. Query transactions for the current VAT quarter. Calculate: total taxable income, total deductible VAT, estimated liability. Display in the existing VAT estimation card on bookkeeper page. Link to ZATCA obligation due date.",
       "testStrategy": "Add income and expense transactions with VAT. Verify VAT card shows correct calculation. Changes when period selector changes.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.270Z"
     },
     {
       "id": "119",
@@ -282,7 +285,7 @@
       "id": "120",
       "title": "Search and Filtering for Vault and Transactions",
       "description": "Implement real search by name and filtering by type/date/status in document vault and transaction list.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "106",
         "108"
@@ -290,26 +293,28 @@
       "priority": "medium",
       "details": "Vault: search input filters documents by name (client-side or ilike query). Filter by document type dropdown. Filter by status (valid/expiring/expired). Sort by date or name. Bookkeeper: filter transactions by category, type (income/expense), date range. Search by description or vendor. Pagination for large datasets.",
       "testStrategy": "With 10+ documents: search by partial name. Filter by type — shows subset. With 50+ transactions: filter by category, date range works.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.273Z"
     },
     {
       "id": "121",
       "title": "Empty States for New Users",
       "description": "Design and implement empty state views for dashboard, vault, calendar, bookkeeper, and team when no data exists yet.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "103"
       ],
       "priority": "medium",
       "details": "Dashboard: show onboarding prompt if no business exists. Show 'Upload your first document' if vault empty. Vault: illustration + 'No documents yet' + upload CTA. Calendar: 'Complete onboarding to see your obligations' or 'No obligations' + add CTA. Bookkeeper: 'Upload a bank statement or add your first transaction' + CTAs. Team: 'Add your first team member' + invite CTA. Use consistent design pattern across all pages.",
       "testStrategy": "Create fresh user with no data. Visit each page — see empty state with CTA. Click CTA — navigates to correct action.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.275Z"
     },
     {
       "id": "122",
       "title": "Rate Limiting on AI Endpoints",
       "description": "Add rate limiting to AI-powered API routes to prevent abuse and control costs. 100 calls/user/day as per PRD.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "110",
         "111",
@@ -318,13 +323,14 @@
       "priority": "medium",
       "details": "Create rate-limit middleware for /api/analyze-document, /api/parse-statement, /api/analyze-receipt. Track calls per user_id per day in a simple counter (Supabase or in-memory). Return 429 Too Many Requests when limit exceeded. Show user-friendly message with reset time.",
       "testStrategy": "Call AI endpoint 100 times. 101st call returns 429. Wait until next day — resets.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.278Z"
     },
     {
       "id": "123",
       "title": "Error Handling and Loading States",
       "description": "Add proper error boundaries, loading skeletons, and retry logic across all pages that fetch data.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "103",
         "104",
@@ -336,13 +342,14 @@
       "priority": "medium",
       "details": "Loading: skeleton loaders for dashboard cards, vault grid, calendar list, transaction table. Error: toast notifications for failed operations. Retry: exponential backoff for Supabase queries that fail. Network offline: show offline banner. Form validation errors: inline messages in Arabic and English.",
       "testStrategy": "Simulate slow network — skeletons show. Simulate API failure — error toast appears. Retry succeeds after transient failure.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.281Z"
     },
     {
       "id": "124",
       "title": "Duplicate Detection",
       "description": "Prevent duplicate transactions (same date+amount+description) and duplicate CR numbers across businesses.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "108",
         "102"
@@ -350,52 +357,56 @@
       "priority": "medium",
       "details": "Transactions: before insert, query for existing transaction with same date, amount, description, business_id. If found, warn user and ask to confirm or skip. CR numbers: businesses.cr_number is already UNIQUE in schema, but add client-side validation with user-friendly error message on onboarding.",
       "testStrategy": "Import CSV with a duplicate transaction. Warning shown. User can skip or force-add. Try onboarding with existing CR number — shows error.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.284Z"
     },
     {
       "id": "125",
       "title": "GOSI Monthly Recurrence Logic",
       "description": "When a GOSI monthly obligation is completed, automatically generate the next month's obligation.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "107"
       ],
       "priority": "medium",
       "details": "In mark-complete handler: if obligation type is GOSI_MONTHLY and frequency is MONTHLY, calculate next month's due date using getNextOccurrence(). Create new obligation record with the next due date. Copy all fields except dates and completion status. This ensures GOSI obligations continue indefinitely, not just for the initial 12 months.",
       "testStrategy": "Complete April GOSI payment. Verify May obligation auto-created with correct due date. Complete May — June created.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.286Z"
     },
     {
       "id": "126",
       "title": "Settings Page Persistence",
       "description": "Wire settings page toggles to persist preferences. Language switch, notification toggles, and theme preference should survive page reloads.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "101"
       ],
       "priority": "low",
       "details": "Store preferences in Supabase user metadata or a user_preferences table. Notification toggles: save to user record. Language: already handled by next-intl routing. Theme: store preference in localStorage + user record. Load preferences on page mount.",
       "testStrategy": "Toggle off weekly digest. Reload page — still off. Switch to Arabic — persists across sessions.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.288Z"
     },
     {
       "id": "127",
       "title": "Mobile Responsive QA and Camera Support",
       "description": "Test and fix responsive layout on 375px+ mobile. Ensure camera capture works for CR upload and receipt photos on iOS/Android.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "109"
       ],
       "priority": "low",
       "details": "Test all pages at 375px, 390px, 414px widths. Fix any overflow, truncation, or touch target issues. Camera: use input[type=file][capture=environment] for mobile camera access. Test on real iOS Safari and Android Chrome. Verify drag-drop fallback on mobile (tap to select file).",
       "testStrategy": "Test on real phone or device emulator at 375px. Complete full flow: signup → onboarding (camera CR) → dashboard → upload receipt (camera). All interactions work with touch.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.290Z"
     },
     {
       "id": "128",
       "title": "Security Audit and Hardening",
       "description": "Full security review: RLS enforcement, API key protection, input sanitization, CSRF, and rate limiting.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "100",
         "110",
@@ -404,13 +415,14 @@
       "priority": "low",
       "details": "Verify: all Supabase queries go through RLS (no service_role key on client). ANTHROPIC_API_KEY only used server-side (never in client bundle). All user inputs sanitized before DB insert. File upload validates type and size. API routes check authentication. No SQL injection vectors. CORS configured correctly. CSP headers set.",
       "testStrategy": "Attempt to access another user's data via API — blocked by RLS. Check browser devtools — no API keys exposed. Upload malicious file — rejected. Send XSS payload in form — sanitized.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.293Z"
     },
     {
       "id": "129",
       "title": "Final QA: Full User Journey Test",
       "description": "End-to-end test of the complete user journey in both Arabic and English. Every feature, every page, every edge case.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "100",
         "101",
@@ -429,27 +441,29 @@
       "priority": "low",
       "details": "Test flow: 1) Sign up with email. 2) Complete onboarding with real CR upload. 3) Dashboard shows real obligations. 4) Upload documents to vault — AI categorizes. 5) Calendar shows auto-generated obligations. 6) Upload bank statement CSV — transactions parsed. 7) Review queue for low-confidence items. 8) Add manual transaction. 9) Bookkeeper charts show real data. 10) Add team member. 11) Switch to Arabic — everything works RTL. 12) Mobile test. 13) Sign out and back in — data persists.",
       "testStrategy": "Complete full journey as described above in both EN and AR. Document any issues found. All features work with real data.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.296Z"
     },
     {
       "id": "130",
       "title": "Deploy Production with Environment Variables",
       "description": "Configure Vercel environment variables for Supabase and Anthropic API keys. Deploy to production. Verify all features work on the live URL.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         "129"
       ],
       "priority": "low",
       "details": "Set on Vercel: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (for admin operations only), ANTHROPIC_API_KEY. Configure Vercel Cron for daily reminder job. Verify: auth flow works, file uploads work, AI analysis works, emails send. Test with real user account.",
       "testStrategy": "Full user journey on production URL. Sign up, onboard, upload docs, parse statements, check reminders. Everything works with real services.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T22:14:38.299Z"
     }
   ],
   "metadata": {
     "version": "1.0.0",
-    "lastModified": "2026-04-11T21:40:22.649Z",
+    "lastModified": "2026-04-11T22:14:38.299Z",
     "taskCount": 31,
-    "completedCount": 17,
+    "completedCount": 31,
     "tags": [
       "master"
     ]

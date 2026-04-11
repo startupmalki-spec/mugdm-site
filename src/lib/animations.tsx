@@ -441,10 +441,10 @@ export function ReactiveShadda() {
   return (
     <div
       ref={ref}
-      className="absolute top-1/2 left-1/2 w-[420px] h-[420px] z-0 pointer-events-none"
+      className="absolute top-1/2 left-1/2 w-[500px] h-[500px] z-0 pointer-events-none"
       style={{
         transform: "translate(-50%,-50%) scale(0.8)",
-        opacity: entered ? 0.04 : 0,
+        opacity: entered ? 0.08 : 0,
         transition: "opacity 2s cubic-bezier(0.25,0.8,0.25,1), transform 0.2s ease-out, filter 0.2s ease-out",
         filter: "brightness(1.5) drop-shadow(0 0 20px rgba(91,91,255,0.1))",
         animation: entered ? "shadda-breathe 4s ease-in-out infinite" : "none",
@@ -468,7 +468,7 @@ export function FloatingShaddas({ count = 5, className = "" }: { count?: number;
     top: `${5 + Math.random() * 90}%`,
     duration: 15 + Math.random() * 20,
     delay: Math.random() * 5,
-    opacity: 0.015 + Math.random() * 0.02,
+    opacity: 0.025 + Math.random() * 0.03,
     rotate: Math.random() * 360,
   }));
 

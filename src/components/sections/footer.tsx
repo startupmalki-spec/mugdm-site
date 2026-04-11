@@ -16,7 +16,7 @@ export function Footer() {
       />
       {/* Subtle شدة watermark */}
       <div
-        className="absolute -right-10 -bottom-10 w-[200px] h-[200px] pointer-events-none opacity-[0.03] brightness-200"
+        className="absolute -right-10 -bottom-10 w-[240px] h-[240px] pointer-events-none opacity-[0.06] brightness-200"
         style={{
           background: "url('/brand/logo-shadda.png') no-repeat center/contain",
         }}
@@ -27,11 +27,11 @@ export function Footer() {
           {/* Logo */}
           <a href="#" className="flex items-center gap-2 group">
             <Image
-              src="/brand/logo-wordmark.png"
+              src="/brand/2-transparent.png"
               alt="Mugdm"
-              width={140}
-              height={56}
-              className="h-14 w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105"
+              width={160}
+              height={64}
+              className="h-16 w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105"
             />
           </a>
 

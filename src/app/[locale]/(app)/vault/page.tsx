@@ -30,6 +30,8 @@ import { ar, enUS } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToastContainer, useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -680,6 +682,7 @@ export default function VaultPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [businessId, setBusinessId] = useState<string | null>(null)
+  const { toasts, showToast, dismissToast } = useToast()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -694,38 +697,43 @@ export default function VaultPage() {
 
   useEffect(() => {
     async function loadDocuments() {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          setIsLoading(false)
+          return
+        }
+
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('user_id', user.id)
+          .single() as { data: { id: string } | null; error: unknown }
+
+        if (!biz) {
+          setIsLoading(false)
+          return
+        }
+
+        setBusinessId(biz.id)
+
+        const { data: docs } = await supabase
+          .from('documents')
+          .select('*')
+          .eq('business_id', biz.id)
+          .order('uploaded_at', { ascending: false }) as { data: Document[] | null; error: unknown }
+
+        if (docs) setDocuments(docs)
+      } catch {
+        showToast(locale === 'ar' ? 'فشل في تحميل البيانات' : 'Failed to load data', 'error')
+      } finally {
         setIsLoading(false)
-        return
       }
-
-      const { data: biz } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('user_id', user.id)
-        .single() as { data: { id: string } | null; error: unknown }
-
-      if (!biz) {
-        setIsLoading(false)
-        return
-      }
-
-      setBusinessId(biz.id)
-
-      const { data: docs } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('business_id', biz.id)
-        .order('uploaded_at', { ascending: false }) as { data: Document[] | null; error: unknown }
-
-      if (docs) setDocuments(docs)
-      setIsLoading(false)
     }
 
     loadDocuments()
-  }, [])
+  }, [locale, showToast])
 
   /* ─── Archive document ─── */
 
@@ -809,8 +817,20 @@ export default function VaultPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-4 w-56" />
+          </div>
+          <Skeleton className="h-10 w-36" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-40" />
+          ))}
+        </div>
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       </div>
     )
   }
@@ -1111,6 +1131,8 @@ export default function VaultPage() {
         onDocumentAdded={handleDocumentAdded}
         onObligationLinked={handleObligationLinked}
       />
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   )
 }

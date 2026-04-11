@@ -32,11 +32,11 @@ export function Navbar() {
       <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2 group">
           <Image
-            src="/brand/logo-wordmark.png"
+            src="/brand/2-transparent.png"
             alt="Mugdm"
-            width={180}
-            height={72}
-            className="h-[72px] w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105"
+            width={200}
+            height={80}
+            className="h-20 w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105"
             priority
           />
         </a>
