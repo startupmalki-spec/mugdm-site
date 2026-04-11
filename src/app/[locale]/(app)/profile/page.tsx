@@ -870,7 +870,7 @@ export default function ProfilePage() {
                         'image/jpeg': ['.jpg', '.jpeg'],
                       }}
                       maxSize={2 * 1024 * 1024}
-                      bucket="branding"
+                      bucket="logos"
                       path="logos"
                       onUpload={(url) => handleBrandingSave('logo_url', url)}
                       isCircular
@@ -887,7 +887,7 @@ export default function ProfilePage() {
                         'image/jpeg': ['.jpg', '.jpeg'],
                       }}
                       maxSize={2 * 1024 * 1024}
-                      bucket="branding"
+                      bucket="logos"
                       path="stamps"
                       onUpload={(url) => handleBrandingSave('stamp_url', url)}
                       isCircular

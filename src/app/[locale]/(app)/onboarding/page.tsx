@@ -527,7 +527,7 @@ export default function OnboardingPage() {
               <FileUpload
                 accept={{ 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'] }}
                 maxSize={2 * 1024 * 1024}
-                bucket="branding"
+                bucket="logos"
                 path="logos"
                 onUpload={(url) =>
                   setData((prev) => ({ ...prev, logoUrl: url }))
@@ -543,7 +543,7 @@ export default function OnboardingPage() {
               <FileUpload
                 accept={{ 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'] }}
                 maxSize={2 * 1024 * 1024}
-                bucket="branding"
+                bucket="logos"
                 path="stamps"
                 onUpload={(url) =>
                   setData((prev) => ({ ...prev, stampUrl: url }))

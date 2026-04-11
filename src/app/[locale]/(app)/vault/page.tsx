@@ -372,6 +372,8 @@ function UploadDialog({
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
   const [selectedType, setSelectedType] = useState<DocumentType>('OTHER')
   const [expiryDate, setExpiryDate] = useState('')
+  const [insertedDocId, setInsertedDocId] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleReset = useCallback(() => {
     setUploadStep('idle')
@@ -379,44 +381,80 @@ function UploadDialog({
     setAnalysis(null)
     setSelectedType('OTHER')
     setExpiryDate('')
+    setInsertedDocId(null)
+    setIsSaving(false)
   }, [])
 
   const handleDrop = useCallback(
     async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0]
-      if (!file) return
+      if (!file || !businessId) return
 
       setSelectedFile(file)
       setUploadStep('uploading')
 
-      // Simulate upload
-      await new Promise((resolve) => setTimeout(resolve, 600))
-      setUploadStep('analyzing')
-
       try {
-        const response = await fetch('/api/analyze-document', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fileUrl: URL.createObjectURL(file),
-            fileName: file.name,
-            businessId,
-          }),
-        })
+        const supabase = createClient()
+        const fileExt = file.name.split('.').pop() ?? 'bin'
+        const storagePath = `${businessId}/${Date.now()}.${fileExt}`
 
-        if (!response.ok) throw new Error('Analysis failed')
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(storagePath, file, { cacheControl: '3600', upsert: false })
 
-        const result: AnalysisResult = await response.json()
-        setAnalysis(result)
-        setSelectedType(result.type)
-        if (result.expiryDate) setExpiryDate(result.expiryDate)
+        if (uploadError) throw uploadError
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('documents')
+          .getPublicUrl(uploadData.path)
+
+        const { data: insertedDoc, error: insertError } = await (supabase
+          .from('documents') as any)
+          .insert({
+            business_id: businessId,
+            name: file.name,
+            file_url: publicUrl,
+            file_size: file.size,
+            mime_type: file.type,
+            type: 'OTHER',
+            is_current: true,
+          })
+          .select()
+          .single() as { data: Document | null; error: unknown }
+
+        if (insertError || !insertedDoc) throw insertError ?? new Error('Insert failed')
+
+        setInsertedDocId(insertedDoc.id)
+        setUploadStep('analyzing')
+
+        try {
+          const analysisRes = await fetch('/api/analyze-document', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileUrl: publicUrl, businessId }),
+          })
+
+          if (analysisRes.ok) {
+            const raw = await analysisRes.json()
+            const result: AnalysisResult = {
+              type: raw.document_type ?? 'OTHER',
+              confidence: raw.ai_confidence ?? 0,
+              expiryDate: raw.expiry_date ?? null,
+            }
+            setAnalysis(result)
+            setSelectedType(result.type)
+            if (result.expiryDate) setExpiryDate(result.expiryDate)
+          }
+        } catch {
+          // Analysis is best-effort; proceed to confirm step regardless
+        }
+
         setUploadStep('confirm')
       } catch {
-        setSelectedType('OTHER')
-        setUploadStep('confirm')
+        setUploadStep('idle')
       }
     },
-    []
+    [businessId]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -427,29 +465,35 @@ function UploadDialog({
     disabled: uploadStep !== 'idle',
   })
 
-  const handleSave = useCallback(() => {
-    if (!selectedFile || !businessId) return
+  const handleSave = useCallback(async () => {
+    if (!selectedFile || !businessId || !insertedDocId) return
 
-    const newDoc: Document = {
-      id: `doc-${Date.now()}`,
-      business_id: businessId,
-      type: selectedType,
-      name: selectedFile.name,
-      file_url: URL.createObjectURL(selectedFile),
-      file_size: selectedFile.size,
-      mime_type: selectedFile.type,
-      expiry_date: expiryDate || null,
-      is_current: true,
-      extracted_data: null,
-      ai_confidence: analysis?.confidence ?? null,
-      uploaded_at: new Date().toISOString(),
-      archived_at: null,
+    setIsSaving(true)
+
+    try {
+      const supabase = createClient()
+
+      const updatePayload: Record<string, unknown> = {
+        type: selectedType,
+        expiry_date: expiryDate || null,
+        ai_confidence: analysis?.confidence ?? null,
+      }
+
+      const { data: updatedDoc } = await (supabase
+        .from('documents') as any)
+        .update(updatePayload)
+        .eq('id', insertedDocId)
+        .select()
+        .single() as { data: Document | null; error: unknown }
+
+      if (updatedDoc) {
+        onDocumentAdded(updatedDoc)
+      }
+    } finally {
+      handleReset()
+      onOpenChange(false)
     }
-
-    onDocumentAdded(newDoc)
-    handleReset()
-    onOpenChange(false)
-  }, [selectedFile, selectedType, expiryDate, analysis, businessId, onDocumentAdded, onOpenChange, handleReset])
+  }, [selectedFile, selectedType, expiryDate, analysis, businessId, insertedDocId, onDocumentAdded, onOpenChange, handleReset])
 
   return (
     <Dialog.Root
@@ -590,10 +634,12 @@ function UploadDialog({
                       onOpenChange(false)
                     }}
                     className="flex-1"
+                    disabled={isSaving}
                   >
                     {tCommon('cancel')}
                   </Button>
-                  <Button onClick={handleSave} className="flex-1">
+                  <Button onClick={handleSave} className="flex-1 gap-2" disabled={isSaving}>
+                    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
                     {tCommon('save')}
                   </Button>
                 </div>

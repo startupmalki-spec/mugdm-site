@@ -1,97 +1,182 @@
 import { NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 
 import type { DocumentType } from '@/lib/supabase/types'
 
-interface AnalyzeRequest {
-  fileUrl: string
-  fileName: string
+const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
+
+const DOCUMENT_TYPES: DocumentType[] = [
+  'CR',
+  'GOSI_CERT',
+  'ZAKAT_CLEARANCE',
+  'INSURANCE',
+  'CHAMBER',
+  'BALADY',
+  'MISA',
+  'LEASE',
+  'SAUDIZATION_CERT',
+  'BANK_STATEMENT',
+  'TAX_REGISTRATION',
+  'OTHER',
+]
+
+interface AnalyzeDocumentRequest {
+  fileUrl?: string
+  base64Data?: string
+  mediaType?: string
   businessId: string
 }
 
-interface AnalyzeResponse {
-  type: DocumentType
-  confidence: number
-  expiryDate: string | null
+interface ExtractedDocumentData {
+  document_type: DocumentType
+  expiry_date: string | null
+  issuing_authority: string | null
+  registration_number: string | null
+  holder_name: string | null
+  additional_data: Record<string, unknown>
+  ai_confidence: number
 }
 
-/**
- * Mock document analysis endpoint.
- * In production, this would call Claude Vision API to:
- * 1. Identify the document type from visual content
- * 2. Extract expiry dates, registration numbers, etc.
- * 3. Return structured extracted_data
- */
+const ANALYSIS_PROMPT = `You are an expert at reading Saudi Arabian government and business documents, including Arabic text.
 
-const FILENAME_PATTERNS: Array<{ pattern: RegExp; type: DocumentType }> = [
-  { pattern: /cr|commercial|سجل|تجاري/i, type: 'CR' },
-  { pattern: /gosi|تأمين|social/i, type: 'GOSI_CERT' },
-  { pattern: /zakat|زكاة|clearance/i, type: 'ZAKAT_CLEARANCE' },
-  { pattern: /insurance|تأمين.*شامل/i, type: 'INSURANCE' },
-  { pattern: /chamber|غرفة/i, type: 'CHAMBER' },
-  { pattern: /balad|بلد|municipal/i, type: 'BALADY' },
-  { pattern: /misa|استثمار|invest/i, type: 'MISA' },
-  { pattern: /lease|إيجار|rent/i, type: 'LEASE' },
-  { pattern: /saudiz|توطين|nitaqat/i, type: 'SAUDIZATION_CERT' },
-  { pattern: /bank|بنك|statement/i, type: 'BANK_STATEMENT' },
-  { pattern: /tax|ضريب|vat/i, type: 'TAX_REGISTRATION' },
-]
+Analyze this document image and extract the following information as JSON. Return ONLY valid JSON, no explanations.
 
-function detectTypeFromFilename(fileName: string): { type: DocumentType; confidence: number } {
-  for (const { pattern, type } of FILENAME_PATTERNS) {
-    if (pattern.test(fileName)) {
-      return { type, confidence: 0.6 + Math.random() * 0.25 }
-    }
+Required fields:
+- document_type: one of ${DOCUMENT_TYPES.join(', ')}
+- expiry_date: ISO date string (YYYY-MM-DD) or null if not present/applicable
+- issuing_authority: the government body or organization that issued this document, or null
+- registration_number: any registration, license, or certificate number, or null
+- holder_name: the name of the business or individual this document belongs to (in Arabic or English), or null
+- additional_data: an object with any other relevant extracted fields (e.g., issue_date, activity_type, city, cr_number)
+- ai_confidence: a number between 0 and 1 representing your confidence in the extraction accuracy
+
+Document type guidance:
+- CR: Commercial Registration (سجل تجاري)
+- GOSI_CERT: GOSI/Social Insurance certificate (شهادة التأمينات)
+- ZAKAT_CLEARANCE: Zakat clearance certificate (شهادة الزكاة)
+- INSURANCE: Insurance policy or certificate
+- CHAMBER: Chamber of Commerce membership (عضوية الغرفة التجارية)
+- BALADY: Municipal/Balady license (رخصة البلدية)
+- MISA: Investment license / MISA certificate
+- LEASE: Lease/rental agreement (عقد إيجار)
+- SAUDIZATION_CERT: Saudization/Nitaqat certificate (شهادة التوطين)
+- BANK_STATEMENT: Bank statement (كشف حساب)
+- TAX_REGISTRATION: VAT/Tax registration certificate (شهادة ضريبية)
+- OTHER: Any other document type
+
+Return exactly this JSON structure:
+{
+  "document_type": "CR",
+  "expiry_date": "2025-12-31",
+  "issuing_authority": "Ministry of Commerce",
+  "registration_number": "1234567890",
+  "holder_name": "شركة الأمثلة المحدودة",
+  "additional_data": {},
+  "ai_confidence": 0.95
+}`
+
+function buildFallbackResponse(): ExtractedDocumentData {
+  return {
+    document_type: 'OTHER',
+    expiry_date: null,
+    issuing_authority: null,
+    registration_number: null,
+    holder_name: null,
+    additional_data: {},
+    ai_confidence: 0,
   }
-  return { type: 'OTHER', confidence: 0.3 }
 }
 
-function generateMockExpiryDate(): string {
-  const today = new Date()
-  const monthsAhead = 1 + Math.floor(Math.random() * 12)
-  const expiry = new Date(today.getFullYear(), today.getMonth() + monthsAhead, today.getDate())
-  return expiry.toISOString().split('T')[0]
+function parseClaudeResponse(text: string): ExtractedDocumentData {
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (!jsonMatch) return buildFallbackResponse()
+
+  const parsed = JSON.parse(jsonMatch[0]) as Partial<ExtractedDocumentData>
+
+  const documentType: DocumentType = DOCUMENT_TYPES.includes(parsed.document_type as DocumentType)
+    ? (parsed.document_type as DocumentType)
+    : 'OTHER'
+
+  const confidence = typeof parsed.ai_confidence === 'number'
+    ? Math.min(1, Math.max(0, parsed.ai_confidence))
+    : 0.5
+
+  return {
+    document_type: documentType,
+    expiry_date: parsed.expiry_date ?? null,
+    issuing_authority: parsed.issuing_authority ?? null,
+    registration_number: parsed.registration_number ?? null,
+    holder_name: parsed.holder_name ?? null,
+    additional_data: parsed.additional_data ?? {},
+    ai_confidence: Math.round(confidence * 100) / 100,
+  }
 }
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as AnalyzeRequest
+    const body = (await request.json()) as AnalyzeDocumentRequest
 
-    if (!body.fileUrl || !body.businessId) {
+    if (!body.businessId) {
       return NextResponse.json(
-        { error: 'fileUrl and businessId are required' },
+        { error: 'businessId is required' },
         { status: 400 }
       )
     }
 
-    // NOTE(moe): Replace with Claude Vision API call for production
-    // const anthropic = new Anthropic()
-    // const response = await anthropic.messages.create({
-    //   model: 'claude-sonnet-4-20250514',
-    //   max_tokens: 1024,
-    //   messages: [{ role: 'user', content: [
-    //     { type: 'image', source: { type: 'url', url: body.fileUrl } },
-    //     { type: 'text', text: 'Identify this Saudi business document...' }
-    //   ]}]
-    // })
-
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    const fileName = body.fileName ?? body.fileUrl.split('/').pop() ?? ''
-    const { type, confidence } = detectTypeFromFilename(fileName)
-    const hasExpiry = type !== 'BANK_STATEMENT' && type !== 'OTHER'
-
-    const result: AnalyzeResponse = {
-      type,
-      confidence: Math.round(confidence * 100) / 100,
-      expiryDate: hasExpiry ? generateMockExpiryDate() : null,
+    if (!body.fileUrl && !body.base64Data) {
+      return NextResponse.json(
+        { error: 'Either fileUrl or base64Data is required' },
+        { status: 400 }
+      )
     }
+
+    const anthropic = new Anthropic()
+
+    let imageContent: Anthropic.ImageBlockParam
+
+    if (body.base64Data) {
+      const mediaType = (body.mediaType as Anthropic.Base64ImageSource['media_type']) ?? 'image/jpeg'
+      imageContent = {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: mediaType,
+          data: body.base64Data,
+        },
+      }
+    } else {
+      imageContent = {
+        type: 'image',
+        source: {
+          type: 'url',
+          url: body.fileUrl!,
+        },
+      }
+    }
+
+    const response = await anthropic.messages.create({
+      model: CLAUDE_MODEL,
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            imageContent,
+            { type: 'text', text: ANALYSIS_PROMPT },
+          ],
+        },
+      ],
+    })
+
+    const responseText = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('')
+
+    const result = parseClaudeResponse(responseText)
 
     return NextResponse.json(result)
   } catch {
-    return NextResponse.json(
-      { error: 'Failed to analyze document' },
-      { status: 500 }
-    )
+    return NextResponse.json(buildFallbackResponse())
   }
 }
