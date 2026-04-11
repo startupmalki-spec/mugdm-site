@@ -52,7 +52,6 @@ interface WizardData {
 /* ───────── Constants ───────── */
 
 const TOTAL_STEPS = 3
-const SIMULATED_ANALYSIS_DELAY_MS = 2500
 
 const STEP_ICONS = [Upload, Building2, Phone] as const
 
@@ -153,17 +152,46 @@ export default function OnboardingPage() {
   /* ─── CR Upload Handler ─── */
 
   const handleCRUpload = useCallback(
-    (url: string) => {
+    async (url: string) => {
       setData((prev) => ({ ...prev, crDocumentUrl: url }))
-
-      // Simulate AI analysis then advance to step 2
       setIsAnalyzing(true)
       setDirection(1)
 
-      setTimeout(() => {
+      try {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+
+        const res = await fetch('/api/analyze-document', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileUrl: url,
+            businessId: user?.id ?? 'onboarding',
+          }),
+        })
+
+        if (res.ok) {
+          const result = await res.json()
+          const extra = result.additional_data ?? {}
+
+          setData((prev) => ({
+            ...prev,
+            nameAr: result.holder_name ?? prev.nameAr,
+            crNumber: result.registration_number ?? extra.cr_number ?? prev.crNumber,
+            crExpiryDate: result.expiry_date ?? prev.crExpiryDate,
+            crIssuanceDate: extra.issue_date ?? prev.crIssuanceDate,
+            activityType: extra.activity_type ?? prev.activityType,
+            city: extra.city ?? prev.city,
+            capital: extra.capital ? String(extra.capital) : prev.capital,
+            nameEn: extra.name_en ?? prev.nameEn,
+          }))
+        }
+      } catch {
+        // AI extraction failed — user can fill fields manually
+      } finally {
         setIsAnalyzing(false)
         setStep(2)
-      }, SIMULATED_ANALYSIS_DELAY_MS)
+      }
     },
     []
   )
