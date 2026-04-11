@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import * as Dialog from '@radix-ui/react-dialog'
 import * as Select from '@radix-ui/react-select'
-import * as Popover from '@radix-ui/react-popover'
 import {
   Upload,
   Grid3X3,
@@ -22,7 +21,6 @@ import {
   Eye,
   Archive,
   Clock,
-  Calendar,
   Filter,
   ArrowUpDown,
 } from 'lucide-react'
@@ -32,6 +30,7 @@ import { ar, enUS } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 import {
   getExpiryStatus,
   getExpiryBadgeColor,
@@ -74,89 +73,6 @@ const CONTAINER_VARIANTS = {
 const ITEM_VARIANTS = {
   hidden: { opacity: 0, y: 12 },
   show: { opacity: 1, y: 0 },
-}
-
-// --- Mock data for demonstration ---
-
-function createMockDocuments(): Document[] {
-  const now = new Date()
-  return [
-    {
-      id: '1',
-      business_id: 'b1',
-      type: 'CR',
-      name: 'Commercial Registration 2024.pdf',
-      file_url: '/docs/cr-2024.pdf',
-      file_size: 2450000,
-      mime_type: 'application/pdf',
-      expiry_date: new Date(now.getFullYear() + 1, 2, 15).toISOString(),
-      is_current: true,
-      extracted_data: null,
-      ai_confidence: 0.92,
-      uploaded_at: new Date(now.getFullYear(), 0, 10).toISOString(),
-      archived_at: null,
-    },
-    {
-      id: '2',
-      business_id: 'b1',
-      type: 'GOSI_CERT',
-      name: 'GOSI Certificate.pdf',
-      file_url: '/docs/gosi.pdf',
-      file_size: 1200000,
-      mime_type: 'application/pdf',
-      expiry_date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 18).toISOString(),
-      is_current: true,
-      extracted_data: null,
-      ai_confidence: 0.87,
-      uploaded_at: new Date(now.getFullYear(), 1, 5).toISOString(),
-      archived_at: null,
-    },
-    {
-      id: '3',
-      business_id: 'b1',
-      type: 'CHAMBER',
-      name: 'Chamber Membership.pdf',
-      file_url: '/docs/chamber.pdf',
-      file_size: 890000,
-      mime_type: 'application/pdf',
-      expiry_date: new Date(now.getFullYear(), now.getMonth() - 1, 20).toISOString(),
-      is_current: true,
-      extracted_data: null,
-      ai_confidence: 0.78,
-      uploaded_at: new Date(now.getFullYear() - 1, 5, 12).toISOString(),
-      archived_at: null,
-    },
-    {
-      id: '4',
-      business_id: 'b1',
-      type: 'ZAKAT_CLEARANCE',
-      name: 'Zakat Clearance 1445.pdf',
-      file_url: '/docs/zakat.pdf',
-      file_size: 3100000,
-      mime_type: 'application/pdf',
-      expiry_date: new Date(now.getFullYear() + 1, 8, 1).toISOString(),
-      is_current: true,
-      extracted_data: null,
-      ai_confidence: 0.91,
-      uploaded_at: new Date(now.getFullYear(), 3, 20).toISOString(),
-      archived_at: null,
-    },
-    {
-      id: '5',
-      business_id: 'b1',
-      type: 'CR',
-      name: 'Commercial Registration 2023.pdf',
-      file_url: '/docs/cr-2023.pdf',
-      file_size: 2100000,
-      mime_type: 'application/pdf',
-      expiry_date: new Date(now.getFullYear() - 1, 2, 15).toISOString(),
-      is_current: false,
-      extracted_data: null,
-      ai_confidence: 0.88,
-      uploaded_at: new Date(now.getFullYear() - 1, 0, 8).toISOString(),
-      archived_at: new Date(now.getFullYear(), 0, 10).toISOString(),
-    },
-  ]
 }
 
 // --- Components ---
@@ -326,10 +242,12 @@ function DocumentDetailPanel({
   doc,
   locale,
   onClose,
+  onArchive,
 }: {
   doc: Document
   locale: string
   onClose: () => void
+  onArchive: (doc: Document) => void
 }) {
   const t = useTranslations('vault')
   const Icon = getDocumentTypeIcon(doc.type)
@@ -415,6 +333,20 @@ function DocumentDetailPanel({
           {t('actions.download')}
         </Button>
       </div>
+
+      {!doc.archived_at && (
+        <div className="mt-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full gap-2 text-muted-foreground hover:text-red-400"
+            onClick={() => onArchive(doc)}
+          >
+            <Archive className="h-4 w-4" />
+            {t('actions.archive')}
+          </Button>
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -423,11 +355,13 @@ function UploadDialog({
   isOpen,
   onOpenChange,
   locale,
+  businessId,
   onDocumentAdded,
 }: {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   locale: string
+  businessId: string | null
   onDocumentAdded: (doc: Document) => void
 }) {
   const t = useTranslations('vault')
@@ -466,7 +400,7 @@ function UploadDialog({
           body: JSON.stringify({
             fileUrl: URL.createObjectURL(file),
             fileName: file.name,
-            businessId: 'mock-business-id',
+            businessId,
           }),
         })
 
@@ -494,11 +428,11 @@ function UploadDialog({
   })
 
   const handleSave = useCallback(() => {
-    if (!selectedFile) return
+    if (!selectedFile || !businessId) return
 
     const newDoc: Document = {
       id: `doc-${Date.now()}`,
-      business_id: 'mock-business-id',
+      business_id: businessId,
       type: selectedType,
       name: selectedFile.name,
       file_url: URL.createObjectURL(selectedFile),
@@ -515,7 +449,7 @@ function UploadDialog({
     onDocumentAdded(newDoc)
     handleReset()
     onOpenChange(false)
-  }, [selectedFile, selectedType, expiryDate, analysis, onDocumentAdded, onOpenChange, handleReset])
+  }, [selectedFile, selectedType, expiryDate, analysis, businessId, onDocumentAdded, onOpenChange, handleReset])
 
   return (
     <Dialog.Root
@@ -689,7 +623,9 @@ export default function VaultPage() {
   const tCommon = useTranslations('common')
   const locale = useLocale()
 
-  const [documents, setDocuments] = useState<Document[]>(createMockDocuments)
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [businessId, setBusinessId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -699,13 +635,68 @@ export default function VaultPage() {
   const [isShowingArchived, setIsShowingArchived] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null)
 
+  /* ─── Load documents ─── */
+
+  useEffect(() => {
+    async function loadDocuments() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setIsLoading(false)
+        return
+      }
+
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('user_id', user.id)
+        .single() as { data: { id: string } | null; error: unknown }
+
+      if (!biz) {
+        setIsLoading(false)
+        return
+      }
+
+      setBusinessId(biz.id)
+
+      const { data: docs } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('business_id', biz.id)
+        .order('uploaded_at', { ascending: false }) as { data: Document[] | null; error: unknown }
+
+      if (docs) setDocuments(docs)
+      setIsLoading(false)
+    }
+
+    loadDocuments()
+  }, [])
+
+  /* ─── Archive document ─── */
+
+  const handleArchive = useCallback(async (doc: Document) => {
+    const supabase = createClient()
+    const archivedAt = new Date().toISOString()
+
+    const { data } = await (supabase.from('documents') as any)
+      .update({ archived_at: archivedAt, is_current: false })
+      .eq('id', doc.id)
+      .select()
+      .single() as { data: Document | null; error: unknown }
+
+    if (data) {
+      setDocuments((prev) => prev.map((d) => (d.id === data.id ? data : d)))
+      setSelectedDoc(null)
+    }
+  }, [])
+
   const handleDocumentAdded = useCallback((doc: Document) => {
     setDocuments((prev) => [doc, ...prev])
   }, [])
 
   // Counts for status summary
   const statusCounts = useMemo(() => {
-    const current = documents.filter((d) => d.is_current)
+    const current = documents.filter((d) => d.archived_at === null)
     return {
       valid: current.filter((d) => getExpiryStatus(d.expiry_date) === 'valid').length,
       expiring: current.filter((d) => getExpiryStatus(d.expiry_date) === 'expiring').length,
@@ -718,7 +709,7 @@ export default function VaultPage() {
     let result = documents
 
     if (!isShowingArchived) {
-      result = result.filter((d) => d.is_current)
+      result = result.filter((d) => d.archived_at === null)
     }
 
     if (searchQuery) {
@@ -755,6 +746,14 @@ export default function VaultPage() {
 
     return result
   }, [documents, searchQuery, typeFilter, statusFilter, sortField, isShowingArchived, locale])
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -971,6 +970,7 @@ export default function VaultPage() {
                 doc={selectedDoc}
                 locale={locale}
                 onClose={() => setSelectedDoc(null)}
+                onArchive={handleArchive}
               />
             </div>
           )}
@@ -982,6 +982,7 @@ export default function VaultPage() {
         isOpen={isUploadOpen}
         onOpenChange={setIsUploadOpen}
         locale={locale}
+        businessId={businessId}
         onDocumentAdded={handleDocumentAdded}
       />
     </div>

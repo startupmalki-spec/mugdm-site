@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -21,6 +21,7 @@ import {
   Undo2,
   List,
   Calendar,
+  Loader2,
 } from 'lucide-react'
 import {
   format,
@@ -48,6 +49,7 @@ import {
   getObligationDotColor,
   getNextRecurrence,
 } from '@/lib/compliance/rules-engine'
+import { createClient } from '@/lib/supabase/client'
 
 import type { Obligation, ObligationType, ObligationFrequency } from '@/lib/supabase/types'
 import type { ObligationStatus } from '@/lib/compliance/rules-engine'
@@ -90,122 +92,6 @@ const CONTAINER_VARIANTS = {
 const ITEM_VARIANTS = {
   hidden: { opacity: 0, y: 8 },
   show: { opacity: 1, y: 0 },
-}
-
-// --- Mock data ---
-
-function createMockObligations(): Obligation[] {
-  const now = new Date()
-  return [
-    {
-      id: 'ob-1',
-      business_id: 'b1',
-      type: 'CR_CONFIRMATION',
-      name: 'CR Annual Confirmation',
-      description: 'Annual Commercial Registration confirmation with Ministry of Commerce',
-      frequency: 'ANNUAL',
-      next_due_date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 45).toISOString().split('T')[0],
-      last_completed_at: null,
-      reminder_30d_sent: false,
-      reminder_15d_sent: false,
-      reminder_7d_sent: false,
-      reminder_1d_sent: false,
-      linked_document_id: null,
-      notes: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'ob-2',
-      business_id: 'b1',
-      type: 'GOSI',
-      name: 'GOSI Monthly Payment',
-      description: 'Monthly social insurance contribution',
-      frequency: 'MONTHLY',
-      next_due_date: new Date(now.getFullYear(), now.getMonth(), 15).toISOString().split('T')[0],
-      last_completed_at: null,
-      reminder_30d_sent: false,
-      reminder_15d_sent: false,
-      reminder_7d_sent: false,
-      reminder_1d_sent: false,
-      linked_document_id: null,
-      notes: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'ob-3',
-      business_id: 'b1',
-      type: 'ZATCA_VAT',
-      name: 'VAT Return Q2',
-      description: 'Quarterly VAT return filing with ZATCA',
-      frequency: 'QUARTERLY',
-      next_due_date: new Date(now.getFullYear(), now.getMonth(), now.getDate() + 5).toISOString().split('T')[0],
-      last_completed_at: null,
-      reminder_30d_sent: true,
-      reminder_15d_sent: true,
-      reminder_7d_sent: true,
-      reminder_1d_sent: false,
-      linked_document_id: null,
-      notes: 'Ensure all invoices are reconciled before filing',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'ob-4',
-      business_id: 'b1',
-      type: 'CHAMBER',
-      name: 'Chamber Membership Renewal',
-      description: 'Annual Chamber of Commerce membership renewal',
-      frequency: 'ANNUAL',
-      next_due_date: new Date(now.getFullYear(), now.getMonth() - 1, 20).toISOString().split('T')[0],
-      last_completed_at: null,
-      reminder_30d_sent: true,
-      reminder_15d_sent: true,
-      reminder_7d_sent: true,
-      reminder_1d_sent: true,
-      linked_document_id: null,
-      notes: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'ob-5',
-      business_id: 'b1',
-      type: 'ZAKAT',
-      name: 'Zakat Declaration',
-      description: 'Annual Zakat filing with ZATCA',
-      frequency: 'ANNUAL',
-      next_due_date: new Date(now.getFullYear(), 3, 30).toISOString().split('T')[0],
-      last_completed_at: new Date(now.getFullYear(), 3, 25).toISOString(),
-      reminder_30d_sent: true,
-      reminder_15d_sent: true,
-      reminder_7d_sent: true,
-      reminder_1d_sent: true,
-      linked_document_id: null,
-      notes: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-    {
-      id: 'ob-6',
-      business_id: 'b1',
-      type: 'GOSI',
-      name: 'GOSI Payment - Next Month',
-      description: 'Monthly social insurance contribution',
-      frequency: 'MONTHLY',
-      next_due_date: new Date(now.getFullYear(), now.getMonth() + 1, 15).toISOString().split('T')[0],
-      last_completed_at: null,
-      reminder_30d_sent: false,
-      reminder_15d_sent: false,
-      reminder_7d_sent: false,
-      reminder_1d_sent: false,
-      linked_document_id: null,
-      notes: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    },
-  ]
 }
 
 // --- Helper ---
@@ -517,11 +403,13 @@ function AddObligationDialog({
   isOpen,
   onOpenChange,
   locale,
+  businessId,
   onAdd,
 }: {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   locale: string
+  businessId: string
   onAdd: (obligation: Obligation) => void
 }) {
   const t = useTranslations('calendar')
@@ -532,6 +420,7 @@ function AddObligationDialog({
   const [dueDate, setDueDate] = useState('')
   const [frequency, setFrequency] = useState<ObligationFrequency>('ONE_TIME')
   const [type, setType] = useState<ObligationType>('CUSTOM')
+  const [isSaving, setIsSaving] = useState(false)
 
   const handleReset = useCallback(() => {
     setName('')
@@ -541,12 +430,14 @@ function AddObligationDialog({
     setType('CUSTOM')
   }, [])
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!name || !dueDate) return
 
-    const newObligation: Obligation = {
-      id: `ob-${Date.now()}`,
-      business_id: 'mock-business-id',
+    setIsSaving(true)
+    const supabase = createClient()
+
+    const payload = {
+      business_id: businessId,
       type,
       name,
       description: description || null,
@@ -559,14 +450,21 @@ function AddObligationDialog({
       reminder_1d_sent: false,
       linked_document_id: null,
       notes: null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     }
 
-    onAdd(newObligation)
+    const { data, error } = await (supabase.from('obligations') as any)
+      .insert(payload)
+      .select()
+      .single() as { data: Obligation | null; error: unknown }
+
+    setIsSaving(false)
+
+    if (error || !data) return
+
+    onAdd(data)
     handleReset()
     onOpenChange(false)
-  }, [name, description, dueDate, frequency, type, onAdd, onOpenChange, handleReset])
+  }, [name, description, dueDate, frequency, type, businessId, onAdd, onOpenChange, handleReset])
 
   return (
     <Dialog.Root
@@ -681,7 +579,12 @@ function AddObligationDialog({
               >
                 {tCommon('cancel')}
               </Button>
-              <Button onClick={handleSave} disabled={!name || !dueDate} className="flex-1">
+              <Button
+                onClick={handleSave}
+                disabled={!name || !dueDate || isSaving}
+                className="flex-1 gap-2"
+              >
+                {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 {tCommon('save')}
               </Button>
             </div>
@@ -738,63 +641,124 @@ export default function CalendarPage() {
   const t = useTranslations('calendar')
   const locale = useLocale()
 
-  const [obligations, setObligations] = useState<Obligation[]>(createMockObligations)
+  const [obligations, setObligations] = useState<Obligation[]>([])
+  const [businessId, setBusinessId] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>('list')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; undoId: string | null } | null>(null)
   const [undoBackup, setUndoBackup] = useState<Obligation | null>(null)
 
-  const handleAddObligation = useCallback((obligation: Obligation) => {
-    setObligations((prev) => [...prev, obligation])
+  useEffect(() => {
+    async function loadObligations() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setIsLoading(false)
+        return
+      }
+
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('user_id', user.id)
+        .single() as { data: { id: string } | null; error: unknown }
+
+      if (!biz) {
+        setIsLoading(false)
+        return
+      }
+
+      setBusinessId(biz.id)
+
+      const { data: obligationsData } = await supabase
+        .from('obligations')
+        .select('*')
+        .eq('business_id', biz.id)
+        .order('next_due_date', { ascending: true }) as { data: Obligation[] | null; error: unknown }
+
+      if (obligationsData) setObligations(obligationsData)
+      setIsLoading(false)
+    }
+
+    loadObligations()
   }, [])
 
-  const handleMarkDone = useCallback((id: string) => {
+  const handleAddObligation = useCallback((obligation: Obligation) => {
+    setObligations((prev) => [...prev, obligation].sort(
+      (a, b) => new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime()
+    ))
+  }, [])
+
+  const handleMarkDone = useCallback(async (id: string) => {
+    const supabase = createClient()
+    const now = new Date().toISOString()
+
     setObligations((prev) =>
       prev.map((ob) => {
         if (ob.id !== id) return ob
-
         setUndoBackup({ ...ob })
 
-        const completed: Obligation = {
-          ...ob,
-          last_completed_at: new Date().toISOString(),
-        }
-
-        // If recurring, generate next occurrence
         if (ob.frequency !== 'ONE_TIME' && ob.frequency !== 'CUSTOM') {
           const nextDate = getNextRecurrence(ob.frequency, new Date(ob.next_due_date))
           return {
-            ...completed,
+            ...ob,
+            last_completed_at: now,
             next_due_date: nextDate.toISOString().split('T')[0],
-            last_completed_at: new Date().toISOString(),
           }
         }
 
-        return completed
+        return { ...ob, last_completed_at: now }
       })
     )
 
+    const ob = obligations.find((o) => o.id === id)
+    if (!ob) return
+
+    const updates: Partial<Obligation> = { last_completed_at: now }
+    if (ob.frequency !== 'ONE_TIME' && ob.frequency !== 'CUSTOM') {
+      const nextDate = getNextRecurrence(ob.frequency, new Date(ob.next_due_date))
+      updates.next_due_date = nextDate.toISOString().split('T')[0]
+    }
+
+    await (supabase.from('obligations') as any).update(updates).eq('id', id)
+
     setToast({ message: t('obligationSaved'), undoId: id })
     setTimeout(() => setToast(null), 5000)
-  }, [t])
+  }, [obligations, t])
 
-  const handleUndo = useCallback((id: string) => {
+  const handleUndo = useCallback(async (id: string) => {
     if (!undoBackup || undoBackup.id !== id) return
-    setObligations((prev) => prev.map((ob) => (ob.id === id ? undoBackup : ob)))
+
+    const backup = undoBackup
+    setObligations((prev) => prev.map((ob) => (ob.id === id ? backup : ob)))
     setUndoBackup(null)
     setToast(null)
+
+    const supabase = createClient()
+    await (supabase.from('obligations') as any)
+      .update({
+        last_completed_at: backup.last_completed_at,
+        next_due_date: backup.next_due_date,
+      })
+      .eq('id', id)
   }, [undoBackup])
 
-  const handleUndoFromObligation = useCallback((id: string) => {
+  const handleUndoFromObligation = useCallback(async (id: string) => {
     setObligations((prev) =>
-      prev.map((ob) =>
-        ob.id === id ? { ...ob, last_completed_at: null } : ob
-      )
+      prev.map((ob) => ob.id === id ? { ...ob, last_completed_at: null } : ob)
     )
+
+    const supabase = createClient()
+    await (supabase.from('obligations') as any)
+      .update({ last_completed_at: null })
+      .eq('id', id)
   }, [])
 
-  // Summary counts
   const statusCounts = useMemo(() => {
     const counts = { upcoming: 0, due_soon: 0, overdue: 0, completed: 0 }
     for (const ob of obligations) {
@@ -804,12 +768,19 @@ export default function CalendarPage() {
     return counts
   }, [obligations])
 
-  // Filtered for list view: within 30 days or overdue/completed
   const listObligations = useMemo(() => {
     return [...obligations].sort(
       (a, b) => new Date(a.next_due_date).getTime() - new Date(b.next_due_date).getTime()
     )
   }, [obligations])
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -819,7 +790,7 @@ export default function CalendarPage() {
           <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
           <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)} className="gap-2">
+        <Button onClick={() => setIsAddOpen(true)} className="gap-2" disabled={!businessId}>
           <Plus className="h-4 w-4" />
           {t('addObligation')}
         </Button>
@@ -884,7 +855,7 @@ export default function CalendarPage() {
               <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 font-medium text-foreground">{t('noObligations')}</p>
               <p className="mt-1 text-sm text-muted-foreground">{t('noObligationsDescription')}</p>
-              <Button onClick={() => setIsAddOpen(true)} className="mt-4 gap-2">
+              <Button onClick={() => setIsAddOpen(true)} className="mt-4 gap-2" disabled={!businessId}>
                 <Plus className="h-4 w-4" />
                 {t('addObligation')}
               </Button>
@@ -922,12 +893,15 @@ export default function CalendarPage() {
       </Tabs.Root>
 
       {/* Add Obligation Dialog */}
-      <AddObligationDialog
-        isOpen={isAddOpen}
-        onOpenChange={setIsAddOpen}
-        locale={locale}
-        onAdd={handleAddObligation}
-      />
+      {businessId && (
+        <AddObligationDialog
+          isOpen={isAddOpen}
+          onOpenChange={setIsAddOpen}
+          locale={locale}
+          businessId={businessId}
+          onAdd={handleAddObligation}
+        />
+      )}
 
       {/* Completion Toast */}
       <Toast

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { Link, useRouter } from '@/i18n/routing'
+import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard,
   Building2,
@@ -70,6 +71,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.replace(pathname, { locale: nextLocale })
   }, [locale, pathname, router])
 
+  const handleLogout = useCallback(async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/')
+  }, [router])
+
   return (
     <div className="flex min-h-screen bg-surface-0">
       {/* Desktop Sidebar */}
@@ -112,7 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Sidebar Footer */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border p-3 space-y-1">
           <button
             type="button"
             onClick={handleSwitchLocale}
@@ -120,6 +127,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             <Globe className="h-5 w-5 shrink-0" />
             <span>{locale === 'ar' ? 'English' : 'العربية'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            <span>{t('logout')}</span>
           </button>
         </div>
       </aside>
@@ -190,7 +205,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* Mobile Footer */}
-        <div className="border-t border-border p-3">
+        <div className="border-t border-border p-3 space-y-1">
           <button
             type="button"
             onClick={handleSwitchLocale}
@@ -198,6 +213,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           >
             <Globe className="h-5 w-5 shrink-0" />
             <span>{locale === 'ar' ? 'English' : 'العربية'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+          >
+            <LogOut className="h-5 w-5 shrink-0" />
+            <span>{t('logout')}</span>
           </button>
         </div>
       </aside>

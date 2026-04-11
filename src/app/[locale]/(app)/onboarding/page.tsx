@@ -224,7 +224,7 @@ export default function OnboardingPage() {
         throw new Error('Failed to create business')
       }
 
-      router.push('/')
+      router.push('/dashboard')
     } catch {
       setErrors({ submit: tCommon('error') })
     } finally {

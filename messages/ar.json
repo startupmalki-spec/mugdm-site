@@ -381,7 +381,8 @@
     "continueSetup": "متابعة الإعداد",
     "allGood": "كل شيء على ما يرام!",
     "allGoodDescription": "لا توجد إجراءات عاجلة حالياً. استمر بالعمل الممتاز.",
-    "totalDocuments": "إجمالي المستندات"
+    "totalDocuments": "إجمالي المستندات",
+    "noDataYet": "لا توجد بيانات بعد"
   },
   "landing": {
     "hero": {

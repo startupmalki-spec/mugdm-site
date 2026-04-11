@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { motion } from 'framer-motion'
@@ -16,6 +16,7 @@ import {
   Receipt,
   PenLine,
   ArrowUpRight,
+  Loader2,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
@@ -31,11 +32,10 @@ import {
   AreaChart,
   Area,
   Tooltip as RechartsTooltip,
-  Legend,
 } from 'recharts'
 import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { DEMO_TRANSACTIONS } from '@/lib/bookkeeper/demo-data'
+import { createClient } from '@/lib/supabase/client'
 import {
   calculateSummary,
   calculateCategoryBreakdown,
@@ -132,7 +132,47 @@ export default function BookkeeperPage() {
   const locale = useLocale()
 
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('3_months')
-  const [transactions, setTransactions] = useState<Transaction[]>(DEMO_TRANSACTIONS)
+  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [businessId, setBusinessId] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadTransactions() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setIsLoading(false)
+        return
+      }
+
+      const { data: biz } = await supabase
+        .from('businesses')
+        .select('id')
+        .eq('user_id', user.id)
+        .single() as { data: { id: string } | null; error: unknown }
+
+      if (!biz) {
+        setIsLoading(false)
+        return
+      }
+
+      setBusinessId(biz.id)
+
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('business_id', biz.id)
+        .order('date', { ascending: false }) as { data: Transaction[] | null; error: unknown }
+
+      if (txData) setTransactions(txData)
+      setIsLoading(false)
+    }
+
+    loadTransactions()
+  }, [])
 
   const periodRange = useMemo(() => getPeriodRange(activePeriod), [activePeriod])
 
@@ -179,57 +219,92 @@ export default function BookkeeperPage() {
     [categoryBreakdown]
   )
 
-  const handleAddTransaction = useCallback((data: {
+  const upcomingPaymentsCount = useMemo(() => {
+    const now = new Date()
+    const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    return transactions.filter((tx) => {
+      const d = new Date(tx.date)
+      return tx.type === 'EXPENSE' && d > now && d <= in30Days
+    }).length
+  }, [transactions])
+
+  const handleAddTransaction = useCallback(async (data: {
     date: string; amount: number; type: 'INCOME' | 'EXPENSE';
     category: TransactionCategory; description: string; vendor_or_client: string
   }) => {
-    const newTx: Transaction = {
-      id: `manual-${Date.now()}`,
-      business_id: 'demo-business-001',
+    if (!businessId) return
+
+    const supabase = createClient()
+    const payload = {
+      business_id: businessId,
       date: data.date,
       amount: data.amount,
       type: data.type,
       category: data.category,
       description: data.description,
       vendor_or_client: data.vendor_or_client,
-      source: 'MANUAL',
+      source: 'MANUAL' as const,
       source_file_id: null,
       receipt_url: null,
       linked_obligation_id: null,
       vat_amount: null,
       ai_confidence: null,
       is_reviewed: true,
-      created_at: new Date().toISOString(),
     }
-    setTransactions((prev) => [newTx, ...prev])
-  }, [])
 
-  const handleAddReceipt = useCallback((data: {
+    const { data: newTx } = await (supabase.from('transactions') as any)
+      .insert(payload)
+      .select()
+      .single() as { data: Transaction | null; error: unknown }
+
+    if (newTx) {
+      setTransactions((prev) => [newTx, ...prev])
+    }
+  }, [businessId])
+
+  const handleAddReceipt = useCallback(async (data: {
     amount: number; vendor: string; date: string;
     category: TransactionCategory; vatAmount: number; description: string
   }) => {
-    const newTx: Transaction = {
-      id: `receipt-${Date.now()}`,
-      business_id: 'demo-business-001',
+    if (!businessId) return
+
+    const supabase = createClient()
+    const payload = {
+      business_id: businessId,
       date: data.date,
       amount: data.amount,
-      type: 'EXPENSE',
+      type: 'EXPENSE' as const,
       category: data.category,
       description: data.description,
       vendor_or_client: data.vendor,
-      source: 'RECEIPT_PHOTO',
+      source: 'RECEIPT_PHOTO' as const,
       source_file_id: null,
       receipt_url: null,
       linked_obligation_id: null,
       vat_amount: data.vatAmount,
       ai_confidence: 0.85,
       is_reviewed: true,
-      created_at: new Date().toISOString(),
     }
-    setTransactions((prev) => [newTx, ...prev])
-  }, [])
+
+    const { data: newTx } = await (supabase.from('transactions') as any)
+      .insert(payload)
+      .select()
+      .single() as { data: Transaction | null; error: unknown }
+
+    if (newTx) {
+      setTransactions((prev) => [newTx, ...prev])
+    }
+  }, [businessId])
 
   const sarLabel = tCommon('sar')
+
+  if (isLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <Tooltip.Provider delayDuration={300}>
@@ -334,7 +409,7 @@ export default function BookkeeperPage() {
               )}
               dir="ltr"
             >
-              {summary.net < 0 ? '-' : ''}{formatSAR(summary.net, locale)}
+              {summary.net < 0 ? '-' : ''}{formatSAR(Math.abs(summary.net), locale)}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">{sarLabel}</p>
           </motion.div>
@@ -355,7 +430,9 @@ export default function BookkeeperPage() {
                 <Clock className="h-4 w-4 text-amber-400" />
               </div>
             </div>
-            <p className="mt-3 text-2xl font-bold tabular-nums text-amber-400" dir="ltr">3</p>
+            <p className="mt-3 text-2xl font-bold tabular-nums text-amber-400" dir="ltr">
+              {upcomingPaymentsCount}
+            </p>
             <Link
               href="/calendar"
               className="mt-1 inline-flex items-center gap-1 text-xs text-primary transition-colors hover:text-primary/80"
@@ -378,68 +455,74 @@ export default function BookkeeperPage() {
             <h3 className="mb-4 text-sm font-semibold text-foreground">
               {locale === 'ar' ? 'توزيع المصروفات' : 'Expense Breakdown'}
             </h3>
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <div className="relative h-52 w-52 shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={categoryBreakdown}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={80}
-                      paddingAngle={3}
-                      dataKey="amount"
-                      strokeWidth={0}
-                    >
-                      {categoryBreakdown.map((entry) => (
-                        <Cell key={entry.category} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      content={({ active, payload }) => {
-                        if (!active || !payload?.[0]) return null
-                        const data = payload[0].payload as { category: TransactionCategory; amount: number }
-                        return (
-                          <div className="rounded-lg border border-border bg-surface-1 px-3 py-2 text-xs shadow-xl">
-                            <p className="font-medium text-foreground">
-                              {CATEGORY_LABEL_MAP[data.category][locale === 'ar' ? 'ar' : 'en']}
-                            </p>
-                            <p className="text-muted-foreground" dir="ltr">
-                              {formatSAR(data.amount)} {sarLabel}
-                            </p>
-                          </div>
-                        )
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Center Label */}
-                <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                  <p className="text-xs text-muted-foreground">
-                    {locale === 'ar' ? 'الإجمالي' : 'Total'}
-                  </p>
-                  <p className="text-base font-bold tabular-nums text-foreground" dir="ltr">
-                    {formatSAR(totalExpenses)}
-                  </p>
+            {categoryBreakdown.length === 0 ? (
+              <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">
+                {locale === 'ar' ? 'لا توجد بيانات للفترة المحددة' : 'No data for selected period'}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-4 sm:flex-row">
+                <div className="relative h-52 w-52 shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={categoryBreakdown}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="amount"
+                        strokeWidth={0}
+                      >
+                        {categoryBreakdown.map((entry) => (
+                          <Cell key={entry.category} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.[0]) return null
+                          const data = payload[0].payload as { category: TransactionCategory; amount: number }
+                          return (
+                            <div className="rounded-lg border border-border bg-surface-1 px-3 py-2 text-xs shadow-xl">
+                              <p className="font-medium text-foreground">
+                                {CATEGORY_LABEL_MAP[data.category][locale === 'ar' ? 'ar' : 'en']}
+                              </p>
+                              <p className="text-muted-foreground" dir="ltr">
+                                {formatSAR(data.amount)} {sarLabel}
+                              </p>
+                            </div>
+                          )
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Center Label */}
+                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                    <p className="text-xs text-muted-foreground">
+                      {locale === 'ar' ? 'الإجمالي' : 'Total'}
+                    </p>
+                    <p className="text-base font-bold tabular-nums text-foreground" dir="ltr">
+                      {formatSAR(totalExpenses)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Legend */}
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {categoryBreakdown.slice(0, 8).map((item) => (
+                    <div key={item.category} className="flex items-center gap-1.5">
+                      <div
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {CATEGORY_LABEL_MAP[item.category][locale === 'ar' ? 'ar' : 'en']}
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
-
-              {/* Legend */}
-              <div className="flex flex-wrap gap-x-4 gap-y-2">
-                {categoryBreakdown.slice(0, 8).map((item) => (
-                  <div key={item.category} className="flex items-center gap-1.5">
-                    <div
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {CATEGORY_LABEL_MAP[item.category][locale === 'ar' ? 'ar' : 'en']}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </motion.div>
 
           {/* Monthly Trend - Bar Chart */}
@@ -661,120 +744,134 @@ export default function BookkeeperPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-border">
-            {/* Table Header */}
-            <div className="hidden border-b border-border bg-surface-2 px-4 py-3 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-12 sm:gap-3">
-              <div className="col-span-2">{locale === 'ar' ? 'التاريخ' : 'Date'}</div>
-              <div className="col-span-3">{locale === 'ar' ? 'الوصف' : 'Description'}</div>
-              <div className="col-span-2">{locale === 'ar' ? 'الجهة' : 'Vendor/Client'}</div>
-              <div className="col-span-2">{locale === 'ar' ? 'التصنيف' : 'Category'}</div>
-              <div className="col-span-2 text-end">{locale === 'ar' ? 'المبلغ' : 'Amount'}</div>
-              <div className="col-span-1 text-center">{locale === 'ar' ? 'المصدر' : 'Source'}</div>
+          {recentTransactions.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-12 text-center">
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-4 font-medium text-foreground">
+                {locale === 'ar' ? 'لا توجد معاملات بعد' : 'No transactions yet'}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {locale === 'ar'
+                  ? 'أضف معاملة يدوية أو ارفع كشف حساب بنكي للبدء'
+                  : 'Add a manual transaction or upload a bank statement to get started'}
+              </p>
             </div>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-border">
+              {/* Table Header */}
+              <div className="hidden border-b border-border bg-surface-2 px-4 py-3 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-12 sm:gap-3">
+                <div className="col-span-2">{locale === 'ar' ? 'التاريخ' : 'Date'}</div>
+                <div className="col-span-3">{locale === 'ar' ? 'الوصف' : 'Description'}</div>
+                <div className="col-span-2">{locale === 'ar' ? 'الجهة' : 'Vendor/Client'}</div>
+                <div className="col-span-2">{locale === 'ar' ? 'التصنيف' : 'Category'}</div>
+                <div className="col-span-2 text-end">{locale === 'ar' ? 'المبلغ' : 'Amount'}</div>
+                <div className="col-span-1 text-center">{locale === 'ar' ? 'المصدر' : 'Source'}</div>
+              </div>
 
-            {recentTransactions.map((tx, index) => {
-              const SourceIcon = SOURCE_ICONS[tx.source]
-              return (
-                <motion.div
-                  key={tx.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.03 }}
-                  className="border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-2/50"
-                >
-                  {/* Mobile Layout */}
-                  <div className="sm:hidden">
-                    <div className="flex items-start justify-between">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
-                          {tx.description}
-                        </p>
-                        <div className="mt-1 flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground" dir="ltr">{tx.date}</span>
-                          {tx.category && (
-                            <span
-                              className="inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium"
-                              style={{
-                                backgroundColor: `${getCategoryColor(tx.category)}15`,
-                                color: getCategoryColor(tx.category),
-                              }}
-                            >
-                              {CATEGORY_LABEL_MAP[tx.category][locale === 'ar' ? 'ar' : 'en']}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <span
-                        className={cn(
-                          'text-sm font-semibold tabular-nums',
-                          tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
-                        )}
-                        dir="ltr"
-                      >
-                        {tx.type === 'INCOME' ? '+' : '-'}{formatSAR(tx.amount)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Desktop Layout */}
-                  <div className="hidden sm:grid sm:grid-cols-12 sm:items-center sm:gap-3">
-                    <div className="col-span-2 text-sm tabular-nums text-muted-foreground" dir="ltr">
-                      {tx.date}
-                    </div>
-                    <div className="col-span-3 truncate text-sm font-medium text-foreground">
-                      {tx.description}
-                    </div>
-                    <div className="col-span-2 truncate text-sm text-muted-foreground">
-                      {tx.vendor_or_client}
-                    </div>
-                    <div className="col-span-2">
-                      {tx.category && (
-                        <span
-                          className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={{
-                            backgroundColor: `${getCategoryColor(tx.category)}15`,
-                            color: getCategoryColor(tx.category),
-                          }}
-                        >
-                          {CATEGORY_LABEL_MAP[tx.category][locale === 'ar' ? 'ar' : 'en']}
-                        </span>
-                      )}
-                    </div>
-                    <div className="col-span-2 text-end">
-                      <span
-                        className={cn(
-                          'text-sm font-semibold tabular-nums',
-                          tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
-                        )}
-                        dir="ltr"
-                      >
-                        {tx.type === 'INCOME' ? '+' : '-'}{formatSAR(tx.amount)}
-                      </span>
-                    </div>
-                    <div className="col-span-1 flex justify-center">
-                      <Tooltip.Root>
-                        <Tooltip.Trigger asChild>
-                          <div className="rounded-md bg-surface-2 p-1.5">
-                            <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
+              {recentTransactions.map((tx, index) => {
+                const SourceIcon = SOURCE_ICONS[tx.source]
+                return (
+                  <motion.div
+                    key={tx.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    className="border-b border-border px-4 py-3 transition-colors last:border-b-0 hover:bg-surface-2/50"
+                  >
+                    {/* Mobile Layout */}
+                    <div className="sm:hidden">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            {tx.description}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground" dir="ltr">{tx.date}</span>
+                            {tx.category && (
+                              <span
+                                className="inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: `${getCategoryColor(tx.category)}15`,
+                                  color: getCategoryColor(tx.category),
+                                }}
+                              >
+                                {CATEGORY_LABEL_MAP[tx.category][locale === 'ar' ? 'ar' : 'en']}
+                              </span>
+                            )}
                           </div>
-                        </Tooltip.Trigger>
-                        <Tooltip.Portal>
-                          <Tooltip.Content
-                            side="top"
-                            sideOffset={6}
-                            className="z-50 rounded-md border border-border bg-surface-1 px-2 py-1 text-xs text-muted-foreground shadow-lg"
-                          >
-                            {tx.source.replace(/_/g, ' ').toLowerCase()}
-                            <Tooltip.Arrow className="fill-surface-1" />
-                          </Tooltip.Content>
-                        </Tooltip.Portal>
-                      </Tooltip.Root>
+                        </div>
+                        <span
+                          className={cn(
+                            'text-sm font-semibold tabular-nums',
+                            tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
+                          )}
+                          dir="ltr"
+                        >
+                          {tx.type === 'INCOME' ? '+' : '-'}{formatSAR(tx.amount)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:grid sm:grid-cols-12 sm:items-center sm:gap-3">
+                      <div className="col-span-2 text-sm tabular-nums text-muted-foreground" dir="ltr">
+                        {tx.date}
+                      </div>
+                      <div className="col-span-3 truncate text-sm font-medium text-foreground">
+                        {tx.description}
+                      </div>
+                      <div className="col-span-2 truncate text-sm text-muted-foreground">
+                        {tx.vendor_or_client}
+                      </div>
+                      <div className="col-span-2">
+                        {tx.category && (
+                          <span
+                            className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{
+                              backgroundColor: `${getCategoryColor(tx.category)}15`,
+                              color: getCategoryColor(tx.category),
+                            }}
+                          >
+                            {CATEGORY_LABEL_MAP[tx.category][locale === 'ar' ? 'ar' : 'en']}
+                          </span>
+                        )}
+                      </div>
+                      <div className="col-span-2 text-end">
+                        <span
+                          className={cn(
+                            'text-sm font-semibold tabular-nums',
+                            tx.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
+                          )}
+                          dir="ltr"
+                        >
+                          {tx.type === 'INCOME' ? '+' : '-'}{formatSAR(tx.amount)}
+                        </span>
+                      </div>
+                      <div className="col-span-1 flex justify-center">
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <div className="rounded-md bg-surface-2 p-1.5">
+                              <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                            </div>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content
+                              side="top"
+                              sideOffset={6}
+                              className="z-50 rounded-md border border-border bg-surface-1 px-2 py-1 text-xs text-muted-foreground shadow-lg"
+                            >
+                              {tx.source.replace(/_/g, ' ').toLowerCase()}
+                              <Tooltip.Arrow className="fill-surface-1" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </Tooltip.Provider>

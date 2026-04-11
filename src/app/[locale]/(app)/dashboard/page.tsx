@@ -1,36 +1,32 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { motion } from 'framer-motion'
 import {
   FolderArchive,
   Calculator,
   CalendarDays,
-  Building2,
   Upload,
   Plus,
   Calendar,
   Eye,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
   CheckCircle2,
   Clock,
-  ArrowRight,
   Sparkles,
+  Loader2,
 } from 'lucide-react'
-import { differenceInDays, format } from 'date-fns'
+import { differenceInDays, format, startOfMonth } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 
 import { Link } from '@/i18n/routing'
-import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { getExpiryStatus, getExpiryDotColor } from '@/lib/documents'
-import {
-  getObligationStatus,
-  getObligationDotColor,
-} from '@/lib/compliance/rules-engine'
+import { getExpiryStatus } from '@/lib/documents'
+import { getObligationStatus } from '@/lib/compliance/rules-engine'
+import { createClient } from '@/lib/supabase/client'
+import type { Obligation, Document, Transaction } from '@/lib/supabase/types'
 
 // --- Constants ---
 
@@ -44,27 +40,6 @@ const ITEM_VARIANTS = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 }
 
-// --- Mock data for demonstration ---
-
-const MOCK_DOC_COUNTS = { valid: 3, expiring: 1, expired: 1 }
-
-const MOCK_OBLIGATION = {
-  name: 'VAT Return Q2',
-  dueDate: new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    new Date().getDate() + 5
-  ),
-  type: 'ZATCA_VAT' as const,
-}
-
-const MOCK_OBLIGATION_COUNTS = { upcoming: 2, dueSoon: 1, overdue: 1 }
-
-const MOCK_FINANCIALS = {
-  moneyIn: 45200,
-  moneyOut: 28750,
-}
-
 const QUICK_ACTIONS = [
   { href: '/vault', labelKey: 'uploadDocument', icon: Upload, color: 'text-blue-400' },
   { href: '/bookkeeper', labelKey: 'addTransaction', icon: Plus, color: 'text-emerald-400' },
@@ -72,20 +47,118 @@ const QUICK_ACTIONS = [
   { href: '/profile', labelKey: 'viewProfile', icon: Eye, color: 'text-purple-400' },
 ] as const
 
+// --- Data types ---
+
+interface DocCounts {
+  valid: number
+  expiring: number
+  expired: number
+}
+
+interface ObligationCounts {
+  upcoming: number
+  dueSoon: number
+  overdue: number
+}
+
+interface Financials {
+  moneyIn: number
+  moneyOut: number
+}
+
+interface DashboardData {
+  docCounts: DocCounts
+  nextObligation: Obligation | null
+  obligationCounts: ObligationCounts
+  financials: Financials
+}
+
+// --- Data fetching ---
+
+async function fetchDashboardData(): Promise<DashboardData | null> {
+  const supabase = createClient()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const { data: business } = await (supabase
+    .from('businesses') as any)
+    .select('id')
+    .eq('user_id', user.id)
+    .single() as { data: { id: string } | null }
+
+  if (!business) return null
+
+  const businessId = business.id
+
+  // Fetch documents, obligations, and transactions in parallel
+  const [docsResult, obligationsResult, txResult] = await Promise.all([
+    (supabase.from('documents') as any)
+      .select('expiry_date')
+      .eq('business_id', businessId)
+      .eq('is_current', true) as Promise<{ data: Pick<Document, 'expiry_date'>[] | null }>,
+
+    (supabase.from('obligations') as any)
+      .select('*')
+      .eq('business_id', businessId)
+      .order('next_due_date', { ascending: true }) as Promise<{ data: Obligation[] | null }>,
+
+    (supabase.from('transactions') as any)
+      .select('type, amount')
+      .eq('business_id', businessId)
+      .gte('date', startOfMonth(new Date()).toISOString().split('T')[0]) as Promise<{
+        data: Pick<Transaction, 'type' | 'amount'>[] | null
+      }>,
+  ])
+
+  // Compute document counts
+  const docCounts: DocCounts = { valid: 0, expiring: 0, expired: 0 }
+  for (const doc of docsResult.data ?? []) {
+    const status = getExpiryStatus(doc.expiry_date)
+    if (status === 'valid') docCounts.valid++
+    else if (status === 'expiring') docCounts.expiring++
+    else if (status === 'expired') docCounts.expired++
+  }
+
+  // Compute obligation data
+  const obligations = obligationsResult.data ?? []
+  const nextObligation = obligations[0] ?? null
+
+  const obligationCounts: ObligationCounts = { upcoming: 0, dueSoon: 0, overdue: 0 }
+  for (const ob of obligations) {
+    const status = getObligationStatus(ob.next_due_date, ob.last_completed_at)
+    if (status === 'upcoming') obligationCounts.upcoming++
+    else if (status === 'due_soon') obligationCounts.dueSoon++
+    else if (status === 'overdue') obligationCounts.overdue++
+  }
+
+  // Compute financial summary
+  const financials: Financials = { moneyIn: 0, moneyOut: 0 }
+  for (const tx of txResult.data ?? []) {
+    if (tx.type === 'INCOME') financials.moneyIn += tx.amount
+    else if (tx.type === 'EXPENSE') financials.moneyOut += tx.amount
+  }
+
+  return { docCounts, nextObligation, obligationCounts, financials }
+}
+
 // --- Components ---
 
 function StatDot({ className }: { className: string }) {
   return <span className={cn('h-2 w-2 rounded-full', className)} />
 }
 
-function ComplianceCard() {
+function ComplianceCard({
+  nextObligation,
+  obligationCounts,
+}: {
+  nextObligation: Obligation | null
+  obligationCounts: ObligationCounts
+}) {
   const t = useTranslations('dashboard')
   const tCal = useTranslations('calendar')
   const locale = useLocale()
   const dateLocale = locale === 'ar' ? ar : enUS
-
-  const daysUntil = differenceInDays(MOCK_OBLIGATION.dueDate, new Date())
-  const status = daysUntil <= 0 ? 'overdue' : daysUntil <= 15 ? 'due_soon' : 'upcoming'
 
   return (
     <motion.div variants={ITEM_VARIANTS}>
@@ -100,54 +173,88 @@ function ComplianceCard() {
           <CalendarDays className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
         </div>
 
-        {/* Next obligation */}
-        <div className="mt-4 flex items-center gap-3">
-          <div className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-lg',
-            status === 'overdue' ? 'bg-red-500/10' : status === 'due_soon' ? 'bg-amber-500/10' : 'bg-blue-500/10'
-          )}>
-            <Clock className={cn(
-              'h-5 w-5',
-              status === 'overdue' ? 'text-red-400' : status === 'due_soon' ? 'text-amber-400' : 'text-blue-400'
-            )} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">{MOCK_OBLIGATION.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {format(MOCK_OBLIGATION.dueDate, 'dd MMM yyyy', { locale: dateLocale })}
-              {' · '}
-              {daysUntil > 0
-                ? tCal('daysRemaining', { count: daysUntil })
-                : daysUntil === 0
-                  ? tCal('dueToday')
-                  : tCal('daysOverdue', { count: Math.abs(daysUntil) })}
-            </p>
-          </div>
-        </div>
+        {nextObligation ? (
+          <>
+            {/* Next obligation */}
+            {(() => {
+              const daysUntil = differenceInDays(
+                new Date(nextObligation.next_due_date),
+                new Date()
+              )
+              const status =
+                daysUntil < 0 ? 'overdue' : daysUntil <= 15 ? 'due_soon' : 'upcoming'
 
-        {/* Summary badges */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1 text-xs text-blue-400">
-            <StatDot className="bg-blue-400" />
-            {MOCK_OBLIGATION_COUNTS.upcoming} {tCal('upcoming')}
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs text-amber-400">
-            <StatDot className="bg-amber-400" />
-            {MOCK_OBLIGATION_COUNTS.dueSoon} {tCal('dueSoon')}
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs text-red-400">
-            <StatDot className="bg-red-400" />
-            {MOCK_OBLIGATION_COUNTS.overdue} {tCal('overdue')}
-          </span>
-        </div>
+              return (
+                <div className="mt-4 flex items-center gap-3">
+                  <div
+                    className={cn(
+                      'flex h-10 w-10 items-center justify-center rounded-lg',
+                      status === 'overdue'
+                        ? 'bg-red-500/10'
+                        : status === 'due_soon'
+                          ? 'bg-amber-500/10'
+                          : 'bg-blue-500/10'
+                    )}
+                  >
+                    <Clock
+                      className={cn(
+                        'h-5 w-5',
+                        status === 'overdue'
+                          ? 'text-red-400'
+                          : status === 'due_soon'
+                            ? 'text-amber-400'
+                            : 'text-blue-400'
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      {nextObligation.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(nextObligation.next_due_date), 'dd MMM yyyy', {
+                        locale: dateLocale,
+                      })}
+                      {' · '}
+                      {daysUntil > 0
+                        ? tCal('daysRemaining', { count: daysUntil })
+                        : daysUntil === 0
+                          ? tCal('dueToday')
+                          : tCal('daysOverdue', { count: Math.abs(daysUntil) })}
+                    </p>
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Summary badges */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 text-xs text-blue-400">
+                <StatDot className="bg-blue-400" />
+                {obligationCounts.upcoming} {tCal('upcoming')}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-amber-400">
+                <StatDot className="bg-amber-400" />
+                {obligationCounts.dueSoon} {tCal('dueSoon')}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-red-400">
+                <StatDot className="bg-red-400" />
+                {obligationCounts.overdue} {tCal('overdue')}
+              </span>
+            </div>
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">{t('noDataYet')}</p>
+        )}
       </Link>
     </motion.div>
   )
 }
 
-function DocumentStatusCard() {
+function DocumentStatusCard({ docCounts }: { docCounts: DocCounts }) {
   const t = useTranslations('dashboard')
   const tVault = useTranslations('vault')
+  const total = docCounts.valid + docCounts.expiring + docCounts.expired
 
   return (
     <motion.div variants={ITEM_VARIANTS}>
@@ -162,41 +269,46 @@ function DocumentStatusCard() {
           <FolderArchive className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
         </div>
 
-        <div className="mt-4 flex items-end gap-6">
-          <div>
-            <p className="text-3xl font-bold text-foreground">
-              {MOCK_DOC_COUNTS.valid + MOCK_DOC_COUNTS.expiring + MOCK_DOC_COUNTS.expired}
-            </p>
-            <p className="text-xs text-muted-foreground">{t('totalDocuments')}</p>
-          </div>
-        </div>
+        {total > 0 ? (
+          <>
+            <div className="mt-4 flex items-end gap-6">
+              <div>
+                <p className="text-3xl font-bold text-foreground">{total}</p>
+                <p className="text-xs text-muted-foreground">{t('totalDocuments')}</p>
+              </div>
+            </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
-            <StatDot className="bg-emerald-400" />
-            {MOCK_DOC_COUNTS.valid} {tVault('status.valid')}
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs text-amber-400">
-            <StatDot className="bg-amber-400" />
-            {MOCK_DOC_COUNTS.expiring} {tVault('status.expiringSoon')}
-          </span>
-          <span className="inline-flex items-center gap-1 text-xs text-red-400">
-            <StatDot className="bg-red-400" />
-            {MOCK_DOC_COUNTS.expired} {tVault('status.expired')}
-          </span>
-        </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-400">
+                <StatDot className="bg-emerald-400" />
+                {docCounts.valid} {tVault('status.valid')}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-amber-400">
+                <StatDot className="bg-amber-400" />
+                {docCounts.expiring} {tVault('status.expiringSoon')}
+              </span>
+              <span className="inline-flex items-center gap-1 text-xs text-red-400">
+                <StatDot className="bg-red-400" />
+                {docCounts.expired} {tVault('status.expired')}
+              </span>
+            </div>
+          </>
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">{t('noDataYet')}</p>
+        )}
       </Link>
     </motion.div>
   )
 }
 
-function FinancialSummaryCard() {
+function FinancialSummaryCard({ financials }: { financials: Financials }) {
   const t = useTranslations('dashboard')
   const tCommon = useTranslations('common')
   const tBook = useTranslations('bookkeeper')
 
-  const net = MOCK_FINANCIALS.moneyIn - MOCK_FINANCIALS.moneyOut
+  const net = financials.moneyIn - financials.moneyOut
   const isPositive = net >= 0
+  const hasData = financials.moneyIn > 0 || financials.moneyOut > 0
 
   return (
     <motion.div variants={ITEM_VARIANTS}>
@@ -211,39 +323,48 @@ function FinancialSummaryCard() {
           <Calculator className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" />
         </div>
 
-        <div className="mt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-400" />
-              <span className="text-sm text-muted-foreground">{tBook('moneyIn')}</span>
-            </div>
-            <span className="text-sm font-semibold text-emerald-400">
-              {MOCK_FINANCIALS.moneyIn.toLocaleString()} {tCommon('sar')}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-red-400" />
-              <span className="text-sm text-muted-foreground">{tBook('moneyOut')}</span>
-            </div>
-            <span className="text-sm font-semibold text-red-400">
-              {MOCK_FINANCIALS.moneyOut.toLocaleString()} {tCommon('sar')}
-            </span>
-          </div>
-
-          <div className="border-t border-border pt-2">
+        {hasData ? (
+          <div className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{tBook('netPosition')}</span>
-              <span className={cn(
-                'text-sm font-bold',
-                isPositive ? 'text-emerald-400' : 'text-red-400'
-              )}>
-                {isPositive ? '+' : ''}{net.toLocaleString()} {tCommon('sar')}
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-400" />
+                <span className="text-sm text-muted-foreground">{tBook('moneyIn')}</span>
+              </div>
+              <span className="text-sm font-semibold text-emerald-400">
+                {financials.moneyIn.toLocaleString()} {tCommon('sar')}
               </span>
             </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingDown className="h-4 w-4 text-red-400" />
+                <span className="text-sm text-muted-foreground">{tBook('moneyOut')}</span>
+              </div>
+              <span className="text-sm font-semibold text-red-400">
+                {financials.moneyOut.toLocaleString()} {tCommon('sar')}
+              </span>
+            </div>
+
+            <div className="border-t border-border pt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">
+                  {tBook('netPosition')}
+                </span>
+                <span
+                  className={cn(
+                    'text-sm font-bold',
+                    isPositive ? 'text-emerald-400' : 'text-red-400'
+                  )}
+                >
+                  {isPositive ? '+' : ''}
+                  {net.toLocaleString()} {tCommon('sar')}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className="mt-4 text-sm text-muted-foreground">{t('noDataYet')}</p>
+        )}
       </Link>
     </motion.div>
   )
@@ -277,6 +398,23 @@ function AiWarningsCard() {
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
   const locale = useLocale()
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    fetchDashboardData()
+      .then(setData)
+      .finally(() => setIsLoading(false))
+  }, [])
+
+  const emptyData: DashboardData = {
+    docCounts: { valid: 0, expiring: 0, expired: 0 },
+    nextObligation: null,
+    obligationCounts: { upcoming: 0, dueSoon: 0, overdue: 0 },
+    financials: { moneyIn: 0, moneyOut: 0 },
+  }
+
+  const displayData = data ?? emptyData
 
   return (
     <motion.div
@@ -289,7 +427,9 @@ export default function DashboardPage() {
       <motion.div variants={ITEM_VARIANTS}>
         <h1 className="text-2xl font-bold text-foreground">{t('welcomeDefault')}</h1>
         <p className="mt-1 text-muted-foreground">
-          {format(new Date(), 'EEEE, dd MMMM yyyy', { locale: locale === 'ar' ? ar : enUS })}
+          {format(new Date(), 'EEEE, dd MMMM yyyy', {
+            locale: locale === 'ar' ? ar : enUS,
+          })}
         </p>
       </motion.div>
 
@@ -310,22 +450,36 @@ export default function DashboardPage() {
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-2 transition-colors group-hover:bg-primary/10">
                   <Icon className={cn('h-5 w-5', action.color)} />
                 </div>
-                <span className="text-xs font-medium text-foreground">{t(action.labelKey)}</span>
+                <span className="text-xs font-medium text-foreground">
+                  {t(action.labelKey)}
+                </span>
               </Link>
             )
           })}
         </div>
       </motion.section>
 
-      {/* Status Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <ComplianceCard />
-        <DocumentStatusCard />
-        <FinancialSummaryCard />
-      </div>
+      {/* Loading state */}
+      {isLoading ? (
+        <motion.div variants={ITEM_VARIANTS} className="flex justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </motion.div>
+      ) : (
+        <>
+          {/* Status Cards Grid */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <ComplianceCard
+              nextObligation={displayData.nextObligation}
+              obligationCounts={displayData.obligationCounts}
+            />
+            <DocumentStatusCard docCounts={displayData.docCounts} />
+            <FinancialSummaryCard financials={displayData.financials} />
+          </div>
 
-      {/* AI Warnings */}
-      <AiWarningsCard />
+          {/* AI Warnings */}
+          <AiWarningsCard />
+        </>
+      )}
     </motion.div>
   )
 }

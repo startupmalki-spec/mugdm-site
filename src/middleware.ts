@@ -2,6 +2,7 @@ import createMiddleware from 'next-intl/middleware'
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { routing } from '@/i18n/routing'
+import { updateSession } from '@/lib/supabase/middleware'
 
 const intlMiddleware = createMiddleware(routing)
 
@@ -40,10 +41,10 @@ function getLocaleFromPath(pathname: string): string {
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Let next-intl handle locale detection and routing first
+  // Run next-intl locale routing
   const intlResponse = intlMiddleware(request)
 
-  // Skip auth checks for public pages
+  // Skip auth checks for non-auth public pages
   if (isPublicPath(pathname) && !isAuthPage(pathname)) {
     return intlResponse
   }
@@ -53,7 +54,12 @@ export default async function middleware(request: NextRequest) {
     return intlResponse
   }
 
-  // Create a Supabase client to check auth status
+  // Refresh the session so auth tokens stay alive on every request.
+  // We must create the client against the intlResponse so any locale
+  // cookies set by next-intl are preserved in the final response.
+  await updateSession(request)
+
+  // Re-check the user from the (now-refreshed) cookies on the request.
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -76,7 +82,7 @@ export default async function middleware(request: NextRequest) {
 
   // Authenticated users on login/signup get redirected to the app dashboard
   if (user && isAuthPage(pathname)) {
-    return NextResponse.redirect(new URL(`/${locale}`, request.url))
+    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
   }
 
   // Unauthenticated users on protected routes get redirected to login

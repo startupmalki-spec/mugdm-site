@@ -381,7 +381,8 @@
     "continueSetup": "Continue Setup",
     "allGood": "Everything looks good!",
     "allGoodDescription": "No immediate action items. Keep up the great work.",
-    "totalDocuments": "Total Documents"
+    "totalDocuments": "Total Documents",
+    "noDataYet": "No data yet"
   },
   "landing": {
     "hero": {

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Building2,
@@ -196,6 +197,9 @@ function FieldRow({ label, value }: { label: string; value: string | null | unde
 export default function ProfilePage() {
   const t = useTranslations('profile')
   const tCommon = useTranslations('common')
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
 
   const [business, setBusiness] = useState<Business | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -259,12 +263,15 @@ export default function ProfilePage() {
       if (data) {
         setBusiness(data)
         syncEditState(data)
+      } else {
+        router.push(`/${locale}/onboarding`)
+        return
       }
       setIsLoading(false)
     }
 
     loadBusiness()
-  }, [])
+  }, [router, locale])
 
   function syncEditState(biz: Business) {
     setEditIdentity({
@@ -436,19 +443,7 @@ export default function ProfilePage() {
     )
   }
 
-  if (!business) {
-    return (
-      <div className="mx-auto max-w-lg py-24 text-center">
-        <Building2 className="mx-auto h-12 w-12 text-muted-foreground/30" />
-        <p className="mt-4 text-lg font-medium text-foreground">
-          {tCommon('noData')}
-        </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t('subtitle')}
-        </p>
-      </div>
-    )
-  }
+  if (!business) return null
 
   const owners = (business.owners as Owner[] | null) || []
 

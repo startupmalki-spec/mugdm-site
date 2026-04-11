@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { generateObligations } from '@/lib/compliance/rules-engine'
 import type { Business } from '@/lib/supabase/types'
 
 interface Owner {
@@ -129,6 +130,12 @@ export async function POST(request: Request) {
         ai_confidence: null,
         archived_at: null,
       })
+    }
+
+    // Auto-generate compliance obligations for the new business
+    const obligationSeeds = generateObligations(business)
+    if (obligationSeeds.length > 0) {
+      await (supabase.from('obligations') as any).insert(obligationSeeds)
     }
 
     return NextResponse.json({ business }, { status: 201 })
