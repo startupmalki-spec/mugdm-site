@@ -30,15 +30,18 @@ export function Navbar() {
       }`}
     >
       <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="flex items-center gap-2 group">
+        <a href="#" className="flex items-center gap-2.5 group">
           <Image
-            src="/brand/2-transparent.png"
-            alt="Mugdm"
-            width={200}
-            height={80}
-            className="h-20 w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105"
+            src="/brand/7-transparent.png"
+            alt=""
+            width={500}
+            height={500}
+            className="h-8 w-8 brightness-0 invert transition-transform duration-300 group-hover:scale-110"
             priority
           />
+          <span className="text-xl font-bold tracking-tight text-foreground transition-colors">
+            Mugdm
+          </span>
         </a>
 
         {/* Desktop nav */}

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 import { Link, useRouter } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -15,8 +16,6 @@ import {
   Settings,
   Menu,
   X,
-  ChevronLeft,
-  ChevronRight,
   Globe,
   LogOut,
 } from 'lucide-react'
@@ -84,11 +83,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="fixed inset-y-0 z-30 hidden w-[280px] flex-col border-border bg-surface-1 lg:flex ltr:left-0 ltr:border-r rtl:right-0 rtl:border-l"
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-border px-6">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-sm font-bold text-primary-foreground">م</span>
-          </div>
-          <span className="text-lg font-bold text-foreground">Mugdm</span>
+        <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <Image
+              src="/brand/7-transparent.png"
+              alt=""
+              width={500}
+              height={500}
+              className="h-8 w-8 brightness-0 invert"
+              priority
+            />
+            <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
+          </Link>
         </div>
 
         {/* Navigation */}
@@ -159,13 +165,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Mobile Logo + Close */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <span className="text-sm font-bold text-primary-foreground">م</span>
-            </div>
-            <span className="text-lg font-bold text-foreground">Mugdm</span>
-          </div>
+        <div className="flex h-16 items-center justify-between border-b border-border px-5">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <Image
+              src="/brand/7-transparent.png"
+              alt=""
+              width={500}
+              height={500}
+              className="h-7 w-7 brightness-0 invert"
+            />
+            <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
+          </Link>
           <button
             type="button"
             onClick={handleCloseMobileMenu}
@@ -262,8 +272,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">
-          {children}
+        <main className="relative flex-1 px-4 py-6 lg:px-8 lg:py-8">
+          {/* Shadda watermark */}
+          <div
+            className="pointer-events-none fixed bottom-[-60px] opacity-[0.04] ltr:right-[-40px] rtl:left-[-40px]"
+            style={{ zIndex: 0 }}
+          >
+            <Image
+              src="/brand/logo-shadda.png"
+              alt=""
+              width={320}
+              height={320}
+              className="h-[320px] w-[320px] object-contain brightness-200"
+              aria-hidden="true"
+            />
+          </div>
+          <div className="relative z-[1]">
+            {children}
+          </div>
         </main>
       </div>
     </div>

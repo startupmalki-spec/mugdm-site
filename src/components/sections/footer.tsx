@@ -25,14 +25,17 @@ export function Footer() {
       <div className="relative z-[1] max-w-[1280px] mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
-          <a href="#" className="flex items-center gap-2 group">
+          <a href="#" className="flex items-center gap-2.5 group">
             <Image
-              src="/brand/2-transparent.png"
-              alt="Mugdm"
-              width={160}
-              height={64}
-              className="h-16 w-auto brightness-0 invert transition-transform duration-300 group-hover:scale-105"
+              src="/brand/7-transparent.png"
+              alt=""
+              width={500}
+              height={500}
+              className="h-7 w-7 brightness-0 invert transition-transform duration-300 group-hover:scale-110"
             />
+            <span className="text-lg font-bold tracking-tight text-foreground">
+              Mugdm
+            </span>
           </a>
 
           {/* Links */}

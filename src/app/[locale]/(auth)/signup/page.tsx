@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
 
@@ -37,8 +38,15 @@ export default function SignupPage() {
 
   if (isSent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <div className="w-full max-w-md space-y-8 text-center">
+      <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
+        <div className="pointer-events-none absolute bottom-[-60px] right-[-40px] opacity-[0.04]">
+          <Image src="/brand/logo-shadda.png" alt="" width={280} height={280} className="brightness-200" aria-hidden="true" />
+        </div>
+        <div className="relative z-[1] w-full max-w-md space-y-8 text-center">
+          <Link href="/" className="inline-flex items-center justify-center gap-3">
+            <Image src="/brand/7-transparent.png" alt="" width={500} height={500} className="h-10 w-10 brightness-0 invert" />
+            <span className="text-3xl font-bold tracking-tight text-foreground">Mugdm</span>
+          </Link>
           <div className="rounded-xl border border-border bg-card p-8 shadow-lg">
             <p className="text-lg font-semibold text-foreground">{t('magicLinkSent')}</p>
             <p className="mt-2 text-sm text-muted-foreground">{t('magicLinkDescription')}</p>
@@ -49,9 +57,19 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
+      {/* Shadda watermark */}
+      <div className="pointer-events-none absolute bottom-[-60px] right-[-40px] opacity-[0.04]">
+        <Image src="/brand/logo-shadda.png" alt="" width={280} height={280} className="brightness-200" aria-hidden="true" />
+      </div>
+
+      <div className="relative z-[1] w-full max-w-md space-y-8">
+        {/* Brand logo */}
         <div className="text-center">
+          <Link href="/" className="inline-flex items-center justify-center gap-3 mb-6">
+            <Image src="/brand/7-transparent.png" alt="" width={500} height={500} className="h-10 w-10 brightness-0 invert" />
+            <span className="text-3xl font-bold tracking-tight text-foreground">Mugdm</span>
+          </Link>
           <h1 className="text-2xl font-bold text-foreground">
             {t('signUpTitle')}
           </h1>
