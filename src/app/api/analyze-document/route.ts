@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+import { checkRateLimit } from '@/lib/rate-limit'
 import type { DocumentType } from '@/lib/supabase/types'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
@@ -127,6 +128,14 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'Either fileUrl or base64Data is required' },
         { status: 400 }
+      )
+    }
+
+    const rateCheck = await checkRateLimit(body.businessId)
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', remaining: 0, resetAt: rateCheck.resetAt },
+        { status: 429 }
       )
     }
 

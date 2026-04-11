@@ -17,6 +17,7 @@ import {
   PenLine,
   ArrowUpRight,
   Loader2,
+  Search,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
@@ -135,6 +136,10 @@ export default function BookkeeperPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [businessId, setBusinessId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
+  const [nextVatDueDate, setNextVatDueDate] = useState<string | null>(null)
+  const [txSearch, setTxSearch] = useState('')
+  const [txCategoryFilter, setTxCategoryFilter] = useState<TransactionCategory | 'ALL'>('ALL')
+  const [txTypeFilter, setTxTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
   useEffect(() => {
     async function loadTransactions() {
@@ -168,6 +173,17 @@ export default function BookkeeperPage() {
         .order('date', { ascending: false }) as { data: Transaction[] | null; error: unknown }
 
       if (txData) setTransactions(txData)
+
+      const { data: vatObligation } = await (supabase.from('obligations') as any)
+        .select('next_due_date')
+        .eq('business_id', biz.id)
+        .eq('type', 'ZATCA_VAT')
+        .order('next_due_date', { ascending: true })
+        .limit(1)
+        .single() as { data: { next_due_date: string } | null; error: unknown }
+
+      if (vatObligation) setNextVatDueDate(vatObligation.next_due_date)
+
       setIsLoading(false)
     }
 
@@ -210,9 +226,28 @@ export default function BookkeeperPage() {
   )
 
   const recentTransactions = useMemo(
-    () => [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10),
+    () => [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     [transactions]
   )
+
+  const filteredTransactions = useMemo(() => {
+    let result = recentTransactions
+    if (txTypeFilter !== 'ALL') {
+      result = result.filter((tx) => tx.type === txTypeFilter)
+    }
+    if (txCategoryFilter !== 'ALL') {
+      result = result.filter((tx) => tx.category === txCategoryFilter)
+    }
+    if (txSearch.trim()) {
+      const query = txSearch.trim().toLowerCase()
+      result = result.filter(
+        (tx) =>
+          tx.description?.toLowerCase().includes(query) ||
+          tx.vendor_or_client?.toLowerCase().includes(query)
+      )
+    }
+    return result
+  }, [recentTransactions, txTypeFilter, txCategoryFilter, txSearch])
 
   const totalExpenses = useMemo(
     () => categoryBreakdown.reduce((sum, item) => sum + item.amount, 0),
@@ -722,7 +757,28 @@ export default function BookkeeperPage() {
             </Tooltip.Root>
           </div>
 
-          <p className="mt-4 text-xs text-muted-foreground/70">
+          <p className="mt-3 text-xs text-muted-foreground">
+            {locale === 'ar' ? 'بناءً على المعاملات في الفترة المحددة' : 'Based on transactions in selected period'}
+          </p>
+
+          <div className="mt-3 flex items-center gap-2 text-xs">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              {locale === 'ar' ? 'موعد تقديم الضريبة التالي:' : 'Next VAT filing:'}
+              {' '}
+              {nextVatDueDate ? (
+                <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                  {nextVatDueDate}
+                </span>
+              ) : (
+                <span className="text-muted-foreground/70">
+                  {locale === 'ar' ? 'لم يتم تحديد موعد' : 'No filing date set'}
+                </span>
+              )}
+            </span>
+          </div>
+
+          <p className="mt-3 text-xs text-muted-foreground/70">
             {locale === 'ar'
               ? 'هذا تقدير تقريبي. استشر محاسبك لمعرفة المبلغ الدقيق للتقديم.'
               : 'This is an estimate. Consult your accountant for exact filing.'}
@@ -744,7 +800,58 @@ export default function BookkeeperPage() {
             </div>
           </div>
 
-          {recentTransactions.length === 0 ? (
+          {/* Filter Controls */}
+          <div className="mb-4 flex flex-wrap gap-3">
+            <div className="relative min-w-0 flex-1">
+              <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={txSearch}
+                onChange={(e) => setTxSearch(e.target.value)}
+                placeholder={locale === 'ar' ? 'بحث في المعاملات...' : 'Search transactions...'}
+                className="h-9 w-full rounded-lg border border-border bg-surface-1 ps-9 pe-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+
+            <div className="flex gap-1 rounded-lg border border-border bg-surface-1 p-1">
+              {(['ALL', 'INCOME', 'EXPENSE'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setTxTypeFilter(type)}
+                  className={cn(
+                    'rounded-md px-3 py-1 text-xs font-medium transition-all',
+                    txTypeFilter === type
+                      ? 'bg-primary text-primary-foreground shadow'
+                      : 'text-muted-foreground hover:text-foreground'
+                  )}
+                >
+                  {type === 'ALL'
+                    ? (locale === 'ar' ? 'الكل' : 'All')
+                    : type === 'INCOME'
+                    ? (locale === 'ar' ? 'وارد' : 'Income')
+                    : (locale === 'ar' ? 'صادر' : 'Expense')}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={txCategoryFilter}
+              onChange={(e) => setTxCategoryFilter(e.target.value as TransactionCategory | 'ALL')}
+              className="h-9 rounded-lg border border-border bg-surface-1 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="ALL">
+                {locale === 'ar' ? 'كل الفئات' : 'All Categories'}
+              </option>
+              {(Object.keys(CATEGORY_LABEL_MAP) as TransactionCategory[]).map((cat) => (
+                <option key={cat} value={cat}>
+                  {CATEGORY_LABEL_MAP[cat][locale === 'ar' ? 'ar' : 'en']}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {transactions.length === 0 ? (
             <div className="rounded-xl border border-border bg-card p-12 text-center">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
               <p className="mt-4 font-medium text-foreground">
@@ -754,6 +861,16 @@ export default function BookkeeperPage() {
                 {locale === 'ar'
                   ? 'أضف معاملة يدوية أو ارفع كشف حساب بنكي للبدء'
                   : 'Add a manual transaction or upload a bank statement to get started'}
+              </p>
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="rounded-xl border border-border bg-card p-12 text-center">
+              <Search className="mx-auto h-12 w-12 text-muted-foreground/50" />
+              <p className="mt-4 font-medium text-foreground">
+                {locale === 'ar' ? 'لا توجد نتائج' : 'No results'}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {locale === 'ar' ? 'جرب تغيير معايير البحث أو الفلتر' : 'Try adjusting your search or filters'}
               </p>
             </div>
           ) : (
@@ -768,7 +885,7 @@ export default function BookkeeperPage() {
                 <div className="col-span-1 text-center">{locale === 'ar' ? 'المصدر' : 'Source'}</div>
               </div>
 
-              {recentTransactions.map((tx, index) => {
+              {filteredTransactions.map((tx, index) => {
                 const SourceIcon = SOURCE_ICONS[tx.source]
                 return (
                   <motion.div

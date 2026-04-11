@@ -137,6 +137,7 @@
     "sortOldest": "Oldest first",
     "sortName": "Name A-Z",
     "allDocuments": "All Documents",
+    "allStatuses": "All Statuses",
     "recentUploads": "Recent Uploads",
     "expiringDocuments": "Expiring Soon",
     "noDocuments": "No documents yet",
@@ -498,5 +499,22 @@
     "memberRemoved": "Member removed",
     "noMembers": "No team members yet",
     "noMembersDescription": "Invite your accountant, partner, or PRO to collaborate"
+  },
+  "emptyStates": {
+    "noDocuments": "No documents yet",
+    "noDocumentsDesc": "Upload your first document to get started",
+    "uploadFirst": "Upload Document",
+    "noObligations": "No obligations yet",
+    "noObligationsDesc": "Complete onboarding to auto-generate your compliance obligations",
+    "addObligation": "Add Obligation",
+    "noTransactions": "No transactions yet",
+    "noTransactionsDesc": "Upload a bank statement or add your first transaction",
+    "uploadStatement": "Upload Statement",
+    "addManually": "Add Manually",
+    "noTeamMembers": "No team members yet",
+    "noTeamMembersDesc": "Add your first team member to track your workforce",
+    "addMember": "Add Team Member",
+    "completeOnboarding": "Complete Onboarding",
+    "completeOnboardingDesc": "Set up your business profile to unlock all features"
   }
 }

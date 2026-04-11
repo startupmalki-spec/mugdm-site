@@ -137,6 +137,7 @@
     "sortOldest": "الأقدم أولاً",
     "sortName": "الاسم أ-ي",
     "allDocuments": "جميع المستندات",
+    "allStatuses": "جميع الحالات",
     "recentUploads": "المرفوعة حديثاً",
     "expiringDocuments": "تنتهي قريباً",
     "noDocuments": "لا توجد مستندات بعد",
@@ -498,5 +499,22 @@
     "memberRemoved": "تم إزالة العضو",
     "noMembers": "لا يوجد أعضاء في الفريق بعد",
     "noMembersDescription": "ادعُ محاسبك أو شريكك أو مُعقّبك للتعاون"
+  },
+  "emptyStates": {
+    "noDocuments": "لا توجد مستندات بعد",
+    "noDocumentsDesc": "ارفع مستندك الأول للبدء",
+    "uploadFirst": "رفع مستند",
+    "noObligations": "لا توجد التزامات بعد",
+    "noObligationsDesc": "أكمل التهيئة لإنشاء التزاماتك التنظيمية تلقائياً",
+    "addObligation": "إضافة التزام",
+    "noTransactions": "لا توجد معاملات بعد",
+    "noTransactionsDesc": "ارفع كشف حساب بنكي أو أضف أول معاملة لك",
+    "uploadStatement": "رفع كشف الحساب",
+    "addManually": "إضافة يدوياً",
+    "noTeamMembers": "لا يوجد أعضاء في الفريق بعد",
+    "noTeamMembersDesc": "أضف أول عضو في فريقك لتتبع القوى العاملة",
+    "addMember": "إضافة عضو",
+    "completeOnboarding": "إكمال التهيئة",
+    "completeOnboardingDesc": "أكمل إعداد ملف أعمالك لفتح جميع الميزات"
   }
 }

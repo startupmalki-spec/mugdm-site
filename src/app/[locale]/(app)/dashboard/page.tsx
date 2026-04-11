@@ -17,12 +17,15 @@ import {
   Clock,
   Sparkles,
   Loader2,
+  Building2,
 } from 'lucide-react'
 import { differenceInDays, format, startOfMonth } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 
 import { Link } from '@/i18n/routing'
+import { EmptyState } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils'
+import { toHijri, formatHijri } from '@/lib/hijri'
 import { getExpiryStatus } from '@/lib/documents'
 import { getObligationStatus } from '@/lib/compliance/rules-engine'
 import { createClient } from '@/lib/supabase/client'
@@ -397,6 +400,7 @@ function AiWarningsCard() {
 
 export default function DashboardPage() {
   const t = useTranslations('dashboard')
+  const tEmpty = useTranslations('emptyStates')
   const locale = useLocale()
   const [data, setData] = useState<DashboardData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -431,6 +435,9 @@ export default function DashboardPage() {
             locale: locale === 'ar' ? ar : enUS,
           })}
         </p>
+        <p className="mt-0.5 text-sm text-muted-foreground/70">
+          {formatHijri(toHijri(new Date()), locale)}
+        </p>
       </motion.div>
 
       {/* Quick Actions */}
@@ -463,6 +470,16 @@ export default function DashboardPage() {
       {isLoading ? (
         <motion.div variants={ITEM_VARIANTS} className="flex justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </motion.div>
+      ) : data === null ? (
+        <motion.div variants={ITEM_VARIANTS}>
+          <EmptyState
+            icon={<Building2 className="h-8 w-8" />}
+            title={tEmpty('completeOnboarding')}
+            description={tEmpty('completeOnboardingDesc')}
+            actionLabel={tEmpty('completeOnboarding')}
+            actionHref="/onboarding"
+          />
         </motion.div>
       ) : (
         <>

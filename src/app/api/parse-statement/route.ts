@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+import { checkRateLimit } from '@/lib/rate-limit'
 import type { TransactionCategory, TransactionType } from '@/lib/supabase/types'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
@@ -21,6 +22,7 @@ const SAUDI_BANKS = [
 interface ParseStatementRequest {
   csvContent: string
   bankName?: string
+  businessId?: string
 }
 
 interface ParsedTransaction {
@@ -168,6 +170,16 @@ export async function POST(request: Request) {
         { error: 'csvContent is required' },
         { status: 400 }
       )
+    }
+
+    if (body.businessId) {
+      const rateCheck = await checkRateLimit(body.businessId)
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded', remaining: 0, resetAt: rateCheck.resetAt },
+          { status: 429 }
+        )
+      }
     }
 
     const truncatedCsv = body.csvContent.length > MAX_CSV_CHARS

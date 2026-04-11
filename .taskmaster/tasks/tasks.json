@@ -4,140 +4,177 @@
       "id": "100",
       "title": "Apply Supabase Migration and RLS Policies",
       "description": "Run the existing 001_initial_schema.sql migration against the live Supabase instance. Verify all 7 tables, indexes, RLS policies, storage buckets, and triggers are created. Test RLS enforcement with test users.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [],
       "priority": "high",
       "details": "Use Supabase MCP or CLI to apply supabase/migrations/001_initial_schema.sql. Verify: businesses, team_members, documents, obligations, transactions, bank_statement_uploads, generated_documents tables exist. Test RLS: create two test users, insert data as user A, verify user B cannot read it. Verify storage buckets: documents, receipts, logos, statements.",
       "testStrategy": "Query each table. Insert as user A, attempt read as user B — should return empty. Upload test file to each bucket.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.689Z"
     },
     {
       "id": "101",
       "title": "Wire Authentication Flow (Magic Link)",
       "description": "Complete the auth flow: magic link email sending on login/signup pages, callback handling, session persistence, and redirect logic. Users should be able to sign up, receive an email, click the link, and land on the dashboard.",
-      "status": "pending",
-      "dependencies": ["100"],
+      "status": "done",
+      "dependencies": [
+        "100"
+      ],
       "priority": "high",
       "details": "Wire login/signup pages to call supabase.auth.signInWithOtp({ email }). Configure Supabase Auth email templates. Verify auth/callback/route.ts exchanges code for session. Add session refresh logic. Add logout button functionality in sidebar. Handle expired sessions gracefully.",
       "testStrategy": "Sign up with a real email. Receive magic link. Click it. Verify redirect to /dashboard. Refresh page — session persists. Click logout — redirected to /login.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.699Z"
     },
     {
       "id": "102",
       "title": "Wire Onboarding to Create Real Business Record",
       "description": "Connect the 3-step onboarding wizard to Supabase. Step 1: upload CR image to storage. Step 2: insert business record. Step 3: save contact info. Auto-generate compliance obligations on completion.",
-      "status": "pending",
-      "dependencies": ["100", "101"],
+      "status": "done",
+      "dependencies": [
+        "100",
+        "101"
+      ],
       "priority": "high",
       "details": "Step 1 (CR Upload): Upload file to 'documents' storage bucket via Supabase Storage. Create a document record with type='CR'. Step 2 (Profile Confirm): Insert into businesses table with user_id = auth.uid(). Create owner as first team_member. Step 3 (Contact): Update business record with phone/email/address. On completion: call generateObligations() from rules-engine.ts to auto-create compliance obligations. Redirect to /dashboard.",
       "testStrategy": "Complete full onboarding. Verify business record in DB. Verify CR document record created. Verify 5+ obligations auto-generated. Verify redirect to dashboard shows real data.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.704Z"
     },
     {
       "id": "103",
       "title": "Wire Dashboard to Read Real Data",
       "description": "Replace all MOCK_ constants in dashboard with real Supabase queries. Show actual document counts, next obligation, and financial summary from the authenticated user's business.",
-      "status": "pending",
-      "dependencies": ["102"],
+      "status": "done",
+      "dependencies": [
+        "102"
+      ],
       "priority": "high",
       "details": "Fetch business_id from businesses table where user_id = auth.uid(). Query documents for count by expiry status. Query obligations for next due and counts by status. Query transactions for money_in/money_out this month. Handle empty states for new users with no data yet. Keep Framer Motion animations.",
       "testStrategy": "After onboarding, dashboard shows real obligation counts. Upload a document — document count updates. Add a transaction — financial summary updates.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.711Z"
     },
     {
       "id": "104",
       "title": "Wire Profile Page CRUD",
       "description": "Connect Business Profile page to read/update the businesses table. Edit mode saves changes. Track changes in profile_history JSONB.",
-      "status": "pending",
-      "dependencies": ["102"],
+      "status": "done",
+      "dependencies": [
+        "102"
+      ],
       "priority": "high",
       "details": "Fetch business record on mount. Display all fields in 4 collapsible sections (Identity, Ownership, Contact, Branding). Edit mode: update businesses record. On save, append previous state to profile_history JSONB array with timestamp. Logo/stamp upload: upload to 'logos' storage bucket, save URL to logo_url/stamp_url columns.",
       "testStrategy": "Edit business name. Verify DB updated. Check profile_history has the old value. Upload logo — verify URL saved and image displays.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.718Z"
     },
     {
       "id": "105",
       "title": "Wire Team Page CRUD",
       "description": "Connect Team page to team_members table. Add, edit, and deactivate team members with Saudi validation (Iqama, nationality). Show Saudization ratio.",
-      "status": "pending",
-      "dependencies": ["102"],
+      "status": "done",
+      "dependencies": [
+        "102"
+      ],
       "priority": "high",
       "details": "Fetch team_members where business_id matches. Add member: insert with Iqama validation (10 digits, starts with 1 or 2). Edit member: update record. Terminate: set status='TERMINATED', termination_date=now(). Calculate and display Saudization ratio (Saudi count / total active). Toggle to show/hide terminated members.",
       "testStrategy": "Add team member with valid Iqama. Verify in DB. Edit salary. Terminate member. Verify Saudization ratio updates.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.724Z"
     },
     {
       "id": "106",
       "title": "Wire Document Vault with Real File Upload",
       "description": "Connect vault page to documents table and Supabase Storage. Upload files, store metadata, display real documents with expiry tracking.",
-      "status": "pending",
-      "dependencies": ["102"],
+      "status": "done",
+      "dependencies": [
+        "102"
+      ],
       "priority": "high",
       "details": "Fetch documents where business_id matches, is_current=true. Upload: send file to 'documents' storage bucket, create record with file_url, file_size, mime_type. Delete/archive: set archived_at. Search: filter by name/type. Sort by uploaded_at or expiry_date. Expiry badges: calculate from real expiry_date. After upload, trigger AI categorization (task 110).",
       "testStrategy": "Upload a PDF. Verify file in Supabase Storage. Verify document record with URL. Search by name. Archive document — disappears from list.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.728Z"
     },
     {
       "id": "107",
       "title": "Wire Compliance Calendar with Real Obligations",
       "description": "Connect calendar page to obligations table. Display real obligations, allow manual creation, mark complete with recurring generation.",
-      "status": "pending",
-      "dependencies": ["102"],
+      "status": "done",
+      "dependencies": [
+        "102"
+      ],
       "priority": "high",
       "details": "Fetch obligations where business_id matches. Display in list and month views. Add obligation: insert with type, name, frequency, next_due_date. Mark complete: set last_completed_at=now(). For recurring obligations (MONTHLY, QUARTERLY, ANNUAL), calculate and set next_due_date using getNextOccurrence(). Link obligations to documents via linked_document_id.",
       "testStrategy": "Verify auto-generated obligations show. Create manual obligation. Complete it — next_due_date advances for recurring. Filter by status works.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.732Z"
     },
     {
       "id": "108",
       "title": "Wire Bookkeeper with Real Transactions",
       "description": "Connect bookkeeper page to transactions table. Display real financial data in summary cards and charts. Support manual transaction entry.",
-      "status": "pending",
-      "dependencies": ["102"],
+      "status": "done",
+      "dependencies": [
+        "102"
+      ],
       "priority": "high",
       "details": "Fetch transactions where business_id matches. Calculate summary using calculations.ts functions with real data. Charts: pass real data to Recharts (category breakdown donut, monthly trend bar, cash flow area). Manual entry: insert transaction with type, amount, category, date, description. Period selector: filter by date range (this month, 3 months, 6 months, this year).",
       "testStrategy": "Add manual transaction. Summary cards update. Charts reflect real data. Period selector filters correctly.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.736Z"
     },
     {
       "id": "109",
       "title": "Implement Real File Upload Component",
       "description": "Make FileUpload.tsx actually upload to Supabase Storage buckets. Support drag-drop, camera capture on mobile, progress indication, and file validation.",
-      "status": "pending",
-      "dependencies": ["100"],
+      "status": "done",
+      "dependencies": [
+        "100"
+      ],
       "priority": "high",
       "details": "Use supabase.storage.from(bucket).upload() in FileUpload component. Generate unique file paths: {business_id}/{type}/{uuid}.{ext}. Validate: max 10MB, allowed types (PDF, PNG, JPG, CSV, XLSX). Show upload progress. On success, return the public URL. Camera capture: use navigator.mediaDevices.getUserMedia() on mobile for CR/receipt photos.",
       "testStrategy": "Upload a 5MB PDF — succeeds. Try 15MB — rejected. Upload via drag-drop. Upload via camera capture on mobile. Verify file exists in Supabase Storage.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.743Z"
     },
     {
       "id": "110",
       "title": "Implement Claude API Document Analysis",
       "description": "Replace mock analyze-document endpoint with real Claude Vision API. Extract document type, expiry date, and key fields from uploaded images/PDFs.",
-      "status": "pending",
-      "dependencies": ["109"],
+      "status": "done",
+      "dependencies": [
+        "109"
+      ],
       "priority": "high",
       "details": "In /api/analyze-document/route.ts: accept file URL or base64 image. Call Claude Vision API with a prompt to extract: document_type, expiry_date, issuing_authority, registration_number, and other relevant fields. Return structured JSON with ai_confidence score. Update document record with extracted_data JSONB and ai_confidence. If confidence < 0.7, flag for manual review. Handle Arabic text extraction.",
       "testStrategy": "Upload a real Saudi CR certificate image. Verify extracted type='CR', expiry_date parsed correctly, confidence > 0.7. Upload a GOSI certificate — verify different type detected.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.749Z"
     },
     {
       "id": "111",
       "title": "Implement Claude API Bank Statement Parsing (CSV)",
       "description": "Build CSV bank statement parser using Claude Text API. Parse transactions from Saudi bank CSV formats, detect bank name, extract date/amount/description/type.",
-      "status": "pending",
-      "dependencies": ["108"],
+      "status": "done",
+      "dependencies": [
+        "108"
+      ],
       "priority": "high",
       "details": "Create /api/parse-statement/route.ts. Accept CSV file content. Send to Claude API with prompt to: detect bank name, parse each row into {date, amount, type, description, vendor_or_client, category}. Handle multiple Saudi bank formats (Al Rajhi, SNB, Riyad Bank, SABB, etc.). Return array of parsed transactions with confidence scores. Insert into transactions table with source='CSV_IMPORT', source_file_id, is_reviewed=false for confidence < 0.7.",
       "testStrategy": "Upload Al Rajhi CSV. Verify bank detected. Verify transactions parsed with correct amounts and dates. Low-confidence items marked for review.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.753Z"
     },
     {
       "id": "112",
       "title": "Implement Claude API Bank Statement Parsing (PDF)",
       "description": "Build PDF bank statement parser using Claude Vision API. Convert PDF pages to images and extract transactions.",
       "status": "pending",
-      "dependencies": ["111"],
+      "dependencies": [
+        "111"
+      ],
       "priority": "high",
       "details": "Extend /api/parse-statement/route.ts to handle PDF. Use pdf-to-image conversion (pdf-lib or similar) to extract pages as images. Send each page image to Claude Vision API with extraction prompt. Merge results across pages, deduplicate. Same output format as CSV parser. Handle Arabic+English mixed content in statements.",
       "testStrategy": "Upload a multi-page PDF statement. Verify all pages processed. Verify transaction count matches expected. No duplicate entries across page boundaries.",
@@ -147,52 +184,68 @@
       "id": "113",
       "title": "Implement Claude API Receipt Extraction",
       "description": "Build receipt photo analyzer using Claude Vision API. Extract amount, vendor, date, category, and VAT from receipt photos.",
-      "status": "pending",
-      "dependencies": ["110"],
+      "status": "done",
+      "dependencies": [
+        "110"
+      ],
       "priority": "high",
       "details": "Create /api/analyze-receipt/route.ts. Accept image (camera capture or upload). Call Claude Vision with prompt to extract: total_amount, vendor_name, date, category, vat_amount, line_items. Return structured JSON. Auto-create transaction record with source='RECEIPT' and receipt_url. If confidence < 0.7, show confirmation form before saving.",
       "testStrategy": "Photograph a Saudi receipt. Verify amount, vendor, date extracted. VAT amount detected. Transaction created in DB.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:34:48.758Z"
     },
     {
       "id": "114",
       "title": "Implement Transaction Review Queue",
       "description": "Build the review queue for AI-parsed transactions with confidence < 0.7. Users must accept, edit, or reject before transactions are confirmed.",
-      "status": "pending",
-      "dependencies": ["111"],
+      "status": "done",
+      "dependencies": [
+        "111"
+      ],
       "priority": "high",
       "details": "In bookkeeper upload flow: after parsing, show ReviewQueue component with unreviewed transactions. Display confidence bar, parsed values. Accept: set is_reviewed=true. Edit: update fields, set is_reviewed=true. Reject: delete transaction. Batch accept for high-confidence items. Filter bank statement upload status to show processing/completed/error states.",
       "testStrategy": "Upload statement with mixed confidence. Low-confidence items appear in review queue. Accept one — is_reviewed updates. Edit another — values change. Reject — deleted.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:40:22.630Z"
     },
     {
       "id": "115",
       "title": "Auto-Link Documents to Obligations",
       "description": "When a document with an expiry date is uploaded, automatically create or update the corresponding compliance obligation.",
-      "status": "pending",
-      "dependencies": ["106", "107"],
+      "status": "done",
+      "dependencies": [
+        "106",
+        "107"
+      ],
       "priority": "medium",
       "details": "After document analysis (task 110): if document has expiry_date and type maps to an obligation type (CR→CR_RENEWAL, GOSI_CERT→GOSI_MONTHLY, etc.), find or create the matching obligation. Set linked_document_id. Update obligation next_due_date if the document's expiry is more recent. When a document expires and is renewed, update the obligation chain.",
       "testStrategy": "Upload CR with expiry 2027-01-15. Verify CR_RENEWAL obligation created with due date near that expiry. Upload replacement — obligation updated.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:40:22.636Z"
     },
     {
       "id": "116",
       "title": "Government Payment Detection",
       "description": "Automatically detect government payments in transactions (GOSI, ZATCA, municipality) and link them to corresponding obligations.",
-      "status": "pending",
-      "dependencies": ["108", "107"],
+      "status": "done",
+      "dependencies": [
+        "108",
+        "107"
+      ],
       "priority": "medium",
       "details": "In transaction parsing: check description/vendor against government entity patterns (GOSI, ZATCA, municipality, MoL, etc.). When detected: set linked_obligation_id to the matching obligation. Optionally auto-complete the obligation if payment amount matches expected amount. Works for both CSV-imported and manually entered transactions.",
       "testStrategy": "Import CSV with GOSI payment. Verify transaction linked to GOSI obligation. Verify obligation marked as completed if amount matches.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:40:22.642Z"
     },
     {
       "id": "117",
       "title": "Email Reminder System",
       "description": "Set up email service (Resend) and cron job to send compliance deadline reminders at 30/15/7/1 day intervals.",
       "status": "pending",
-      "dependencies": ["107"],
+      "dependencies": [
+        "107"
+      ],
       "priority": "medium",
       "details": "Install Resend SDK. Create email templates (bilingual AR/EN) for: obligation_reminder_30d, obligation_reminder_15d, obligation_reminder_7d, obligation_reminder_1d, document_expiry_warning. Create /api/cron/reminders route. Query obligations where next_due_date falls within reminder windows and corresponding reminder_sent flag is false. Send email, set flag. Use Vercel Cron (vercel.json) to run daily.",
       "testStrategy": "Create obligation due in 7 days. Run cron endpoint. Verify email sent. Verify reminder_7d_sent=true. Run again — no duplicate email.",
@@ -203,7 +256,9 @@
       "title": "VAT Estimation from Real Data",
       "description": "Calculate VAT liability estimation from actual transaction data. Show in bookkeeper dashboard.",
       "status": "pending",
-      "dependencies": ["108"],
+      "dependencies": [
+        "108"
+      ],
       "priority": "medium",
       "details": "Use calculateVATEstimate() from calculations.ts with real transaction data. Query transactions for the current VAT quarter. Calculate: total taxable income, total deductible VAT, estimated liability. Display in the existing VAT estimation card on bookkeeper page. Link to ZATCA obligation due date.",
       "testStrategy": "Add income and expense transactions with VAT. Verify VAT card shows correct calculation. Changes when period selector changes.",
@@ -213,19 +268,25 @@
       "id": "119",
       "title": "Hijri Date Display Across All Pages",
       "description": "Show Hijri dates alongside Gregorian dates in calendar, dashboard, and obligation listings. Use existing hijri.ts library.",
-      "status": "pending",
-      "dependencies": ["107"],
+      "status": "done",
+      "dependencies": [
+        "107"
+      ],
       "priority": "medium",
       "details": "In calendar page: show Hijri date next to each obligation's Gregorian date. In dashboard: show today's Hijri date in the welcome header. In calendar month view: show Hijri month/year. Format: '15 Shawwal 1447' alongside '16 Apr 2026'. Use toHijri() from lib/hijri.ts.",
       "testStrategy": "Verify dashboard shows Hijri date. Calendar obligations show dual dates. Month view header includes Hijri month.",
-      "subtasks": []
+      "subtasks": [],
+      "updatedAt": "2026-04-11T21:40:22.648Z"
     },
     {
       "id": "120",
       "title": "Search and Filtering for Vault and Transactions",
       "description": "Implement real search by name and filtering by type/date/status in document vault and transaction list.",
       "status": "pending",
-      "dependencies": ["106", "108"],
+      "dependencies": [
+        "106",
+        "108"
+      ],
       "priority": "medium",
       "details": "Vault: search input filters documents by name (client-side or ilike query). Filter by document type dropdown. Filter by status (valid/expiring/expired). Sort by date or name. Bookkeeper: filter transactions by category, type (income/expense), date range. Search by description or vendor. Pagination for large datasets.",
       "testStrategy": "With 10+ documents: search by partial name. Filter by type — shows subset. With 50+ transactions: filter by category, date range works.",
@@ -236,7 +297,9 @@
       "title": "Empty States for New Users",
       "description": "Design and implement empty state views for dashboard, vault, calendar, bookkeeper, and team when no data exists yet.",
       "status": "pending",
-      "dependencies": ["103"],
+      "dependencies": [
+        "103"
+      ],
       "priority": "medium",
       "details": "Dashboard: show onboarding prompt if no business exists. Show 'Upload your first document' if vault empty. Vault: illustration + 'No documents yet' + upload CTA. Calendar: 'Complete onboarding to see your obligations' or 'No obligations' + add CTA. Bookkeeper: 'Upload a bank statement or add your first transaction' + CTAs. Team: 'Add your first team member' + invite CTA. Use consistent design pattern across all pages.",
       "testStrategy": "Create fresh user with no data. Visit each page — see empty state with CTA. Click CTA — navigates to correct action.",
@@ -247,7 +310,11 @@
       "title": "Rate Limiting on AI Endpoints",
       "description": "Add rate limiting to AI-powered API routes to prevent abuse and control costs. 100 calls/user/day as per PRD.",
       "status": "pending",
-      "dependencies": ["110", "111", "113"],
+      "dependencies": [
+        "110",
+        "111",
+        "113"
+      ],
       "priority": "medium",
       "details": "Create rate-limit middleware for /api/analyze-document, /api/parse-statement, /api/analyze-receipt. Track calls per user_id per day in a simple counter (Supabase or in-memory). Return 429 Too Many Requests when limit exceeded. Show user-friendly message with reset time.",
       "testStrategy": "Call AI endpoint 100 times. 101st call returns 429. Wait until next day — resets.",
@@ -258,7 +325,14 @@
       "title": "Error Handling and Loading States",
       "description": "Add proper error boundaries, loading skeletons, and retry logic across all pages that fetch data.",
       "status": "pending",
-      "dependencies": ["103", "104", "105", "106", "107", "108"],
+      "dependencies": [
+        "103",
+        "104",
+        "105",
+        "106",
+        "107",
+        "108"
+      ],
       "priority": "medium",
       "details": "Loading: skeleton loaders for dashboard cards, vault grid, calendar list, transaction table. Error: toast notifications for failed operations. Retry: exponential backoff for Supabase queries that fail. Network offline: show offline banner. Form validation errors: inline messages in Arabic and English.",
       "testStrategy": "Simulate slow network — skeletons show. Simulate API failure — error toast appears. Retry succeeds after transient failure.",
@@ -269,7 +343,10 @@
       "title": "Duplicate Detection",
       "description": "Prevent duplicate transactions (same date+amount+description) and duplicate CR numbers across businesses.",
       "status": "pending",
-      "dependencies": ["108", "102"],
+      "dependencies": [
+        "108",
+        "102"
+      ],
       "priority": "medium",
       "details": "Transactions: before insert, query for existing transaction with same date, amount, description, business_id. If found, warn user and ask to confirm or skip. CR numbers: businesses.cr_number is already UNIQUE in schema, but add client-side validation with user-friendly error message on onboarding.",
       "testStrategy": "Import CSV with a duplicate transaction. Warning shown. User can skip or force-add. Try onboarding with existing CR number — shows error.",
@@ -280,7 +357,9 @@
       "title": "GOSI Monthly Recurrence Logic",
       "description": "When a GOSI monthly obligation is completed, automatically generate the next month's obligation.",
       "status": "pending",
-      "dependencies": ["107"],
+      "dependencies": [
+        "107"
+      ],
       "priority": "medium",
       "details": "In mark-complete handler: if obligation type is GOSI_MONTHLY and frequency is MONTHLY, calculate next month's due date using getNextOccurrence(). Create new obligation record with the next due date. Copy all fields except dates and completion status. This ensures GOSI obligations continue indefinitely, not just for the initial 12 months.",
       "testStrategy": "Complete April GOSI payment. Verify May obligation auto-created with correct due date. Complete May — June created.",
@@ -291,7 +370,9 @@
       "title": "Settings Page Persistence",
       "description": "Wire settings page toggles to persist preferences. Language switch, notification toggles, and theme preference should survive page reloads.",
       "status": "pending",
-      "dependencies": ["101"],
+      "dependencies": [
+        "101"
+      ],
       "priority": "low",
       "details": "Store preferences in Supabase user metadata or a user_preferences table. Notification toggles: save to user record. Language: already handled by next-intl routing. Theme: store preference in localStorage + user record. Load preferences on page mount.",
       "testStrategy": "Toggle off weekly digest. Reload page — still off. Switch to Arabic — persists across sessions.",
@@ -302,7 +383,9 @@
       "title": "Mobile Responsive QA and Camera Support",
       "description": "Test and fix responsive layout on 375px+ mobile. Ensure camera capture works for CR upload and receipt photos on iOS/Android.",
       "status": "pending",
-      "dependencies": ["109"],
+      "dependencies": [
+        "109"
+      ],
       "priority": "low",
       "details": "Test all pages at 375px, 390px, 414px widths. Fix any overflow, truncation, or touch target issues. Camera: use input[type=file][capture=environment] for mobile camera access. Test on real iOS Safari and Android Chrome. Verify drag-drop fallback on mobile (tap to select file).",
       "testStrategy": "Test on real phone or device emulator at 375px. Complete full flow: signup → onboarding (camera CR) → dashboard → upload receipt (camera). All interactions work with touch.",
@@ -313,7 +396,11 @@
       "title": "Security Audit and Hardening",
       "description": "Full security review: RLS enforcement, API key protection, input sanitization, CSRF, and rate limiting.",
       "status": "pending",
-      "dependencies": ["100", "110", "122"],
+      "dependencies": [
+        "100",
+        "110",
+        "122"
+      ],
       "priority": "low",
       "details": "Verify: all Supabase queries go through RLS (no service_role key on client). ANTHROPIC_API_KEY only used server-side (never in client bundle). All user inputs sanitized before DB insert. File upload validates type and size. API routes check authentication. No SQL injection vectors. CORS configured correctly. CSP headers set.",
       "testStrategy": "Attempt to access another user's data via API — blocked by RLS. Check browser devtools — no API keys exposed. Upload malicious file — rejected. Send XSS payload in form — sanitized.",
@@ -324,7 +411,21 @@
       "title": "Final QA: Full User Journey Test",
       "description": "End-to-end test of the complete user journey in both Arabic and English. Every feature, every page, every edge case.",
       "status": "pending",
-      "dependencies": ["100", "101", "102", "103", "104", "105", "106", "107", "108", "110", "111", "113", "114"],
+      "dependencies": [
+        "100",
+        "101",
+        "102",
+        "103",
+        "104",
+        "105",
+        "106",
+        "107",
+        "108",
+        "110",
+        "111",
+        "113",
+        "114"
+      ],
       "priority": "low",
       "details": "Test flow: 1) Sign up with email. 2) Complete onboarding with real CR upload. 3) Dashboard shows real obligations. 4) Upload documents to vault — AI categorizes. 5) Calendar shows auto-generated obligations. 6) Upload bank statement CSV — transactions parsed. 7) Review queue for low-confidence items. 8) Add manual transaction. 9) Bookkeeper charts show real data. 10) Add team member. 11) Switch to Arabic — everything works RTL. 12) Mobile test. 13) Sign out and back in — data persists.",
       "testStrategy": "Complete full journey as described above in both EN and AR. Document any issues found. All features work with real data.",
@@ -335,11 +436,22 @@
       "title": "Deploy Production with Environment Variables",
       "description": "Configure Vercel environment variables for Supabase and Anthropic API keys. Deploy to production. Verify all features work on the live URL.",
       "status": "pending",
-      "dependencies": ["129"],
+      "dependencies": [
+        "129"
+      ],
       "priority": "low",
       "details": "Set on Vercel: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (for admin operations only), ANTHROPIC_API_KEY. Configure Vercel Cron for daily reminder job. Verify: auth flow works, file uploads work, AI analysis works, emails send. Test with real user account.",
       "testStrategy": "Full user journey on production URL. Sign up, onboard, upload docs, parse statements, check reminders. Everything works with real services.",
       "subtasks": []
     }
-  ]
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "lastModified": "2026-04-11T21:40:22.649Z",
+    "taskCount": 31,
+    "completedCount": 17,
+    "tags": [
+      "master"
+    ]
+  }
 }

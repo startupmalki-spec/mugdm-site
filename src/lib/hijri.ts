@@ -74,16 +74,25 @@ function toHijri(date: Date): HijriDate {
   return { year: hijriYear, month: hijriMonth, day: hijriDay }
 }
 
+const ARABIC_NUMERAL_MAP: Record<string, string> = {
+  '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤',
+  '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩',
+}
+
+function toArabicNumerals(str: string): string {
+  return str.replace(/[0-9]/g, (d) => ARABIC_NUMERAL_MAP[d] ?? d)
+}
+
 function formatHijri(hijri: HijriDate, locale: string): string {
   const months = locale === 'ar' ? HIJRI_MONTHS_AR : HIJRI_MONTHS_EN
   const monthName = months[hijri.month - 1] ?? ''
 
   if (locale === 'ar') {
-    return `${hijri.day} ${monthName} ${hijri.year}`
+    return toArabicNumerals(`${hijri.day} ${monthName} ${hijri.year}`)
   }
 
   return `${hijri.day} ${monthName} ${hijri.year}`
 }
 
-export { toHijri, formatHijri, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN }
+export { toHijri, formatHijri, toArabicNumerals, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN }
 export type { HijriDate }

@@ -41,8 +41,9 @@ import { ar, enUS } from 'date-fns/locale'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { EmptyState } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils'
-import { toHijri, formatHijri } from '@/lib/hijri'
+import { toHijri, formatHijri, toArabicNumerals, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '@/lib/hijri'
 import {
   getObligationStatus,
   getObligationStatusColor,
@@ -185,6 +186,9 @@ function ObligationListItem({
               <span>·</span>
               <span>{daysLabel}</span>
             </div>
+            <div className="mt-0.5 text-[10px] text-muted-foreground/60">
+              {formatHijri(toHijri(dueDate), locale)}
+            </div>
           </div>
 
           <StatusBadge status={status} label={statusLabel} />
@@ -284,9 +288,23 @@ function CalendarMonthView({
         <Button variant="ghost" size="icon" onClick={() => onMonthChange(subMonths(currentMonth, 1))}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <h3 className="text-sm font-semibold text-foreground">
-          {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
-        </h3>
+        <div className="text-center">
+          <h3 className="text-sm font-semibold text-foreground">
+            {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
+          </h3>
+          <p className="text-[11px] text-muted-foreground/70">
+            {(() => {
+              const hijriMonth = toHijri(currentMonth)
+              const monthName = locale === 'ar'
+                ? HIJRI_MONTHS_AR[hijriMonth.month - 1]
+                : HIJRI_MONTHS_EN[hijriMonth.month - 1]
+              const year = locale === 'ar'
+                ? toArabicNumerals(String(hijriMonth.year))
+                : hijriMonth.year
+              return `${monthName} ${year}`
+            })()}
+          </p>
+        </div>
         <Button variant="ghost" size="icon" onClick={() => onMonthChange(addMonths(currentMonth, 1))}>
           <ChevronRight className="h-4 w-4" />
         </Button>
@@ -639,6 +657,7 @@ function Toast({
 
 export default function CalendarPage() {
   const t = useTranslations('calendar')
+  const tEmpty = useTranslations('emptyStates')
   const locale = useLocale()
 
   const [obligations, setObligations] = useState<Obligation[]>([])
@@ -847,19 +866,13 @@ export default function CalendarPage() {
 
         <Tabs.Content value="list" className="mt-4">
           {listObligations.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="rounded-xl border border-border bg-card p-12 text-center"
-            >
-              <CalendarDays className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 font-medium text-foreground">{t('noObligations')}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{t('noObligationsDescription')}</p>
-              <Button onClick={() => setIsAddOpen(true)} className="mt-4 gap-2" disabled={!businessId}>
-                <Plus className="h-4 w-4" />
-                {t('addObligation')}
-              </Button>
-            </motion.div>
+            <EmptyState
+              icon={<CalendarDays className="h-8 w-8" />}
+              title={tEmpty('noObligations')}
+              description={tEmpty('noObligationsDesc')}
+              actionLabel={tEmpty('addObligation')}
+              onAction={() => setIsAddOpen(true)}
+            />
           ) : (
             <motion.div
               variants={CONTAINER_VARIANTS}

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+import { checkRateLimit } from '@/lib/rate-limit'
 import type { TransactionCategory } from '@/lib/supabase/types'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
@@ -24,6 +25,7 @@ const TRANSACTION_CATEGORIES: TransactionCategory[] = [
 interface AnalyzeReceiptRequest {
   base64Data: string
   mediaType?: string
+  businessId?: string
 }
 
 interface LineItem {
@@ -132,6 +134,16 @@ export async function POST(request: Request) {
         { error: 'base64Data is required' },
         { status: 400 }
       )
+    }
+
+    if (body.businessId) {
+      const rateCheck = await checkRateLimit(body.businessId)
+      if (!rateCheck.allowed) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded', remaining: 0, resetAt: rateCheck.resetAt },
+          { status: 429 }
+        )
+      }
     }
 
     const anthropic = new Anthropic()

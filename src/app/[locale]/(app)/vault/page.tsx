@@ -29,6 +29,7 @@ import { ar, enUS } from 'date-fns/locale'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { EmptyState } from '@/components/ui/empty-state'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -41,6 +42,8 @@ import {
   ACCEPTED_FILE_TYPES,
   MAX_FILE_SIZE_BYTES,
 } from '@/lib/documents'
+
+import { linkDocumentToObligation } from '@/lib/documents/link-to-obligations'
 
 import type { Document, DocumentType } from '@/lib/supabase/types'
 import type { ExpiryStatus } from '@/lib/documents'
@@ -357,12 +360,14 @@ function UploadDialog({
   locale,
   businessId,
   onDocumentAdded,
+  onObligationLinked,
 }: {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
   locale: string
   businessId: string | null
   onDocumentAdded: (doc: Document) => void
+  onObligationLinked: () => void
 }) {
   const t = useTranslations('vault')
   const tCommon = useTranslations('common')
@@ -488,12 +493,14 @@ function UploadDialog({
 
       if (updatedDoc) {
         onDocumentAdded(updatedDoc)
+        const obligationId = await linkDocumentToObligation(supabase, businessId, updatedDoc)
+        if (obligationId) onObligationLinked()
       }
     } finally {
       handleReset()
       onOpenChange(false)
     }
-  }, [selectedFile, selectedType, expiryDate, analysis, businessId, insertedDocId, onDocumentAdded, onOpenChange, handleReset])
+  }, [selectedFile, selectedType, expiryDate, analysis, businessId, insertedDocId, onDocumentAdded, onObligationLinked, onOpenChange, handleReset])
 
   return (
     <Dialog.Root
@@ -667,6 +674,7 @@ function UploadDialog({
 export default function VaultPage() {
   const t = useTranslations('vault')
   const tCommon = useTranslations('common')
+  const tEmpty = useTranslations('emptyStates')
   const locale = useLocale()
 
   const [documents, setDocuments] = useState<Document[]>([])
@@ -680,6 +688,7 @@ export default function VaultPage() {
   const [sortField, setSortField] = useState<SortField>('uploaded_at')
   const [isShowingArchived, setIsShowingArchived] = useState(false)
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null)
+  const [showObligationLinkedBanner, setShowObligationLinkedBanner] = useState(false)
 
   /* ─── Load documents ─── */
 
@@ -738,6 +747,11 @@ export default function VaultPage() {
 
   const handleDocumentAdded = useCallback((doc: Document) => {
     setDocuments((prev) => [doc, ...prev])
+  }, [])
+
+  const handleObligationLinked = useCallback(() => {
+    setShowObligationLinkedBanner(true)
+    setTimeout(() => setShowObligationLinkedBanner(false), 5000)
   }, [])
 
   // Counts for status summary
@@ -906,6 +920,47 @@ export default function VaultPage() {
             </Select.Portal>
           </Select.Root>
 
+          {/* Status Filter */}
+          <Select.Root value={statusFilter} onValueChange={(v) => setStatusFilter(v as ExpiryStatus | 'ALL')}>
+            <Select.Trigger className="flex h-10 items-center gap-2 rounded-lg border border-border bg-surface-1 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/50">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+              <Select.Value>
+                {statusFilter === 'ALL'
+                  ? t('filterByStatus')
+                  : statusFilter === 'valid'
+                    ? t('status.valid')
+                    : statusFilter === 'expiring'
+                      ? t('status.expiringSoon')
+                      : t('status.expired')}
+              </Select.Value>
+              <Select.Icon>
+                <ChevronDown className="h-3 w-3 text-muted-foreground" />
+              </Select.Icon>
+            </Select.Trigger>
+            <Select.Portal>
+              <Select.Content className="z-50 overflow-auto rounded-xl border border-border bg-card p-1 shadow-xl" position="popper" sideOffset={4}>
+                <Select.Viewport>
+                  <Select.Item value="ALL" className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground outline-none hover:bg-surface-2 data-[highlighted]:bg-surface-2">
+                    <Select.ItemIndicator><Check className="h-4 w-4 text-primary" /></Select.ItemIndicator>
+                    <Select.ItemText>{t('allStatuses')}</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item value="valid" className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground outline-none hover:bg-surface-2 data-[highlighted]:bg-surface-2">
+                    <Select.ItemIndicator><Check className="h-4 w-4 text-primary" /></Select.ItemIndicator>
+                    <Select.ItemText>{t('status.valid')}</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item value="expiring" className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground outline-none hover:bg-surface-2 data-[highlighted]:bg-surface-2">
+                    <Select.ItemIndicator><Check className="h-4 w-4 text-primary" /></Select.ItemIndicator>
+                    <Select.ItemText>{t('status.expiringSoon')}</Select.ItemText>
+                  </Select.Item>
+                  <Select.Item value="expired" className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground outline-none hover:bg-surface-2 data-[highlighted]:bg-surface-2">
+                    <Select.ItemIndicator><Check className="h-4 w-4 text-primary" /></Select.ItemIndicator>
+                    <Select.ItemText>{t('status.expired')}</Select.ItemText>
+                  </Select.Item>
+                </Select.Viewport>
+              </Select.Content>
+            </Select.Portal>
+          </Select.Root>
+
           {/* Sort */}
           <Select.Root value={sortField} onValueChange={(v) => setSortField(v as SortField)}>
             <Select.Trigger className="flex h-10 items-center gap-2 rounded-lg border border-border bg-surface-1 px-3 text-xs font-medium text-foreground transition-colors hover:border-primary/50">
@@ -954,25 +1009,25 @@ export default function VaultPage() {
       <div className="flex gap-6">
         <div className="min-w-0 flex-1">
           {filteredDocs.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="rounded-xl border border-border bg-card p-12 text-center"
-            >
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 font-medium text-foreground">
-                {searchQuery || typeFilter !== 'ALL' ? t('noResults') : t('noDocuments')}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {searchQuery || typeFilter !== 'ALL' ? t('noResultsDescription') : t('noDocumentsDescription')}
-              </p>
-              {!searchQuery && typeFilter === 'ALL' && (
-                <Button onClick={() => setIsUploadOpen(true)} className="mt-4 gap-2">
-                  <Upload className="h-4 w-4" />
-                  {t('uploadDocument')}
-                </Button>
-              )}
-            </motion.div>
+            searchQuery || typeFilter !== 'ALL' || statusFilter !== 'ALL' ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-xl border border-border bg-card p-12 text-center"
+              >
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 font-medium text-foreground">{t('noResults')}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{t('noResultsDescription')}</p>
+              </motion.div>
+            ) : (
+              <EmptyState
+                icon={<FileText className="h-8 w-8" />}
+                title={tEmpty('noDocuments')}
+                description={tEmpty('noDocumentsDesc')}
+                actionLabel={tEmpty('uploadFirst')}
+                onAction={() => setIsUploadOpen(true)}
+              />
+            )
           ) : viewMode === 'grid' ? (
             <motion.div
               variants={CONTAINER_VARIANTS}
@@ -1023,6 +1078,30 @@ export default function VaultPage() {
         </AnimatePresence>
       </div>
 
+      {/* Obligation linked notification */}
+      <AnimatePresence>
+        {showObligationLinkedBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-6 end-6 z-50 flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 shadow-lg"
+          >
+            <Check className="h-4 w-4 shrink-0 text-emerald-400" />
+            <p className="text-sm font-medium text-emerald-400">
+              Compliance obligation linked to document
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowObligationLinkedBanner(false)}
+              className="ms-1 rounded p-0.5 text-emerald-400/70 hover:text-emerald-400"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Upload Dialog */}
       <UploadDialog
         isOpen={isUploadOpen}
@@ -1030,6 +1109,7 @@ export default function VaultPage() {
         locale={locale}
         businessId={businessId}
         onDocumentAdded={handleDocumentAdded}
+        onObligationLinked={handleObligationLinked}
       />
     </div>
   )
