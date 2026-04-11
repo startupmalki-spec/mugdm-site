@@ -342,30 +342,30 @@ export function ScrollProgressLine({
 }
 
 /* ─── Floating Particles / Ambient Elements ─── */
-export function FloatingElements({ className = "" }: { className?: string }) {
-  const elements = [
-    { size: 4, x: "10%", y: "20%", duration: 8, delay: 0 },
-    { size: 3, x: "85%", y: "15%", duration: 10, delay: 1 },
-    { size: 5, x: "70%", y: "60%", duration: 12, delay: 2 },
-    { size: 3, x: "25%", y: "75%", duration: 9, delay: 0.5 },
-    { size: 4, x: "55%", y: "35%", duration: 11, delay: 1.5 },
-    { size: 2, x: "40%", y: "85%", duration: 7, delay: 3 },
-    { size: 3, x: "90%", y: "45%", duration: 13, delay: 0.8 },
-    { size: 2, x: "15%", y: "50%", duration: 10, delay: 2.5 },
-  ];
+const FLOATING_ELEMENTS = [
+  { size: 4, x: "10%", y: "20%", duration: 8, delay: 0, alpha: 0.35 },
+  { size: 3, x: "85%", y: "15%", duration: 10, delay: 1, alpha: 0.4 },
+  { size: 5, x: "70%", y: "60%", duration: 12, delay: 2, alpha: 0.28 },
+  { size: 3, x: "25%", y: "75%", duration: 9, delay: 0.5, alpha: 0.45 },
+  { size: 4, x: "55%", y: "35%", duration: 11, delay: 1.5, alpha: 0.32 },
+  { size: 2, x: "40%", y: "85%", duration: 7, delay: 3, alpha: 0.38 },
+  { size: 3, x: "90%", y: "45%", duration: 13, delay: 0.8, alpha: 0.42 },
+  { size: 2, x: "15%", y: "50%", duration: 10, delay: 2.5, alpha: 0.3 },
+] as const;
 
+export function FloatingElements({ className = "" }: { className?: string }) {
   return (
     <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
-      {elements.map((el, i) => (
+      {FLOATING_ELEMENTS.map((el, i) => (
         <motion.div
           key={i}
           className="absolute rounded-full"
           style={{
-            width: el.size,
-            height: el.size,
+            width: `${el.size}px`,
+            height: `${el.size}px`,
             left: el.x,
             top: el.y,
-            background: `rgba(91,91,255,${0.2 + Math.random() * 0.3})`,
+            background: `rgba(91,91,255,${el.alpha})`,
             boxShadow: `0 0 ${el.size * 3}px rgba(91,91,255,0.3)`,
           }}
           animate={{
@@ -460,29 +460,30 @@ export function ReactiveShadda() {
 }
 
 /* ─── Floating Shaddas — scattered across sections ─── */
+const FLOATING_SHADDAS = [
+  { size: 28, left: "8%", top: "12%", duration: 18, delay: 0, opacity: 0.03, rotate: 25 },
+  { size: 42, left: "72%", top: "28%", duration: 22, delay: 1.2, opacity: 0.04, rotate: 140 },
+  { size: 35, left: "45%", top: "65%", duration: 25, delay: 2.5, opacity: 0.035, rotate: 80 },
+  { size: 22, left: "88%", top: "75%", duration: 20, delay: 0.8, opacity: 0.028, rotate: 200 },
+  { size: 38, left: "25%", top: "42%", duration: 30, delay: 3.5, opacity: 0.045, rotate: 310 },
+  { size: 30, left: "60%", top: "85%", duration: 17, delay: 1.8, opacity: 0.032, rotate: 55 },
+  { size: 25, left: "15%", top: "90%", duration: 23, delay: 4.2, opacity: 0.038, rotate: 170 },
+] as const;
+
 export function FloatingShaddas({ count = 5, className = "" }: { count?: number; className?: string }) {
-  const shaddas = Array.from({ length: count }, (_, i) => ({
-    id: i,
-    size: 20 + Math.random() * 30,
-    left: `${5 + Math.random() * 90}%`,
-    top: `${5 + Math.random() * 90}%`,
-    duration: 15 + Math.random() * 20,
-    delay: Math.random() * 5,
-    opacity: 0.025 + Math.random() * 0.03,
-    rotate: Math.random() * 360,
-  }));
+  const shaddas = FLOATING_SHADDAS.slice(0, count);
 
   return (
     <div className={`absolute inset-0 pointer-events-none overflow-hidden ${className}`}>
-      {shaddas.map((s) => (
+      {shaddas.map((s, i) => (
         <motion.img
-          key={s.id}
+          key={i}
           src="/brand/logo-shadda.png"
           alt=""
           className="absolute object-contain"
           style={{
-            width: s.size,
-            height: s.size,
+            width: `${s.size}px`,
+            height: `${s.size}px`,
             left: s.left,
             top: s.top,
             opacity: s.opacity,
