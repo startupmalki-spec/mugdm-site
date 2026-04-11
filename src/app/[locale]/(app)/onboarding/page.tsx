@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { FileUpload } from '@/components/upload/FileUpload'
 import { isValidCRNumber } from '@/lib/validations'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 /* ───────── Types ───────── */
 
@@ -104,7 +105,7 @@ export default function OnboardingPage() {
 
   /* ─── Navigation ─── */
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (step === 2) {
       const newErrors: Record<string, string> = {}
       if (!data.nameAr.trim()) newErrors.nameAr = tCommon('required')
@@ -118,6 +119,25 @@ export default function OnboardingPage() {
         setErrors(newErrors)
         return
       }
+
+      // Check CR number uniqueness before advancing
+      const supabase = createClient()
+      const { data: existing } = await (supabase
+        .from('businesses') as any)
+        .select('id')
+        .eq('cr_number', data.crNumber)
+        .maybeSingle() as { data: { id: string } | null }
+
+      if (existing) {
+        setErrors({
+          crNumber:
+            tCommon('next') === 'Next'
+              ? 'This CR number is already registered'
+              : 'رقم السجل التجاري مسجل مسبقاً',
+        })
+        return
+      }
+
       setErrors({})
     }
 

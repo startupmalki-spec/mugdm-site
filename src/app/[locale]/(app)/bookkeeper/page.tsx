@@ -49,6 +49,8 @@ import {
 } from '@/lib/bookkeeper/calculations'
 import { TransactionForm } from '@/components/bookkeeper/TransactionForm'
 import { ReceiptCapture } from '@/components/bookkeeper/ReceiptCapture'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToastContainer, useToast } from '@/components/ui/toast'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
 
 type PeriodKey = 'this_month' | '3_months' | '6_months' | 'this_year'
@@ -141,54 +143,60 @@ export default function BookkeeperPage() {
   const [txCategoryFilter, setTxCategoryFilter] = useState<TransactionCategory | 'ALL'>('ALL')
   const [txTypeFilter, setTxTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
 
+  const { toasts, showToast, dismissToast } = useToast()
+
   useEffect(() => {
     async function loadTransactions() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-      if (!user) {
+        if (!user) {
+          setIsLoading(false)
+          return
+        }
+
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('user_id', user.id)
+          .single() as { data: { id: string } | null; error: unknown }
+
+        if (!biz) {
+          setIsLoading(false)
+          return
+        }
+
+        setBusinessId(biz.id)
+
+        const { data: txData } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('business_id', biz.id)
+          .order('date', { ascending: false }) as { data: Transaction[] | null; error: unknown }
+
+        if (txData) setTransactions(txData)
+
+        const { data: vatObligation } = await (supabase.from('obligations') as any)
+          .select('next_due_date')
+          .eq('business_id', biz.id)
+          .eq('type', 'ZATCA_VAT')
+          .order('next_due_date', { ascending: true })
+          .limit(1)
+          .single() as { data: { next_due_date: string } | null; error: unknown }
+
+        if (vatObligation) setNextVatDueDate(vatObligation.next_due_date)
+      } catch {
+        showToast(locale === 'ar' ? 'فشل في تحميل البيانات' : 'Failed to load data', 'error')
+      } finally {
         setIsLoading(false)
-        return
       }
-
-      const { data: biz } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('user_id', user.id)
-        .single() as { data: { id: string } | null; error: unknown }
-
-      if (!biz) {
-        setIsLoading(false)
-        return
-      }
-
-      setBusinessId(biz.id)
-
-      const { data: txData } = await supabase
-        .from('transactions')
-        .select('*')
-        .eq('business_id', biz.id)
-        .order('date', { ascending: false }) as { data: Transaction[] | null; error: unknown }
-
-      if (txData) setTransactions(txData)
-
-      const { data: vatObligation } = await (supabase.from('obligations') as any)
-        .select('next_due_date')
-        .eq('business_id', biz.id)
-        .eq('type', 'ZATCA_VAT')
-        .order('next_due_date', { ascending: true })
-        .limit(1)
-        .single() as { data: { next_due_date: string } | null; error: unknown }
-
-      if (vatObligation) setNextVatDueDate(vatObligation.next_due_date)
-
-      setIsLoading(false)
     }
 
     loadTransactions()
-  }, [])
+  }, [locale, showToast])
 
   const periodRange = useMemo(() => getPeriodRange(activePeriod), [activePeriod])
 
@@ -335,8 +343,25 @@ export default function BookkeeperPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-32 rounded-lg" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+          <Skeleton className="h-28 rounded-xl" />
+        </div>
+        <Skeleton className="h-64 rounded-xl" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-lg" />
+          ))}
+        </div>
       </div>
     )
   }
@@ -344,6 +369,7 @@ export default function BookkeeperPage() {
   return (
     <Tooltip.Provider delayDuration={300}>
       <div className="space-y-8">
+        <ToastContainer toasts={toasts} onDismiss={dismissToast} />
         {/* Header */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>

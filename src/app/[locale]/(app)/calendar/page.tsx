@@ -42,6 +42,8 @@ import { ar, enUS } from 'date-fns/locale'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Skeleton } from '@/components/ui/skeleton'
+import { ToastContainer, useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
 import { toHijri, formatHijri, toArabicNumerals, HIJRI_MONTHS_AR, HIJRI_MONTHS_EN } from '@/lib/hijri'
 import {
@@ -669,43 +671,50 @@ export default function CalendarPage() {
   const [toast, setToast] = useState<{ message: string; undoId: string | null } | null>(null)
   const [undoBackup, setUndoBackup] = useState<Obligation | null>(null)
 
+  const { toasts, showToast, dismissToast } = useToast()
+
   useEffect(() => {
     async function loadObligations() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      try {
+        const supabase = createClient()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-      if (!user) {
+        if (!user) {
+          setIsLoading(false)
+          return
+        }
+
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('id')
+          .eq('user_id', user.id)
+          .single() as { data: { id: string } | null; error: unknown }
+
+        if (!biz) {
+          setIsLoading(false)
+          return
+        }
+
+        setBusinessId(biz.id)
+
+        const { data: obligationsData } = await supabase
+          .from('obligations')
+          .select('*')
+          .eq('business_id', biz.id)
+          .order('next_due_date', { ascending: true }) as { data: Obligation[] | null; error: unknown }
+
+        if (obligationsData) setObligations(obligationsData)
+      } catch {
+        showToast(locale === 'ar' ? 'فشل في تحميل البيانات' : 'Failed to load data', 'error')
+      } finally {
         setIsLoading(false)
-        return
       }
-
-      const { data: biz } = await supabase
-        .from('businesses')
-        .select('id')
-        .eq('user_id', user.id)
-        .single() as { data: { id: string } | null; error: unknown }
-
-      if (!biz) {
-        setIsLoading(false)
-        return
-      }
-
-      setBusinessId(biz.id)
-
-      const { data: obligationsData } = await supabase
-        .from('obligations')
-        .select('*')
-        .eq('business_id', biz.id)
-        .order('next_due_date', { ascending: true }) as { data: Obligation[] | null; error: unknown }
-
-      if (obligationsData) setObligations(obligationsData)
-      setIsLoading(false)
     }
 
     loadObligations()
-  }, [])
+  }, [locale, showToast])
 
   const handleAddObligation = useCallback((obligation: Obligation) => {
     setObligations((prev) => [...prev, obligation].sort(
@@ -728,6 +737,10 @@ export default function CalendarPage() {
             ...ob,
             last_completed_at: now,
             next_due_date: nextDate.toISOString().split('T')[0],
+            reminder_30d_sent: false,
+            reminder_15d_sent: false,
+            reminder_7d_sent: false,
+            reminder_1d_sent: false,
           }
         }
 
@@ -742,6 +755,10 @@ export default function CalendarPage() {
     if (ob.frequency !== 'ONE_TIME' && ob.frequency !== 'CUSTOM') {
       const nextDate = getNextRecurrence(ob.frequency, new Date(ob.next_due_date))
       updates.next_due_date = nextDate.toISOString().split('T')[0]
+      updates.reminder_30d_sent = false
+      updates.reminder_15d_sent = false
+      updates.reminder_7d_sent = false
+      updates.reminder_1d_sent = false
     }
 
     await (supabase.from('obligations') as any).update(updates).eq('id', id)
@@ -795,14 +812,27 @@ export default function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+          <Skeleton className="h-10 w-36 rounded-lg" />
+        </div>
+        <Skeleton className="h-10 w-full rounded-lg" />
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

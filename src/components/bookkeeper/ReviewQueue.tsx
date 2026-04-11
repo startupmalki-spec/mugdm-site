@@ -8,6 +8,7 @@ import {
   CheckCheck,
   ChevronDown,
   AlertTriangle,
+  CopyX,
   PartyPopper,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -40,11 +41,12 @@ const ALL_CATEGORIES: TransactionCategory[] = [
 
 interface ReviewQueueProps {
   transactions: Transaction[]
+  duplicateIds?: Set<string>
   onAccept: (ids: string[]) => void
   onChangeCategory: (id: string, category: TransactionCategory) => void
 }
 
-export function ReviewQueue({ transactions, onAccept, onChangeCategory }: ReviewQueueProps) {
+export function ReviewQueue({ transactions, duplicateIds, onAccept, onChangeCategory }: ReviewQueueProps) {
   const t = useTranslations('bookkeeper')
   const locale = useLocale()
 
@@ -142,6 +144,7 @@ export function ReviewQueue({ transactions, onAccept, onChangeCategory }: Review
           {pending.map((tx, index) => {
             const isLowConfidence = (tx.ai_confidence ?? 0) < CONFIDENCE_THRESHOLD
             const confidencePct = Math.round((tx.ai_confidence ?? 0) * 100)
+            const isDuplicate = duplicateIds?.has(tx.id) ?? false
 
             return (
               <motion.div
@@ -193,6 +196,12 @@ export function ReviewQueue({ transactions, onAccept, onChangeCategory }: Review
                       {isLowConfidence && (
                         <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />
                       )}
+                      {isDuplicate && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-400">
+                          <CopyX className="h-3 w-3" />
+                          {locale === 'ar' ? 'قد يكون مكرر' : 'Possible duplicate'}
+                        </span>
+                      )}
                     </div>
 
                     <button
@@ -220,6 +229,12 @@ export function ReviewQueue({ transactions, onAccept, onChangeCategory }: Review
                       <p className="truncate text-xs text-muted-foreground">
                         {tx.vendor_or_client}
                       </p>
+                    )}
+                    {isDuplicate && (
+                      <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-orange-500/10 px-2 py-0.5 text-xs font-medium text-orange-400">
+                        <CopyX className="h-3 w-3" />
+                        {locale === 'ar' ? 'قد يكون مكرر' : 'Possible duplicate'}
+                      </span>
                     )}
                   </div>
 

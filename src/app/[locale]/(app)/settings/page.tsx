@@ -1,19 +1,39 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useRouter } from '@/i18n/routing'
-import { Globe, Bell, Shield, Moon, Sun, ChevronRight } from 'lucide-react'
+import { Globe, Bell, Shield, Moon, Sun, ChevronRight, Check } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { createClient } from '@/lib/supabase/client'
+
+const THEME_STORAGE_KEY = 'mugdm-theme'
+
+type Theme = 'light' | 'dark'
+
+interface NotificationPrefs {
+  compliance_reminders: boolean
+  document_expiry: boolean
+  weekly_digest: boolean
+}
+
+const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  compliance_reminders: true,
+  document_expiry: true,
+  weekly_digest: false,
+}
 
 function Toggle({
   isOn,
   onToggle,
   label,
+  disabled,
 }: {
   isOn: boolean
   onToggle: () => void
   label: string
+  disabled?: boolean
 }) {
   return (
     <button
@@ -22,7 +42,8 @@ function Toggle({
       aria-checked={isOn}
       aria-label={label}
       onClick={onToggle}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+      disabled={disabled}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
         isOn ? 'bg-primary' : 'bg-surface-3'
       }`}
     >
@@ -83,20 +104,129 @@ export default function SettingsPage() {
   const pathname = usePathname()
   const router = useRouter()
 
-  const [complianceReminders, setComplianceReminders] = useState(true)
-  const [documentExpiry, setDocumentExpiry] = useState(true)
-  const [weeklyDigest, setWeeklyDigest] = useState(false)
+  const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs>(DEFAULT_NOTIFICATION_PREFS)
+  const [theme, setTheme] = useState<Theme>('dark')
+  const [isSaving, setIsSaving] = useState(false)
+  const [showSaved, setShowSaved] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Load preferences on mount
+  useEffect(() => {
+    async function loadPrefs() {
+      // Read theme from localStorage immediately (fast, no flash)
+      const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null
+      if (storedTheme === 'light' || storedTheme === 'dark') {
+        setTheme(storedTheme)
+      }
+
+      const supabase = createClient()
+      const { data } = await supabase.auth.getUser()
+      const meta = (data?.user?.user_metadata ?? {}) as Record<string, unknown>
+
+      if (meta.notification_prefs) {
+        const stored = meta.notification_prefs as Partial<NotificationPrefs>
+        setNotifPrefs({
+          compliance_reminders: stored.compliance_reminders ?? DEFAULT_NOTIFICATION_PREFS.compliance_reminders,
+          document_expiry: stored.document_expiry ?? DEFAULT_NOTIFICATION_PREFS.document_expiry,
+          weekly_digest: stored.weekly_digest ?? DEFAULT_NOTIFICATION_PREFS.weekly_digest,
+        })
+      }
+
+      // Sync theme from user_metadata if no local value exists
+      if (!storedTheme && meta.theme) {
+        const syncedTheme = meta.theme as Theme
+        setTheme(syncedTheme)
+        localStorage.setItem(THEME_STORAGE_KEY, syncedTheme)
+      }
+
+      setIsLoading(false)
+    }
+
+    loadPrefs()
+  }, [])
+
+  const triggerSave = useCallback((prefs: NotificationPrefs, currentTheme: Theme) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+
+    saveTimerRef.current = setTimeout(async () => {
+      setIsSaving(true)
+      try {
+        const supabase = createClient()
+        await (supabase.auth as any).updateUser({
+          data: {
+            notification_prefs: prefs,
+            theme: currentTheme,
+          },
+        })
+        setShowSaved(true)
+        if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+        savedTimerRef.current = setTimeout(() => setShowSaved(false), 2500)
+      } finally {
+        setIsSaving(false)
+      }
+    }, 500)
+  }, [])
+
+  const handleToggleNotif = useCallback(
+    (key: keyof NotificationPrefs) => {
+      setNotifPrefs((prev) => {
+        const next = { ...prev, [key]: !prev[key] }
+        triggerSave(next, theme)
+        return next
+      })
+    },
+    [theme, triggerSave]
+  )
+
+  const handleThemeChange = useCallback(
+    (next: Theme) => {
+      setTheme(next)
+      localStorage.setItem(THEME_STORAGE_KEY, next)
+      triggerSave(notifPrefs, next)
+    },
+    [notifPrefs, triggerSave]
+  )
 
   const handleSwitchLocale = useCallback(() => {
     const nextLocale = locale === 'ar' ? 'en' : 'ar'
     router.replace(pathname, { locale: nextLocale })
   }, [locale, pathname, router])
 
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
+      if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    }
+  }, [])
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
-        <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">{t('title')}</h1>
+          <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
+        </div>
+        <AnimatePresence>
+          {(showSaved || isSaving) && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-center gap-1.5 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400"
+            >
+              {isSaving ? (
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border border-green-400 border-t-transparent" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              {t('settingsSaved')}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Preferences */}
@@ -115,13 +245,27 @@ export default function SettingsPage() {
           <div className="inline-flex items-center gap-1 rounded-lg bg-surface-2 p-0.5">
             <button
               type="button"
-              className="rounded-md px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+              onClick={() => handleThemeChange('light')}
+              disabled={isLoading}
+              aria-label={t('lightMode')}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                theme === 'light'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
               <Sun className="h-3.5 w-3.5" />
             </button>
             <button
               type="button"
-              className="rounded-md bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary"
+              onClick={() => handleThemeChange('dark')}
+              disabled={isLoading}
+              aria-label={t('darkMode')}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                theme === 'dark'
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
             >
               <Moon className="h-3.5 w-3.5" />
             </button>
@@ -133,23 +277,26 @@ export default function SettingsPage() {
       <SettingSection icon={Bell} title={t('notifications')}>
         <SettingRow label={t('complianceReminders')}>
           <Toggle
-            isOn={complianceReminders}
-            onToggle={() => setComplianceReminders((v) => !v)}
+            isOn={notifPrefs.compliance_reminders}
+            onToggle={() => handleToggleNotif('compliance_reminders')}
             label={t('complianceReminders')}
+            disabled={isLoading}
           />
         </SettingRow>
         <SettingRow label={t('documentExpiry')}>
           <Toggle
-            isOn={documentExpiry}
-            onToggle={() => setDocumentExpiry((v) => !v)}
+            isOn={notifPrefs.document_expiry}
+            onToggle={() => handleToggleNotif('document_expiry')}
             label={t('documentExpiry')}
+            disabled={isLoading}
           />
         </SettingRow>
         <SettingRow label={t('weeklyDigest')}>
           <Toggle
-            isOn={weeklyDigest}
-            onToggle={() => setWeeklyDigest((v) => !v)}
+            isOn={notifPrefs.weekly_digest}
+            onToggle={() => handleToggleNotif('weekly_digest')}
             label={t('weeklyDigest')}
+            disabled={isLoading}
           />
         </SettingRow>
       </SettingSection>

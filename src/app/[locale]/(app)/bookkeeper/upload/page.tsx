@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { SAUDI_BANKS } from '@/lib/bookkeeper/demo-data'
 import { ReviewQueue } from '@/components/bookkeeper/ReviewQueue'
 import { createClient } from '@/lib/supabase/client'
+import { checkDuplicateTransactions } from '@/lib/bookkeeper/duplicate-detection'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
 
 type UploadStep = 'select' | 'processing' | 'review'
@@ -60,6 +61,7 @@ export default function UploadStatementPage() {
   const [error, setError] = useState<string | null>(null)
   const [businessId, setBusinessId] = useState<string | null>(null)
   const [uploadRecordId, setUploadRecordId] = useState<string | null>(null)
+  const [duplicateIds, setDuplicateIds] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [savedCount, setSavedCount] = useState<number | null>(null)
@@ -113,6 +115,7 @@ export default function UploadStatementPage() {
     setSavedCount(null)
     setUploadRecordId(null)
     setTransactions([])
+    setDuplicateIds(new Set())
 
     startFakeProgress()
 
@@ -207,6 +210,12 @@ export default function UploadStatementPage() {
         is_reviewed: false,
         created_at: new Date().toISOString(),
       }))
+
+      // Run duplicate check before showing the review queue
+      if (businessId && shaped.length > 0) {
+        const { duplicates } = await checkDuplicateTransactions(supabase, businessId, shaped)
+        setDuplicateIds(new Set(duplicates.map((tx) => tx.id)))
+      }
 
       setTransactions(shaped)
 
@@ -515,6 +524,7 @@ export default function UploadStatementPage() {
             {/* Review Queue */}
             <ReviewQueue
               transactions={transactions}
+              duplicateIds={duplicateIds}
               onAccept={handleAcceptTransactions}
               onChangeCategory={handleChangeCategory}
             />
