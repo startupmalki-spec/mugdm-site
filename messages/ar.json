@@ -357,7 +357,18 @@
     "sar": "ر.س",
     "copyright": "جميع الحقوق محفوظة",
     "poweredBy": "بدعم من مُقدِم",
-    "version": "الإصدار"
+    "version": "الإصدار",
+    "name": "الاسم",
+    "ownerName": "اسم المالك",
+    "nationality": "الجنسية",
+    "addOwner": "إضافة مالك",
+    "phone": "الهاتف",
+    "email": "البريد الإلكتروني",
+    "address": "العنوان",
+    "branding": "الهوية البصرية",
+    "logo": "الشعار",
+    "stamp": "الختم",
+    "contactInfo": "معلومات التواصل"
   },
   "dashboard": {
     "title": "لوحة التحكم",

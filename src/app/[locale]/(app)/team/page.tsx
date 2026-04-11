@@ -547,7 +547,7 @@ export default function TeamPage() {
                 {/* Name */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    {tCommon('next') === 'Next' ? 'Name' : 'الاسم'}{' '}
+                    {tCommon('name')}{' '}
                     <span className="text-red-400">*</span>
                   </label>
                   <Input
@@ -562,7 +562,7 @@ export default function TeamPage() {
                 {/* Nationality */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    {tCommon('next') === 'Next' ? 'Nationality' : 'الجنسية'}{' '}
+                    {tCommon('nationality')}{' '}
                     <span className="text-red-400">*</span>
                   </label>
                   <Input

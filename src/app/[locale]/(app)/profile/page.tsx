@@ -658,7 +658,7 @@ export default function ProfilePage() {
                       next[index] = { ...next[index], name: e.target.value }
                       setEditOwners(next)
                     }}
-                    placeholder={tCommon('next') === 'Next' ? 'Name' : 'الاسم'}
+                    placeholder={tCommon('name')}
                   />
                   <Input
                     value={owner.nationality}
@@ -670,9 +670,7 @@ export default function ProfilePage() {
                       }
                       setEditOwners(next)
                     }}
-                    placeholder={
-                      tCommon('next') === 'Next' ? 'Nationality' : 'الجنسية'
-                    }
+                    placeholder={tCommon('nationality')}
                   />
                   <Input
                     value={owner.share ? String(owner.share) : ''}
@@ -716,7 +714,7 @@ export default function ProfilePage() {
               className="gap-1.5 text-primary"
             >
               <Plus className="h-3.5 w-3.5" />
-              {tCommon('next') === 'Next' ? 'Add Owner' : 'إضافة مالك'}
+              {tCommon('addOwner')}
             </Button>
           </div>
         }
@@ -750,7 +748,7 @@ export default function ProfilePage() {
       {/* ─── Contact Section ─── */}
       <SectionCard
         sectionKey="contact"
-        title={t('crNumber').includes('CR') ? 'Contact Information' : 'معلومات التواصل'}
+        title={tCommon('contactInfo')}
         isExpanded={expanded.contact}
         isEditing={editing.contact}
         onToggleExpand={() => handleToggleExpand('contact')}
@@ -761,7 +759,7 @@ export default function ProfilePage() {
           <div className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                {tCommon('next') === 'Next' ? 'Phone' : 'الهاتف'}
+                {tCommon('phone')}
               </label>
               <Input
                 value={editContact.contact_phone}
@@ -778,7 +776,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                {tCommon('next') === 'Next' ? 'Email' : 'البريد الإلكتروني'}
+                {tCommon('email')}
               </label>
               <Input
                 value={editContact.contact_email}
@@ -793,7 +791,7 @@ export default function ProfilePage() {
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                {tCommon('next') === 'Next' ? 'Address' : 'العنوان'}
+                {tCommon('address')}
               </label>
               <Textarea
                 value={editContact.contact_address}
@@ -811,15 +809,15 @@ export default function ProfilePage() {
       >
         <div className="divide-y divide-border/50">
           <FieldRow
-            label={tCommon('next') === 'Next' ? 'Phone' : 'الهاتف'}
+            label={tCommon('phone')}
             value={business.contact_phone}
           />
           <FieldRow
-            label={tCommon('next') === 'Next' ? 'Email' : 'البريد الإلكتروني'}
+            label={tCommon('email')}
             value={business.contact_email}
           />
           <FieldRow
-            label={tCommon('next') === 'Next' ? 'Address' : 'العنوان'}
+            label={tCommon('address')}
             value={business.contact_address}
           />
         </div>
@@ -841,7 +839,7 @@ export default function ProfilePage() {
               <Palette className="h-4.5 w-4.5 text-primary" />
             </div>
             <h3 className="text-sm font-semibold text-foreground">
-              {tCommon('next') === 'Next' ? 'Branding' : 'الهوية البصرية'}
+              {tCommon('branding')}
             </h3>
           </div>
           {expanded.branding ? (
@@ -862,7 +860,7 @@ export default function ProfilePage() {
                 <div className="flex flex-wrap items-start gap-10">
                   <div className="flex flex-col items-center gap-2">
                     <p className="text-xs font-medium text-muted-foreground">
-                      {tCommon('next') === 'Next' ? 'Logo' : 'الشعار'}
+                      {tCommon('logo')}
                     </p>
                     <FileUpload
                       accept={{
@@ -879,7 +877,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex flex-col items-center gap-2">
                     <p className="text-xs font-medium text-muted-foreground">
-                      {tCommon('next') === 'Next' ? 'Stamp' : 'الختم'}
+                      {tCommon('stamp')}
                     </p>
                     <FileUpload
                       accept={{

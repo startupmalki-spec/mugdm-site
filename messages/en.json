@@ -357,7 +357,18 @@
     "sar": "SAR",
     "copyright": "All rights reserved",
     "poweredBy": "Powered by Mugdm",
-    "version": "Version"
+    "version": "Version",
+    "name": "Name",
+    "ownerName": "Owner name",
+    "nationality": "Nationality",
+    "addOwner": "Add Owner",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "branding": "Branding",
+    "logo": "Logo",
+    "stamp": "Stamp",
+    "contactInfo": "Contact Information"
   },
   "dashboard": {
     "title": "Dashboard",

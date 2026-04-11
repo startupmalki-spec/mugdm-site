@@ -474,7 +474,7 @@ export default function OnboardingPage() {
               className="gap-1.5 text-primary"
             >
               <Plus className="h-3.5 w-3.5" />
-              {tCommon('next') === 'Next' ? 'Add Owner' : 'إضافة مالك'}
+              {tCommon('addOwner')}
             </Button>
           </div>
           <div className="space-y-3">
@@ -492,18 +492,14 @@ export default function OnboardingPage() {
                     onChange={(e) =>
                       handleOwnerChange(index, 'name', e.target.value)
                     }
-                    placeholder={
-                      tCommon('next') === 'Next' ? 'Owner name' : 'اسم المالك'
-                    }
+                    placeholder={tCommon('ownerName')}
                   />
                   <Input
                     value={owner.nationality}
                     onChange={(e) =>
                       handleOwnerChange(index, 'nationality', e.target.value)
                     }
-                    placeholder={
-                      tCommon('next') === 'Next' ? 'Nationality' : 'الجنسية'
-                    }
+                    placeholder={tCommon('nationality')}
                   />
                   <Input
                     value={owner.share ? String(owner.share) : ''}
@@ -537,12 +533,12 @@ export default function OnboardingPage() {
         {/* Branding */}
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-            {tCommon('next') === 'Next' ? 'Branding' : 'الهوية البصرية'}
+            {tCommon('branding')}
           </h3>
           <div className="flex flex-wrap items-start gap-8">
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs font-medium text-muted-foreground">
-                {tCommon('next') === 'Next' ? 'Logo' : 'الشعار'}
+                {tCommon('logo')}
               </p>
               <FileUpload
                 accept={{ 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'] }}
@@ -558,7 +554,7 @@ export default function OnboardingPage() {
             </div>
             <div className="flex flex-col items-center gap-2">
               <p className="text-xs font-medium text-muted-foreground">
-                {tCommon('next') === 'Next' ? 'Stamp' : 'الختم'}
+                {tCommon('stamp')}
               </p>
               <FileUpload
                 accept={{ 'image/png': ['.png'], 'image/jpeg': ['.jpg', '.jpeg'] }}
@@ -631,7 +627,7 @@ export default function OnboardingPage() {
             {/* Email (disabled) */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                {tCommon('next') === 'Next' ? 'Email' : 'البريد الإلكتروني'}
+                {tCommon('email')}
               </label>
               <Input
                 value={data.email}
