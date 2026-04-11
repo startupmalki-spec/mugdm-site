@@ -105,7 +105,12 @@ function parseClaudeResponse(text: string): ReceiptExtractionResult {
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) return buildFallbackResponse()
 
-  const parsed = JSON.parse(jsonMatch[0]) as Partial<ReceiptExtractionResult>
+  let parsed: Partial<ReceiptExtractionResult>
+  try {
+    parsed = JSON.parse(jsonMatch[0])
+  } catch {
+    return buildFallbackResponse()
+  }
 
   const category: TransactionCategory = TRANSACTION_CATEGORIES.includes(
     parsed.category as TransactionCategory
@@ -230,6 +235,9 @@ export async function POST(request: Request) {
       businessId,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
-    return NextResponse.json(buildFallbackResponse())
+    return NextResponse.json(
+      { error: 'Receipt analysis failed' },
+      { status: 502 }
+    )
   }
 }

@@ -120,6 +120,10 @@ export default function SettingsPage() {
       const storedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null
       if (storedTheme === 'light' || storedTheme === 'dark') {
         setTheme(storedTheme)
+      } else {
+        // No stored preference — detect from DOM (server default is 'dark')
+        const isDark = document.documentElement.classList.contains('dark')
+        setTheme(isDark ? 'dark' : 'light')
       }
 
       const supabase = createClient()
@@ -185,6 +189,14 @@ export default function SettingsPage() {
     (next: Theme) => {
       setTheme(next)
       localStorage.setItem(THEME_STORAGE_KEY, next)
+
+      // Apply theme to DOM immediately
+      if (next === 'dark') {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+
       triggerSave(notifPrefs, next)
     },
     [notifPrefs, triggerSave]
@@ -303,21 +315,14 @@ export default function SettingsPage() {
 
       {/* Security */}
       <SettingSection icon={Shield} title={t('security')}>
-        <SettingRow label={t('changePassword')}>
-          <button
-            type="button"
-            className="rounded-lg bg-surface-2 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-3"
-          >
-            <ChevronRight className="h-4 w-4 text-muted-foreground rtl:rotate-180" />
-          </button>
-        </SettingRow>
         <SettingRow
           label={t('deleteAccount')}
           description={t('deleteAccountWarning')}
         >
           <button
             type="button"
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
+            disabled
+            className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-400/50 cursor-not-allowed"
           >
             {t('deleteAccount')}
           </button>

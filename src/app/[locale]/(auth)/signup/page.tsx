@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 
 export default function SignupPage() {
   const t = useTranslations('auth')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isSent, setIsSent] = useState(false)
@@ -22,6 +23,7 @@ export default function SignupPage() {
     const { error: authError } = await supabase.auth.signInWithOtp({
       email,
       options: {
+        data: { full_name: name },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     })
@@ -34,7 +36,7 @@ export default function SignupPage() {
     }
 
     setIsSent(true)
-  }, [email, t])
+  }, [name, email, t])
 
   if (isSent) {
     return (
@@ -93,6 +95,8 @@ export default function SignupPage() {
                 type="text"
                 autoComplete="name"
                 required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder={t('fullNamePlaceholder')}
                 className="mt-1 block w-full rounded-lg border border-input bg-surface-2 px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring/20"
               />

@@ -148,6 +148,30 @@ a, button, [role="button"], input[type="submit"] {
   cursor: url('/cursor-shadda-sm.png') 12 12, pointer;
 }
 
+/* ─── Light theme overrides ─── */
+html:not(.dark) {
+  --color-background: #f8f9fc;
+  --color-foreground: #1a1a2e;
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1a2e;
+  --color-primary: #4f4ff7;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #eeeef8;
+  --color-secondary-foreground: #4a4a6a;
+  --color-muted: #eeeef8;
+  --color-muted-foreground: #6a6a8a;
+  --color-accent: #4f4ff7;
+  --color-accent-foreground: #ffffff;
+  --color-border: #dcdce8;
+  --color-input: #dcdce8;
+  --color-ring: #4f4ff7;
+  --color-surface-0: #f8f9fc;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #eeeef8;
+  --color-surface-3: #dcdce8;
+  --color-green: #10b981;
+}
+
 /* ─── Base ─── */
 * {
   border-color: var(--color-border);
@@ -191,6 +215,42 @@ html { scroll-behavior: smooth; }
   background: rgba(30, 30, 46, 0.85);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+html:not(.dark) .glass {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Light-mode logo: undo invert so the original purple shows */
+html:not(.dark) .brightness-0.invert {
+  filter: none !important;
+}
+
+/* Light-mode watermark: reduce brightness override */
+html:not(.dark) .brightness-200 {
+  filter: brightness(0.6) !important;
+  opacity: 0.06;
+}
+
+/* Light-mode scrollbar */
+html:not(.dark) ::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 140, 0.25);
+}
+html:not(.dark) ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 100, 140, 0.4);
+}
+
+/* Light-mode selection */
+html:not(.dark) ::selection {
+  background-color: rgba(79, 79, 247, 0.2);
+  color: #1a1a2e;
+}
+
+/* Light-mode text gradient */
+html:not(.dark) .text-gradient {
+  background: linear-gradient(135deg, #4f4ff7, #7c3aed, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* ─── شدة Pattern Texture ─── */

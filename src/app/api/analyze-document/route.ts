@@ -106,7 +106,12 @@ function parseClaudeResponse(text: string): ExtractedDocumentData {
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) return buildFallbackResponse()
 
-  const parsed = JSON.parse(jsonMatch[0]) as Partial<ExtractedDocumentData>
+  let parsed: Partial<ExtractedDocumentData>
+  try {
+    parsed = JSON.parse(jsonMatch[0])
+  } catch {
+    return buildFallbackResponse()
+  }
 
   const documentType: DocumentType = DOCUMENT_TYPES.includes(parsed.document_type as DocumentType)
     ? (parsed.document_type as DocumentType)
@@ -250,6 +255,9 @@ export async function POST(request: Request) {
       businessId,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
-    return NextResponse.json(buildFallbackResponse())
+    return NextResponse.json(
+      { error: 'Document analysis failed' },
+      { status: 502 }
+    )
   }
 }

@@ -68,7 +68,15 @@ export default async function LocaleLayout({
   const messages = await getMessages()
 
   return (
-    <html lang={locale} dir={isRtl ? 'rtl' : 'ltr'} className="dark">
+    <html lang={locale} dir={isRtl ? 'rtl' : 'ltr'} className="dark" suppressHydrationWarning>
+      <head>
+        {/* Prevent flash of wrong theme — reads localStorage before paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('mugdm-theme');if(t==='light')document.documentElement.classList.remove('dark')}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body
         className={`${inter.variable} ${notoSansArabic.variable} min-h-screen bg-background text-foreground antialiased ${
           isRtl ? 'font-[var(--font-noto-arabic)]' : 'font-[var(--font-inter)]'

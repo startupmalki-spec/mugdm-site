@@ -56,6 +56,20 @@ export async function POST(request: Request) {
       )
     }
 
+    // Prevent duplicate business creation (double-submit, network retry)
+    const { data: existingBusiness } = await (supabase
+      .from('businesses') as any)
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle() as { data: { id: string } | null }
+
+    if (existingBusiness) {
+      return NextResponse.json(
+        { error: 'Business already exists', businessId: existingBusiness.id },
+        { status: 409 }
+      )
+    }
+
     const crDigits = body.cr_number.replace(/\s/g, '')
     if (crDigits.length !== 10 || !/^\d+$/.test(crDigits)) {
       return NextResponse.json(
@@ -103,7 +117,7 @@ export async function POST(request: Request) {
     const ownerName =
       body.owners?.[0]?.name || user.user_metadata?.full_name || user.email || ''
 
-    await (supabase.from('team_members') as any).insert({
+    const { error: teamError } = await (supabase.from('team_members') as any).insert({
       business_id: business.id,
       name: ownerName,
       nationality: body.owners?.[0]?.nationality ?? 'Saudi',
@@ -115,9 +129,13 @@ export async function POST(request: Request) {
       termination_date: null,
     })
 
+    if (teamError) {
+      console.error('[API] onboarding: team member insert failed:', teamError.message)
+    }
+
     // Store CR document reference if provided
     if (body.cr_document_url) {
-      await (supabase.from('documents') as any).insert({
+      const { error: docError } = await (supabase.from('documents') as any).insert({
         business_id: business.id,
         type: 'CR',
         name: 'Commercial Registration',
@@ -130,6 +148,10 @@ export async function POST(request: Request) {
         ai_confidence: null,
         archived_at: null,
       })
+
+      if (docError) {
+        console.error('[API] onboarding: document insert failed:', docError.message)
+      }
     }
 
     // Auto-generate compliance obligations for the new business

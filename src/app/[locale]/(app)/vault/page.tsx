@@ -411,16 +411,22 @@ function UploadDialog({
 
         if (uploadError) throw uploadError
 
-        const { data: { publicUrl } } = supabase.storage
+        const SIGNED_URL_EXPIRY_SECONDS = 3600
+
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('documents')
-          .getPublicUrl(uploadData.path)
+          .createSignedUrl(uploadData.path, SIGNED_URL_EXPIRY_SECONDS)
+
+        if (signedUrlError || !signedUrlData?.signedUrl) throw signedUrlError ?? new Error('Failed to generate signed URL')
+
+        const signedUrl = signedUrlData.signedUrl
 
         const { data: insertedDoc, error: insertError } = await (supabase
           .from('documents') as any)
           .insert({
             business_id: businessId,
             name: file.name,
-            file_url: publicUrl,
+            file_url: uploadData.path,
             file_size: file.size,
             mime_type: file.type,
             type: 'OTHER',
@@ -438,7 +444,7 @@ function UploadDialog({
           const analysisRes = await fetch('/api/analyze-document', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileUrl: publicUrl, businessId }),
+            body: JSON.stringify({ fileUrl: signedUrl, businessId }),
           })
 
           if (analysisRes.ok) {

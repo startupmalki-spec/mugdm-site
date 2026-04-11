@@ -132,10 +132,15 @@ export default function UploadStatementPage() {
 
         if (uploadError) throw uploadError
 
-        const { data: publicUrlData } = supabase.storage
+        const SIGNED_URL_EXPIRY_SECONDS = 3600
+
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('documents')
-          .getPublicUrl(uploadData.path)
-        fileUrl = publicUrlData.publicUrl
+          .createSignedUrl(uploadData.path, SIGNED_URL_EXPIRY_SECONDS)
+
+        if (signedUrlError || !signedUrlData?.signedUrl) throw signedUrlError ?? new Error('Failed to generate signed URL')
+
+        fileUrl = signedUrlData.signedUrl
 
         // Read PDF bytes as latin1 text so Claude can attempt to extract text rows
         const buffer = await file.arrayBuffer()

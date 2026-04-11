@@ -116,7 +116,7 @@ function getMonthsForPeriod(key: PeriodKey): number {
 const CHART_THEME = {
   gridColor: '#33334a',
   textColor: '#8888a8',
-  tooltipBg: '#252536',
+  tooltipBg: 'var(--color-card)',
   tooltipBorder: '#33334a',
 }
 

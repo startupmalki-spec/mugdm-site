@@ -49,8 +49,16 @@ export default async function middleware(request: NextRequest) {
     return intlResponse
   }
 
-  // Skip auth checks if Supabase is not configured (demo mode)
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Skip auth checks only if explicitly in demo mode AND Supabase is not configured
+  if (process.env.ENABLE_DEMO_MODE === 'true' && (!supabaseUrl || !supabaseKey)) {
+    return intlResponse
+  }
+
+  // If Supabase is not configured outside demo mode, skip auth (avoids crash)
+  if (!supabaseUrl || !supabaseKey) {
     return intlResponse
   }
 
@@ -61,8 +69,8 @@ export default async function middleware(request: NextRequest) {
 
   // Re-check the user from the (now-refreshed) cookies on the request.
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseKey,
     {
       cookies: {
         getAll() {

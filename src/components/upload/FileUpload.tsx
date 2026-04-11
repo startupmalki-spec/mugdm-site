@@ -110,13 +110,21 @@ export function FileUpload({
           return
         }
 
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from(bucket).getPublicUrl(data.path)
+        const SIGNED_URL_EXPIRY_SECONDS = 3600
+
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from(bucket)
+          .createSignedUrl(data.path, SIGNED_URL_EXPIRY_SECONDS)
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+          setUploadState('error')
+          setErrorMessage(signedUrlError?.message ?? 'Failed to generate file URL')
+          return
+        }
 
         setProgress(100)
         setUploadState('complete')
-        onUpload(publicUrl, file)
+        onUpload(signedUrlData.signedUrl, file)
       } catch {
         setUploadState('error')
         setErrorMessage(t('error'))

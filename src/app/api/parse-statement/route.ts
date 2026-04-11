@@ -114,10 +114,16 @@ function buildFallbackResponse(): ParseStatementResponse {
 }
 
 function parseClaudeResponse(text: string): ParseStatementResponse {
+  // Greedy match needed — response contains nested objects (transactions array)
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) return buildFallbackResponse()
 
-  const parsed = JSON.parse(jsonMatch[0]) as Partial<ParseStatementResponse>
+  let parsed: Partial<ParseStatementResponse>
+  try {
+    parsed = JSON.parse(jsonMatch[0])
+  } catch {
+    return buildFallbackResponse()
+  }
 
   const validTypes: TransactionType[] = ['INCOME', 'EXPENSE']
   const validCategories: TransactionCategory[] = [
@@ -246,6 +252,9 @@ export async function POST(request: Request) {
       businessId,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
-    return NextResponse.json(buildFallbackResponse())
+    return NextResponse.json(
+      { error: 'Statement parsing failed' },
+      { status: 502 }
+    )
   }
 }
