@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { TransactionCategory } from '@/lib/supabase/types'
 
@@ -127,6 +128,12 @@ function parseClaudeResponse(text: string): ReceiptExtractionResult {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = (await request.json()) as AnalyzeReceiptRequest
 
     if (!body.base64Data) {
@@ -136,7 +143,14 @@ export async function POST(request: Request) {
       )
     }
 
-    if (body.businessId) {
+    if (!body.businessId) {
+      return NextResponse.json(
+        { error: 'businessId is required' },
+        { status: 400 }
+      )
+    }
+
+    {
       const rateCheck = await checkRateLimit(body.businessId)
       if (!rateCheck.allowed) {
         return NextResponse.json(

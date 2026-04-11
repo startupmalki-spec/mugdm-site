@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { DocumentType } from '@/lib/supabase/types'
 
@@ -115,6 +116,12 @@ function parseClaudeResponse(text: string): ExtractedDocumentData {
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = (await request.json()) as AnalyzeDocumentRequest
 
     if (!body.businessId) {

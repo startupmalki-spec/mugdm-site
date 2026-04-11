@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+import { createClient } from '@/lib/supabase/server'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { TransactionCategory, TransactionType } from '@/lib/supabase/types'
 
@@ -163,6 +164,12 @@ const MAX_CSV_CHARS = 80_000
 
 export async function POST(request: Request) {
   try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const body = (await request.json()) as ParseStatementRequest
 
     if (!body.csvContent || typeof body.csvContent !== 'string') {
@@ -172,7 +179,14 @@ export async function POST(request: Request) {
       )
     }
 
-    if (body.businessId) {
+    if (!body.businessId) {
+      return NextResponse.json(
+        { error: 'businessId is required' },
+        { status: 400 }
+      )
+    }
+
+    {
       const rateCheck = await checkRateLimit(body.businessId)
       if (!rateCheck.allowed) {
         return NextResponse.json(
