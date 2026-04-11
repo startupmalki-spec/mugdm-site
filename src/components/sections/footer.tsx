@@ -37,13 +37,18 @@ export function Footer() {
 
           {/* Links */}
           <div className="flex items-center gap-6">
-            {["Services", "Process", "Why Mugdm", "Contact"].map((item) => (
+            {[
+              { label: "Features", href: "#features" },
+              { label: "How It Works", href: "#how-it-works" },
+              { label: "Why Mugdm", href: "#why" },
+              { label: "Contact", href: "#contact" },
+            ].map((item) => (
               <a
-                key={item}
-                href={`#${item.toLowerCase().replace(" ", "-")}`}
+                key={item.label}
+                href={item.href}
                 className="text-sm text-muted-foreground hover:text-foreground transition-all duration-300 relative pb-0.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
-                {item}
+                {item.label}
               </a>
             ))}
           </div>

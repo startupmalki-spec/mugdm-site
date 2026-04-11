@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowRight, Mail } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import { AnimatedText, AuroraBackground, Magnetic, ReactiveShadda } from "@/lib/animations";
 
 export function Hero() {
@@ -191,12 +191,12 @@ export function Hero() {
             className="w-1.5 h-1.5 rounded-full bg-primary"
             style={{ animation: "pulse 2s infinite" }}
           />
-          AI-Powered Software Studio
+          AI-Powered Compliance Platform
         </div>
 
         {/* Headline */}
         <h1 className="text-[clamp(40px,6vw,76px)] font-extrabold tracking-[-0.04em] leading-[1.08] mb-6">
-          <AnimatedText text="We build your software." delay={0.2} as="span" className="block" />
+          <AnimatedText text="Your business compliance." delay={0.2} as="span" className="block" />
           <span
             className="text-gradient block"
             style={{
@@ -204,7 +204,7 @@ export function Hero() {
               animation: "gradient-shift 4s ease infinite",
             }}
           >
-            <AnimatedText text="Incredibly fast." delay={0.6} as="span" />
+            <AnimatedText text="On autopilot." delay={0.6} as="span" />
           </span>
         </h1>
 
@@ -213,8 +213,8 @@ export function Hero() {
           className="text-[clamp(16px,2vw,20px)] text-muted-foreground max-w-[640px] mx-auto mb-10 leading-relaxed opacity-0"
           style={{ animation: "fade-up 0.8s ease-out 0.3s forwards" }}
         >
-          From idea to live product in days, not months. We combine AI-powered development
-          with human expertise to ship websites, apps, and MVPs for businesses that move fast.
+          Mugdm manages your CR renewals, GOSI payments, VAT filings, document tracking, and
+          bookkeeping — so you can focus on growing your business.
         </p>
 
         {/* CTAs */}
@@ -224,21 +224,21 @@ export function Hero() {
         >
           <Magnetic strength={0.15}>
             <a
-              href="#contact"
+              href="/en/signup"
               className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(91,91,255,0.3)] hover:shadow-[0_12px_40px_rgba(91,91,255,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
               style={{ animation: "glow 3s ease-in-out infinite" }}
             >
-              Start a Project
+              Get Started Free
               <ArrowRight size={20} />
             </a>
           </Magnetic>
           <Magnetic strength={0.15}>
             <a
-              href="mailto:contact@mugdm.com"
+              href="#features"
               className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl border border-border bg-transparent text-foreground text-lg font-medium transition-all duration-250 hover:bg-surface-2 hover:border-primary/40"
             >
-              <Mail size={20} />
-              Email Us
+              <Play size={20} />
+              See How It Works
             </a>
           </Magnetic>
         </div>

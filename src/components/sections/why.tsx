@@ -1,40 +1,40 @@
 "use client";
 
-import { Zap, Shield, Users, Brain } from "lucide-react";
+import { Brain, Shield, Globe, Zap } from "lucide-react";
 import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingElements, FloatingShaddas } from "@/lib/animations";
 
 const differentiators = [
   {
-    icon: Zap,
-    title: "3-5x Faster Delivery",
-    description: "AI-powered workflows mean we ship in days what traditional agencies take weeks to build.",
-    counterTarget: 5,
-    counterPrefix: "3-",
-    counterSuffix: "x",
-    statLabel: "Faster",
-  },
-  {
-    icon: Shield,
-    title: "Production-Ready Code",
-    description: "AI speed with human quality control. Every line is reviewed, tested, and built to scale.",
+    icon: Brain,
+    title: "AI-Powered Analysis",
+    description: "Claude AI reads your documents, parses bank statements, and categorizes transactions. No manual data entry.",
     counterTarget: 100,
     counterPrefix: "",
     counterSuffix: "%",
-    statLabel: "Reviewed",
+    statLabel: "Automated",
   },
   {
-    icon: Users,
-    title: "Direct Access",
-    description: "No project managers or layers. You work directly with the builder — faster decisions, better results.",
-    stat: "1:1",
-    statLabel: "Direct",
+    icon: Shield,
+    title: "Built for Saudi Arabia",
+    description: "GOSI, ZATCA, Balady, Chamber of Commerce — we know every Saudi compliance requirement inside and out.",
+    stat: "🇸🇦",
+    statLabel: "Saudi",
   },
   {
-    icon: Brain,
-    title: "SME-Focused",
-    description: "Built for small and medium enterprises. Enterprise-quality solutions without enterprise complexity or pricing.",
-    stat: "SME",
-    statLabel: "First",
+    icon: Globe,
+    title: "Fully Bilingual",
+    description: "Complete Arabic and English support with RTL layout. Hijri and Gregorian dates side by side.",
+    stat: "عربي",
+    statLabel: "& EN",
+  },
+  {
+    icon: Zap,
+    title: "All-in-One Platform",
+    description: "Documents, compliance, bookkeeping, and team management. Replace 5 tools with one simple dashboard.",
+    counterTarget: 5,
+    counterPrefix: "",
+    counterSuffix: "+",
+    statLabel: "Tools",
   },
 ];
 
@@ -50,10 +50,10 @@ export function Why() {
             Why Mugdm
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            Built <span className="text-gradient">different</span>
+            Built for <span className="text-gradient">Saudi businesses</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            We&apos;re not another agency. We&apos;re a new kind of software studio — lean, fast, and AI-native.
+            Every feature designed for the reality of running a micro-enterprise in Saudi Arabia.
           </p>
         </Reveal>
 

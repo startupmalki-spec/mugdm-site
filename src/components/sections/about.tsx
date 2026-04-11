@@ -11,7 +11,7 @@ export function About() {
             About
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-6">
-            The <span className="text-gradient">builder</span>
+            What is <span className="text-gradient">Mugdm</span>?
           </h2>
 
           {/* Avatar placeholder */}
@@ -20,16 +20,13 @@ export function About() {
           </div>
 
           <p className="text-lg text-muted-foreground leading-relaxed mb-4">
-            Hey, I&apos;m <span className="text-foreground font-medium">Mohammed Malki</span> — the founder and builder behind Mugdm.
+            <span className="text-gradient font-medium">مقدم</span> (Mugdm) means &ldquo;the one who provides and delivers&rdquo; in Arabic.
           </p>
           <p className="text-base text-muted-foreground leading-relaxed mb-4">
-            I combine AI-powered tools with a deep understanding of what businesses actually need.
-            No bloated teams, no long timelines — just direct collaboration with someone who cares about shipping great software.
+            Mugdm is a compliance platform built specifically for Saudi micro-enterprises — the 700,000+ small businesses that struggle with compliance paperwork, government portals, and financial record-keeping every day.
           </p>
           <p className="text-base text-muted-foreground leading-relaxed mb-8">
-            Based in Saudi Arabia, serving businesses worldwide.
-            <br />
-            <span className="text-gradient font-medium">مقدم</span> means &ldquo;the one who delivers&rdquo; — and that&apos;s exactly what I do.
+            Founded by <span className="text-foreground font-medium">Mohammed Malki</span>, Mugdm brings together AI-powered document analysis, bilingual support, and deep knowledge of Saudi regulations into one simple dashboard.
           </p>
 
           <a
@@ -38,7 +35,7 @@ export function About() {
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors"
           >
-            Read more about me
+            Meet the founder
             <ExternalLink size={14} />
           </a>
         </div>

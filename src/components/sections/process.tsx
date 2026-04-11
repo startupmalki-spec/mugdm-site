@@ -1,48 +1,48 @@
 "use client";
 
-import { MessageSquare, Palette, Code2, Rocket } from "lucide-react";
+import { UserPlus, Upload, CalendarCheck, Shield } from "lucide-react";
 import { Reveal, StaggerContainer, StaggerItem, ScrollProgressLine } from "@/lib/animations";
 
 const steps = [
   {
-    icon: MessageSquare,
+    icon: UserPlus,
     step: "01",
-    title: "Share Your Idea",
-    description: "Tell us what you need. We listen, ask the right questions, and define the scope together.",
+    title: "Sign Up",
+    description: "Create your account with just an email. Magic link login — no passwords to remember.",
   },
   {
-    icon: Palette,
+    icon: Upload,
     step: "02",
-    title: "We Design",
-    description: "Clean, modern UI/UX tailored to your brand. You review, we refine until it's perfect.",
+    title: "Upload Your CR",
+    description: "Upload your Commercial Registration. Our AI reads it and sets up your business profile automatically.",
   },
   {
-    icon: Code2,
+    icon: CalendarCheck,
     step: "03",
-    title: "We Build",
-    description: "AI-accelerated development with human oversight. Production-ready code, built to scale.",
+    title: "Auto-Generate Obligations",
+    description: "Mugdm creates your compliance calendar — GOSI, ZATCA, Chamber renewal — all with the right deadlines.",
   },
   {
-    icon: Rocket,
+    icon: Shield,
     step: "04",
-    title: "You Launch",
-    description: "Deployed, tested, and live. We hand over everything and support you post-launch.",
+    title: "Stay Compliant",
+    description: "Get reminders before deadlines. Upload statements for bookkeeping. Focus on your business, not paperwork.",
   },
 ];
 
 export function Process() {
   return (
-    <section id="process" className="relative py-24 sm:py-32 bg-surface-1/50">
+    <section id="how-it-works" className="relative py-24 sm:py-32 bg-surface-1/50">
       <div className="max-w-[1280px] mx-auto px-6">
         <Reveal className="text-center mb-16">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-6">
-            Process
+            How It Works
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            How it <span className="text-gradient">works</span>
+            Up and running in <span className="text-gradient">minutes</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            A simple, transparent process from first conversation to launch day.
+            From signup to full compliance dashboard in under 5 minutes.
           </p>
         </Reveal>
 
