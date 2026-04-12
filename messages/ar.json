@@ -46,7 +46,22 @@
     "signUpError": "تعذر إنشاء الحساب. يرجى المحاولة مرة أخرى.",
     "emailRequired": "البريد الإلكتروني مطلوب",
     "passwordRequired": "كلمة المرور مطلوبة",
-    "nameRequired": "الاسم الكامل مطلوب"
+    "nameRequired": "الاسم الكامل مطلوب",
+    "tabMagicLink": "رابط الدخول",
+    "tabPassword": "كلمة المرور",
+    "setPasswordTitle": "أنشئ كلمة مرور",
+    "setPasswordDescription": "أنشئ كلمة مرور للدخول بالبريد الإلكتروني وكلمة المرور في المرات القادمة.",
+    "newPassword": "كلمة المرور الجديدة",
+    "newPasswordPlaceholder": "أدخل كلمة مرور جديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+    "passwordRequirements": "8 أحرف على الأقل مع رقم واحد على الأقل.",
+    "passwordNeedsNumber": "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل",
+    "passwordsMismatch": "كلمتا المرور غير متطابقتين",
+    "setPassword": "تعيين كلمة المرور",
+    "settingPassword": "جارٍ تعيين كلمة المرور...",
+    "setPasswordError": "تعذر تعيين كلمة المرور. يرجى المحاولة مرة أخرى.",
+    "passwordSetSuccess": "تم تعيين كلمة المرور بنجاح! جارٍ التحويل..."
   },
   "onboarding": {
     "title": "إعداد نشاطك التجاري",

@@ -3,8 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { buildBusinessContext } from '@/lib/chat/context-builder'
 import { enforceRateLimit } from '@/lib/rate-limit-middleware'
-
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
+import { selectModel } from '@/lib/ai/model-router'
+import { trackUsage } from '@/lib/ai/usage-tracker'
 
 export interface Insight {
   title: string
@@ -50,10 +50,11 @@ export async function GET(request: Request) {
     const context = await buildBusinessContext(business.id, supabase)
 
     const anthropic = new Anthropic()
+    const insightsModel = selectModel({ userId: user.id, task: 'insights' })
     const today = new Date().toISOString().split('T')[0]
 
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: insightsModel,
       max_tokens: 1024,
       system: `You are a Saudi business advisor for Mugdm, a platform for micro-enterprises. Today is ${today}. Based on the business context below, provide 3-5 actionable insights. Each insight must be a JSON object with: title (short, actionable), description (1-2 sentences), priority ("high", "medium", or "low"), action_url (one of: "/calendar", "/vault", "/bookkeeper", "/team", "/profile"). Return ONLY a JSON array, no markdown, no explanation.\n\nBusiness context:\n${context}`,
       messages: [
@@ -63,6 +64,9 @@ export async function GET(request: Request) {
         },
       ],
     })
+
+    trackUsage(supabase, user.id, insightsModel, response.usage.input_tokens, response.usage.output_tokens)
+      .catch(() => {})
 
     const textBlock = response.content.find((b) => b.type === 'text')
     if (!textBlock || textBlock.type !== 'text') {

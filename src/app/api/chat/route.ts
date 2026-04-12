@@ -12,8 +12,8 @@ import {
 } from '@/lib/chat/actions'
 import { importExcelData } from '@/lib/chat/excel-importer'
 import { enforceRateLimit } from '@/lib/rate-limit-middleware'
-
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
+import { selectModel } from '@/lib/ai/model-router'
+import { trackUsage } from '@/lib/ai/usage-tracker'
 
 interface ChatRequest {
   message: string
@@ -592,6 +592,7 @@ export async function POST(request: Request) {
 
     // Call Claude with streaming
     const anthropic = new Anthropic()
+    const chatModel = selectModel({ userId: user.id, task: 'chat' })
 
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
@@ -601,7 +602,7 @@ export async function POST(request: Request) {
 
           // Initial Claude call
           const response = await anthropic.messages.create({
-            model: CLAUDE_MODEL,
+            model: chatModel,
             max_tokens: 4096,
             system: systemPrompt,
             messages,
@@ -723,7 +724,7 @@ export async function POST(request: Request) {
                 }
 
                 const followUp = await anthropic.messages.create({
-                  model: CLAUDE_MODEL,
+                  model: chatModel,
                   max_tokens: 4096,
                   system: systemPrompt,
                   messages: [
@@ -777,7 +778,7 @@ export async function POST(request: Request) {
             // Follow-up call with tool results
             fullResponse = '' // Reset for the final response
             const followUp = await anthropic.messages.create({
-              model: CLAUDE_MODEL,
+              model: chatModel,
               max_tokens: 4096,
               system: systemPrompt,
               messages: [

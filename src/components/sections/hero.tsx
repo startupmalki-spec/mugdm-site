@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { ArrowRight, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { AnimatedText, AuroraBackground, Magnetic, ParticleNetwork, ReactiveShadda } from "@/lib/animations";
+import { AnimatedText, AuroraBackground, Magnetic, ParticleNetwork, ReactiveShadda, ShootingStar } from "@/lib/animations";
 
 export function Hero() {
   const t = useTranslations("landing.hero");
@@ -60,6 +60,9 @@ export function Hero() {
     >
       {/* Particle canvas */}
       <ParticleNetwork className="z-[1]" />
+
+      {/* Shooting star effect */}
+      <ShootingStar interval={6000} className="z-[1]" />
 
       {/* Aurora gradient background */}
       <AuroraBackground className="z-0" />

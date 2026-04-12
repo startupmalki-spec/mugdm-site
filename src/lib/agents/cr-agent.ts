@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
+import { selectModel } from '@/lib/ai/model-router'
 
 /* ───────── Public types ───────── */
 
@@ -196,7 +196,7 @@ export async function extractCRData(params: {
 
   try {
     const stepAResponse = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: selectModel({ userId: 'system', task: 'cr_extraction' }),
       max_tokens: 4096,
       messages: [
         {
@@ -281,7 +281,7 @@ export async function extractCRData(params: {
 
   try {
     const stepCResponse = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: selectModel({ userId: 'system', task: 'cr_extraction' }),
       max_tokens: 4096,
       messages: [
         {

@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/server'
 import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { extractCRData } from '@/lib/agents/cr-agent'
+import { selectModel } from '@/lib/ai/model-router'
+import { trackUsage } from '@/lib/ai/usage-tracker'
 import type { DocumentType } from '@/lib/supabase/types'
-
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
 const ALLOWED_URL_PATTERN = /^https:\/\/[a-z]+\.supabase\.co\/storage\//
 const MAX_BASE64_SIZE = 10 * 1024 * 1024
@@ -265,6 +265,7 @@ export async function POST(request: Request) {
 
     /* ── Standard single-call extraction path ── */
     const anthropic = new Anthropic()
+    const documentModel = selectModel({ userId: user.id, task: 'document_analysis' })
 
     // Detect PDF from mediaType OR from file URL extension
     const isPdf = body.mediaType === 'application/pdf' ||
@@ -313,7 +314,7 @@ export async function POST(request: Request) {
     }
 
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: documentModel,
       max_tokens: 4096,
       messages: [
         {
@@ -325,6 +326,9 @@ export async function POST(request: Request) {
         },
       ],
     })
+
+    trackUsage(supabase, user.id, documentModel, response.usage.input_tokens, response.usage.output_tokens)
+      .catch(() => {})
 
     const responseText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')

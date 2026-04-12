@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { trackEvent } from '@/lib/analytics/posthog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FolderArchive, CalendarDays, Calculator, Shield, CalendarCheck, CheckCircle2, Mail } from 'lucide-react'
-import { FloatingElements, AuroraBackground, ParticleNetwork } from '@/lib/animations'
+import { FloatingElements, AuroraBackground, ParticleNetwork, TwinklingStars } from '@/lib/animations'
 
 const onboardingSteps = [
   { icon: Shield, label: 'Securing your vault...', delay: 0 },
@@ -75,6 +75,7 @@ export default function SignupPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
       <ParticleNetwork className="z-[0]" density={25000} opacity={0.12} lineOpacity={0.04} speed={0.2} />
+      <TwinklingStars count={25} className="z-[0]" />
       {/* Aurora ambient gradient */}
       <AuroraBackground />
 

@@ -4,9 +4,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { selectModel } from '@/lib/ai/model-router'
+import { trackUsage } from '@/lib/ai/usage-tracker'
 import type { TransactionCategory } from '@/lib/supabase/types'
-
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
 const MAX_BASE64_SIZE = 10 * 1024 * 1024
 const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'] as const
@@ -216,6 +216,7 @@ export async function POST(request: Request) {
     }
 
     const anthropic = new Anthropic()
+    const receiptModel = selectModel({ userId: user.id, task: 'receipt_analysis' })
 
     const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
       ? body.mediaType!
@@ -242,7 +243,7 @@ export async function POST(request: Request) {
         }
 
     const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
+      model: receiptModel,
       max_tokens: 2048,
       messages: [
         {
@@ -254,6 +255,9 @@ export async function POST(request: Request) {
         },
       ],
     })
+
+    trackUsage(supabase, user.id, receiptModel, response.usage.input_tokens, response.usage.output_tokens)
+      .catch(() => {})
 
     const responseText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')

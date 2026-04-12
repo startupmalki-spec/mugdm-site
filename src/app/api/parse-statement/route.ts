@@ -4,9 +4,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { selectModel } from '@/lib/ai/model-router'
+import { trackUsage } from '@/lib/ai/usage-tracker'
 import type { TransactionCategory, TransactionType } from '@/lib/supabase/types'
-
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
 const SAUDI_BANKS = [
   'Al Rajhi Bank',
@@ -282,6 +282,7 @@ export async function POST(request: Request) {
     }
 
     const anthropic = new Anthropic()
+    const statementModel = selectModel({ userId: user.id, task: 'statement_parsing' })
 
     let response: Anthropic.Message
 
@@ -290,7 +291,7 @@ export async function POST(request: Request) {
       const mediaType = (body.pdfMediaType as 'application/pdf') || 'application/pdf'
 
       response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
+        model: statementModel,
         max_tokens: 4096,
         messages: [
           {
@@ -320,7 +321,7 @@ export async function POST(request: Request) {
         : csvContent
 
       response = await anthropic.messages.create({
-        model: CLAUDE_MODEL,
+        model: statementModel,
         max_tokens: 4096,
         messages: [
           {
@@ -330,6 +331,9 @@ export async function POST(request: Request) {
         ],
       })
     }
+
+    trackUsage(supabase, user.id, statementModel, response.usage.input_tokens, response.usage.output_tokens)
+      .catch(() => {})
 
     const responseText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')

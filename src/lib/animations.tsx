@@ -618,6 +618,153 @@ export function ParticleNetwork({
   );
 }
 
+/* ─── Twinkling Stars ─── */
+export function TwinklingStars({
+  count = 30,
+  className = "",
+}: {
+  count?: number;
+  className?: string;
+}) {
+  const stars = useRef(
+    Array.from({ length: count }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      size: Math.random() * 2 + 1,
+      delay: Math.random() * 4,
+      duration: Math.random() * 2 + 2,
+    }))
+  ).current;
+
+  return (
+    <div
+      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
+      aria-hidden="true"
+    >
+      {stars.map((star, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full bg-white"
+          style={{
+            left: star.left,
+            top: star.top,
+            width: `${star.size}px`,
+            height: `${star.size}px`,
+            opacity: 0.2,
+            animation: `twinkle ${star.duration}s ease-in-out ${star.delay}s infinite`,
+            boxShadow: `0 0 ${star.size * 2}px rgba(255,255,255,0.3)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Shooting Star ─── */
+export function ShootingStar({
+  interval = 8000,
+  className = "",
+}: {
+  interval?: number;
+  className?: string;
+}) {
+  const [visible, setVisible] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    function fireShootingStar() {
+      setPosition({
+        top: Math.random() * 40,
+        left: Math.random() * 60 + 10,
+      });
+      setVisible(true);
+      const hideTimer = setTimeout(() => setVisible(false), 1200);
+      return hideTimer;
+    }
+
+    let hideTimer = fireShootingStar();
+    const intervalId = setInterval(() => {
+      clearTimeout(hideTimer);
+      hideTimer = fireShootingStar();
+    }, interval);
+
+    return () => {
+      clearInterval(intervalId);
+      clearTimeout(hideTimer);
+    };
+  }, [interval]);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
+      aria-hidden="true"
+    >
+      <div
+        className="absolute"
+        style={{
+          top: `${position.top}%`,
+          left: `${position.left}%`,
+          width: "120px",
+          height: "2px",
+          background: "linear-gradient(90deg, rgba(255,255,255,0.8), rgba(255,255,255,0.4), transparent)",
+          borderRadius: "1px",
+          boxShadow: "0 0 6px rgba(139,92,246,0.4), 0 0 12px rgba(59,130,246,0.2)",
+          animation: "shooting-star 1.2s linear forwards",
+        }}
+      />
+    </div>
+  );
+}
+
+/* ─── Cosmic Dust ─── */
+export function CosmicDust({
+  count = 15,
+  className = "",
+}: {
+  count?: number;
+  className?: string;
+}) {
+  const particles = useRef(
+    Array.from({ length: count }, () => ({
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      size: Math.random() * 2 + 2,
+      opacity: Math.random() * 0.2 + 0.1,
+      driftDuration: Math.random() * 15 + 20,
+      delay: Math.random() * 8,
+    }))
+  ).current;
+
+  return (
+    <div
+      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
+      aria-hidden="true"
+    >
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: `${p.size}px`,
+            height: `${p.size}px`,
+            opacity: p.opacity,
+            background: `rgba(139,92,246,0.6)`,
+            boxShadow: `0 0 ${p.size * 3}px rgba(139,92,246,0.25)`,
+            animation: `cosmic-drift ${p.driftDuration}s ease-in-out ${p.delay}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 /* ─── Glowing Section Divider ─── */
 export function GlowDivider({ className = "" }: { className?: string }) {
   const ref = useRef(null);

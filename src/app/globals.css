@@ -140,6 +140,29 @@
   100% { transform: translate(-45px, -15px) scale(1.05) rotate(-8deg); }
 }
 
+/* ─── Cosmic star keyframes ─── */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+@keyframes shooting-star {
+  0% { opacity: 1; transform: translate(0, 0) rotate(-35deg); }
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(300px, 180px) rotate(-35deg); }
+}
+@keyframes cosmic-drift {
+  0%, 100% { opacity: var(--cosmic-opacity, 0.15); transform: translate(0, 0); }
+  25% { transform: translate(10px, -15px); }
+  50% { opacity: calc(var(--cosmic-opacity, 0.15) + 0.1); transform: translate(-8px, -25px); }
+  75% { transform: translate(-15px, -10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twinkle-star, [style*="twinkle"], [style*="shooting-star"], [style*="cosmic-drift"] {
+    animation: none !important;
+  }
+}
+
 /* ─── Custom شدة Cursor ─── */
 * {
   cursor: url('/cursor-shadda.png') 16 16, auto;

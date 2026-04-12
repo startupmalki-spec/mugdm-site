@@ -24,7 +24,8 @@ import {
   Check,
 } from 'lucide-react'
 import FloatingAssistant from '@/components/chat/FloatingAssistant'
-import { ParticleNetwork } from '@/lib/animations'
+import SetPasswordModal from '@/components/auth/SetPasswordModal'
+import { ParticleNetwork, TwinklingStars, ShootingStar } from '@/lib/animations'
 import { BusinessProvider, useBusiness } from '@/lib/business-context'
 import { initPostHog, identifyUser } from '@/lib/analytics/posthog'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -162,6 +163,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isRtl = locale === 'ar'
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [shouldShowPasswordModal, setShouldShowPasswordModal] = useState(false)
+
+  // Check if user needs to set a password (magic link signup without password)
+  useEffect(() => {
+    const supabase = createSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user && !user.user_metadata?.has_password) {
+        setShouldShowPasswordModal(true)
+      }
+    })
+  }, [])
 
   // Lock body scroll when mobile sidebar is open
   useEffect(() => {
@@ -417,6 +429,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* Page Content */}
         <main className="relative flex-1 px-4 py-6 lg:px-8 lg:py-8">
           <ParticleNetwork className="z-[0]" density={40000} opacity={0.08} lineOpacity={0.03} speed={0.15} />
+          <TwinklingStars count={20} className="z-[0]" />
+          <ShootingStar interval={12000} className="z-[0]" />
           {/* Shadda watermark */}
           <div
             className="pointer-events-none fixed bottom-[-60px] opacity-[0.04] ltr:right-[-40px] rtl:left-[-40px]"
@@ -438,6 +452,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <FloatingAssistant />
+      {shouldShowPasswordModal && <SetPasswordModal />}
     </div>
     </BusinessProvider>
   )

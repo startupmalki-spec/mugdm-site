@@ -46,7 +46,22 @@
     "signUpError": "Unable to create account. Please try again.",
     "emailRequired": "Email is required",
     "passwordRequired": "Password is required",
-    "nameRequired": "Full name is required"
+    "nameRequired": "Full name is required",
+    "tabMagicLink": "Magic Link",
+    "tabPassword": "Password",
+    "setPasswordTitle": "Set your password",
+    "setPasswordDescription": "Create a password so you can sign in with email and password next time.",
+    "newPassword": "New password",
+    "newPasswordPlaceholder": "Enter a new password",
+    "confirmPassword": "Confirm password",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "passwordRequirements": "At least 8 characters with at least 1 number.",
+    "passwordNeedsNumber": "Password must contain at least 1 number",
+    "passwordsMismatch": "Passwords do not match",
+    "setPassword": "Set Password",
+    "settingPassword": "Setting password...",
+    "setPasswordError": "Unable to set password. Please try again.",
+    "passwordSetSuccess": "Password set successfully! Redirecting..."
   },
   "onboarding": {
     "title": "Set up your business",
