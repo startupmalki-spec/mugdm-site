@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { extractCRData } from '@/lib/agents/cr-agent'
 import type { DocumentType } from '@/lib/supabase/types'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
@@ -42,6 +43,8 @@ interface AnalyzeDocumentRequest {
   base64Data?: string
   mediaType?: string
   businessId: string
+  /** When true, uses the multi-step CR agent for richer extraction */
+  useCRAgent?: boolean
 }
 
 interface ExtractedDocumentData {
@@ -221,6 +224,46 @@ export async function POST(request: Request) {
       )
     }
 
+    /* ── CR Agent path: multi-step extraction with QR verification ── */
+    if (body.useCRAgent) {
+      const crResult = await extractCRData({
+        fileUrl: body.fileUrl,
+        base64Data: body.base64Data,
+        mediaType: body.mediaType,
+      })
+
+      // Map CR agent result to the standard response shape
+      const d = crResult.data
+      const result: ExtractedDocumentData = {
+        document_type: 'CR',
+        expiry_date: d.cr_expiry_date,
+        issuing_authority: 'Ministry of Commerce',
+        registration_number: d.cr_number,
+        holder_name: d.name_ar,
+        additional_data: {
+          name_ar: d.name_ar,
+          name_en: d.name_en,
+          cr_number: d.cr_number,
+          activity_type: d.activity_type,
+          capital: d.capital,
+          city: d.city,
+          issue_date: d.cr_issuance_date,
+          owners: d.owners,
+          barcode_url: d.barcode_url,
+          legal_form: d.legal_form,
+          main_activity_code: d.main_activity_code,
+          sub_activities: d.sub_activities,
+          fiscal_year_end: d.fiscal_year_end,
+          cr_agent_source: crResult.source,
+          cr_agent_steps: crResult.steps,
+        },
+        ai_confidence: crResult.confidence,
+      }
+
+      return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })
+    }
+
+    /* ── Standard single-call extraction path ── */
     const anthropic = new Anthropic()
 
     // Detect PDF from mediaType OR from file URL extension

@@ -141,6 +141,7 @@ export default function OnboardingPage() {
   const [direction, setDirection] = useState(1)
   const [data, setData] = useState<WizardData>(INITIAL_DATA)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analyzingMessage, setAnalyzingMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [revealDone, setRevealDone] = useState(false)
@@ -248,7 +249,16 @@ export default function OnboardingPage() {
     async (url: string) => {
       setData((prev) => ({ ...prev, crDocumentUrl: url }))
       setIsAnalyzing(true)
+      setAnalyzingMessage(t('crAgentReading'))
       setDirection(1)
+
+      // Show progressive status messages while waiting
+      const statusTimer = setTimeout(() => {
+        setAnalyzingMessage(t('crAgentVerifying'))
+      }, 4000)
+      const statusTimer2 = setTimeout(() => {
+        setAnalyzingMessage(t('crAgentExtracting'))
+      }, 8000)
 
       try {
         const supabase = createClient()
@@ -267,6 +277,7 @@ export default function OnboardingPage() {
             fileUrl: url,
             mediaType: urlMediaType,
             businessId: user?.id ?? 'onboarding',
+            useCRAgent: true,
           }),
         })
 
@@ -274,26 +285,44 @@ export default function OnboardingPage() {
           const result = await res.json()
           const extra = result.additional_data ?? {}
 
+          // Update status based on agent source
+          if (extra.cr_agent_source === 'qr_webpage') {
+            setAnalyzingMessage(t('crAgentVerified'))
+          }
+
+          // Map ALL returned fields to form data
+          const owners: Owner[] = Array.isArray(extra.owners) && extra.owners.length > 0
+            ? extra.owners.map((o: { name?: string; id_number?: string; share?: number; nationality?: string }) => ({
+                name: o.name ?? '',
+                nationality: o.nationality ?? '',
+                share: typeof o.share === 'number' ? o.share : 0,
+              }))
+            : [{ ...INITIAL_OWNER }]
+
           setData((prev) => ({
             ...prev,
-            nameAr: result.holder_name ?? prev.nameAr,
-            crNumber: result.registration_number ?? extra.cr_number ?? prev.crNumber,
+            nameAr: extra.name_ar ?? result.holder_name ?? prev.nameAr,
+            nameEn: extra.name_en ?? prev.nameEn,
+            crNumber: extra.cr_number ?? result.registration_number ?? prev.crNumber,
             crExpiryDate: result.expiry_date ?? prev.crExpiryDate,
             crIssuanceDate: extra.issue_date ?? prev.crIssuanceDate,
             activityType: extra.activity_type ?? prev.activityType,
             city: extra.city ?? prev.city,
             capital: extra.capital ? String(extra.capital) : prev.capital,
-            nameEn: extra.name_en ?? prev.nameEn,
+            owners,
           }))
         }
       } catch {
         // AI extraction failed — user can fill fields manually
       } finally {
+        clearTimeout(statusTimer)
+        clearTimeout(statusTimer2)
         setIsAnalyzing(false)
+        setAnalyzingMessage('')
         setStep(2)
       }
     },
-    []
+    [t]
   )
 
   /* ─── Owner Management ─── */
@@ -416,7 +445,7 @@ export default function OnboardingPage() {
               {t('processing')}
             </p>
             <p className="mt-2 text-sm text-muted-foreground">
-              {t('processingDescription')}
+              {analyzingMessage || t('processingDescription')}
             </p>
           </div>
         </motion.div>
