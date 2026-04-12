@@ -32,6 +32,7 @@ interface FileUploadProps {
   className?: string
   isCircular?: boolean
   previewUrl?: string | null
+  uploadViaApi?: boolean
 }
 
 export function FileUpload({
@@ -49,6 +50,7 @@ export function FileUpload({
   className,
   isCircular = false,
   previewUrl: externalPreviewUrl,
+  uploadViaApi = false,
 }: FileUploadProps) {
   const t = useTranslations('common')
   const tOnboarding = useTranslations('onboarding')
@@ -79,58 +81,79 @@ export function FileUpload({
         setPreviewUrl(null)
       }
 
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 150)
+
       try {
-        const supabase = createClient()
-        const fileExt = file.name.split('.').pop()
-        const filePath = `${path}/${Date.now()}.${fileExt}`
+        let signedUrl: string
 
-        // Simulate progress since Supabase SDK doesn't provide upload progress
-        const progressInterval = setInterval(() => {
-          setProgress((prev) => {
-            if (prev >= 90) {
-              clearInterval(progressInterval)
-              return 90
-            }
-            return prev + 10
-          })
-        }, 150)
+        if (uploadViaApi) {
+          // Server-side upload via API route (bypasses storage RLS)
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('bucket', bucket)
+          formData.append('path', path)
 
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-          })
+          const res = await fetch('/api/upload', { method: 'POST', body: formData })
+          clearInterval(progressInterval)
 
-        clearInterval(progressInterval)
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ error: 'Upload failed' }))
+            setUploadState('error')
+            setErrorMessage(err.error ?? 'Upload failed')
+            return
+          }
 
-        if (error) {
-          setUploadState('error')
-          setErrorMessage(error.message)
-          return
-        }
+          const json = await res.json()
+          signedUrl = json.url
+        } else {
+          const supabase = createClient()
+          const fileExt = file.name.split('.').pop()
+          const filePath = `${path}/${Date.now()}.${fileExt}`
 
-        const SIGNED_URL_EXPIRY_SECONDS = 3600
+          const { data, error } = await supabase.storage
+            .from(bucket)
+            .upload(filePath, file, { cacheControl: '3600', upsert: false })
 
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from(bucket)
-          .createSignedUrl(data.path, SIGNED_URL_EXPIRY_SECONDS)
+          clearInterval(progressInterval)
 
-        if (signedUrlError || !signedUrlData?.signedUrl) {
-          setUploadState('error')
-          setErrorMessage(signedUrlError?.message ?? 'Failed to generate file URL')
-          return
+          if (error) {
+            setUploadState('error')
+            setErrorMessage(error.message)
+            return
+          }
+
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+            .from(bucket)
+            .createSignedUrl(data.path, 3600)
+
+          if (signedUrlError || !signedUrlData?.signedUrl) {
+            setUploadState('error')
+            setErrorMessage(signedUrlError?.message ?? 'Failed to generate file URL')
+            return
+          }
+
+          signedUrl = signedUrlData.signedUrl
         }
 
         setProgress(100)
         setUploadState('complete')
-        onUpload(signedUrlData.signedUrl, file)
+        onUpload(signedUrl, file)
       } catch {
+        clearInterval(progressInterval)
         setUploadState('error')
         setErrorMessage(t('error'))
       }
     },
-    [bucket, path, onUpload, t]
+    [bucket, path, onUpload, uploadViaApi, t]
   )
 
   const handleDrop = useCallback(

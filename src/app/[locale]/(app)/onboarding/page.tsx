@@ -334,6 +334,7 @@ export default function OnboardingPage() {
           label={t('uploadCR')}
           description={t('uploadCRDescription')}
           previewUrl={data.crDocumentUrl}
+          uploadViaApi
         />
 
         <div className="flex justify-end pt-2">
@@ -575,6 +576,7 @@ export default function OnboardingPage() {
                 }
                 isCircular
                 previewUrl={data.logoUrl}
+                uploadViaApi
               />
             </div>
             <div className="flex flex-col items-center gap-2">
@@ -591,6 +593,7 @@ export default function OnboardingPage() {
                 }
                 isCircular
                 previewUrl={data.stampUrl}
+                uploadViaApi
               />
             </div>
           </div>
