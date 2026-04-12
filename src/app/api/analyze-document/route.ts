@@ -9,7 +9,8 @@ const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
 const ALLOWED_URL_PATTERN = /^https:\/\/[a-z]+\.supabase\.co\/storage\//
 const MAX_BASE64_SIZE = 10 * 1024 * 1024
-const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+const ALLOWED_MEDIA_TYPES = [...ALLOWED_IMAGE_TYPES, 'application/pdf'] as const
 
 function isAllowedFileUrl(url: string): boolean {
   try {
@@ -54,7 +55,9 @@ interface ExtractedDocumentData {
 
 const ANALYSIS_PROMPT = `You are an expert at reading Saudi Arabian government and business documents, including Arabic text.
 
-Analyze this document image and extract the following information as JSON. Return ONLY valid JSON, no explanations.
+Extract EVERY piece of text and data visible in the document. Saudi government documents often contain critical information in both Arabic and English — extract both versions.
+
+Analyze this document and extract the following information as JSON. Return ONLY valid JSON, no explanations.
 
 Required fields:
 - document_type: one of ${DOCUMENT_TYPES.join(', ')}
@@ -62,7 +65,7 @@ Required fields:
 - issuing_authority: the government body or organization that issued this document, or null
 - registration_number: any registration, license, or certificate number, or null
 - holder_name: the name of the business or individual this document belongs to (in Arabic or English), or null
-- additional_data: an object with any other relevant extracted fields (e.g., issue_date, activity_type, city, cr_number)
+- additional_data: an object with any other relevant extracted fields (see below for document-specific fields)
 - ai_confidence: a number between 0 and 1 representing your confidence in the extraction accuracy
 
 Document type guidance:
@@ -79,6 +82,10 @@ Document type guidance:
 - TAX_REGISTRATION: VAT/Tax registration certificate (شهادة ضريبية)
 - OTHER: Any other document type
 
+For Commercial Registration (CR) documents, extract ALL fields including: CR number (رقم السجل التجاري), business name in Arabic and English, business type/activity, capital amount, issue date, expiry date, city, owner names and their ID numbers (Iqama/national ID), and any other registration details. Place these in additional_data using these keys: name_ar, name_en, activity_type, capital, city, issue_date, owners (array of objects with name and id_number fields).
+
+If you can see a barcode or QR code in the document, describe its location and any visible URL or data it might encode. Include this in additional_data as 'barcode_url' or 'qr_data'.
+
 Return exactly this JSON structure:
 {
   "document_type": "CR",
@@ -86,7 +93,17 @@ Return exactly this JSON structure:
   "issuing_authority": "Ministry of Commerce",
   "registration_number": "1234567890",
   "holder_name": "شركة الأمثلة المحدودة",
-  "additional_data": {},
+  "additional_data": {
+    "name_ar": "شركة الأمثلة المحدودة",
+    "name_en": "Example Company Ltd",
+    "activity_type": "General Trading",
+    "capital": "500000",
+    "city": "Riyadh",
+    "issue_date": "2020-01-01",
+    "owners": [{"name": "محمد أحمد", "id_number": "1234567890"}],
+    "barcode_url": "https://...",
+    "qr_data": "..."
+  },
   "ai_confidence": 0.95
 }`
 
@@ -203,22 +220,54 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic()
 
-    let imageContent: Anthropic.ImageBlockParam
+    const isPdf = body.mediaType === 'application/pdf'
+    let contentBlock: Anthropic.ImageBlockParam | Anthropic.DocumentBlockParam
 
-    if (body.base64Data) {
-      const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
-        ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
-        : 'image/jpeg'
-      imageContent = {
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: mediaType,
-          data: body.base64Data,
-        },
+    if (isPdf) {
+      if (body.base64Data) {
+        contentBlock = {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: body.base64Data,
+          },
+        }
+      } else {
+        contentBlock = {
+          type: 'document',
+          source: {
+            type: 'url',
+            url: body.fileUrl!,
+          },
+        }
+      }
+    } else if (body.base64Data) {
+      const isPdf = body.mediaType === 'application/pdf'
+      if (isPdf) {
+        contentBlock = {
+          type: 'document',
+          source: {
+            type: 'base64',
+            media_type: 'application/pdf',
+            data: body.base64Data,
+          },
+        } as Anthropic.DocumentBlockParam
+      } else {
+        const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
+          ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
+          : 'image/jpeg'
+        contentBlock = {
+          type: 'image',
+          source: {
+            type: 'base64',
+            media_type: mediaType,
+            data: body.base64Data,
+          },
+        }
       }
     } else {
-      imageContent = {
+      contentBlock = {
         type: 'image',
         source: {
           type: 'url',
@@ -229,12 +278,12 @@ export async function POST(request: Request) {
 
     const response = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [
         {
           role: 'user',
           content: [
-            imageContent,
+            contentBlock,
             { type: 'text', text: ANALYSIS_PROMPT },
           ],
         },

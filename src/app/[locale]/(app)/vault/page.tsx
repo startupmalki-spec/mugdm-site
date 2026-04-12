@@ -378,6 +378,7 @@ function UploadDialog({
   const [expiryDate, setExpiryDate] = useState('')
   const [insertedDocId, setInsertedDocId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
 
   const handleReset = useCallback(() => {
     setUploadStep('idle')
@@ -387,6 +388,7 @@ function UploadDialog({
     setExpiryDate('')
     setInsertedDocId(null)
     setIsSaving(false)
+    setUploadError(null)
   }, [])
 
   const handleDrop = useCallback(
@@ -395,6 +397,7 @@ function UploadDialog({
       if (!file || !businessId) return
 
       setSelectedFile(file)
+      setUploadError(null)
       setUploadStep('uploading')
 
       try {
@@ -460,11 +463,14 @@ function UploadDialog({
         }
 
         setUploadStep('confirm')
-      } catch {
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : locale === 'ar' ? 'فشل رفع الملف' : 'Upload failed'
+        setUploadError(message)
         setUploadStep('idle')
       }
     },
-    [businessId]
+    [businessId, locale]
   )
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -544,6 +550,13 @@ function UploadDialog({
                 <p className="mt-1 text-xs text-muted-foreground">
                   PDF, PNG, JPG, DOC, DOCX — max 25MB
                 </p>
+              </div>
+            )}
+
+            {uploadStep === 'idle' && uploadError && (
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
+                <p className="text-xs text-red-500">{uploadError}</p>
               </div>
             )}
 

@@ -36,39 +36,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large' }, { status: 413 })
     }
 
-    // Verify the upload path belongs to the user's business
-    const pathParts = path.split('/')
-    if (pathParts.length > 0) {
-      const serviceClient = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-      )
-
-      // Check business ownership if path starts with a UUID-like segment
-      const possibleBusinessId = pathParts[0]
-      if (possibleBusinessId && possibleBusinessId.length > 8) {
-        const { data: business } = await serviceClient
-          .from('businesses')
-          .select('id')
-          .eq('id', possibleBusinessId)
-          .eq('user_id', user.id)
-          .maybeSingle()
-
-        // Allow upload if no business match (could be user-level upload like onboarding)
-        // but block if business exists but doesn't belong to user
-        if (!business) {
-          const { count } = await serviceClient
-            .from('businesses')
-            .select('id', { count: 'exact', head: true })
-            .eq('id', possibleBusinessId)
-
-          if (count && count > 0) {
-            return NextResponse.json({ error: 'Access denied' }, { status: 403 })
-          }
-        }
-      }
-    }
-
     // Use service role client to bypass RLS for storage
     const serviceClient = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

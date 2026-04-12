@@ -40,22 +40,8 @@ const CATEGORY_LABEL_MAP: Record<string, { en: string; ar: string }> = {
 
 type CaptureStep = 'capture' | 'analyzing' | 'confirm'
 
-interface MockExtractedData {
-  amount: number
-  vendor: string
-  date: string
-  category: TransactionCategory
-  vatAmount: number
-  description: string
-}
-
-const MOCK_EXTRACTIONS: MockExtractedData[] = [
-  { amount: 385, vendor: 'Jarir Bookstore', date: '2026-04-10', category: 'SUPPLIES', vatAmount: 50.22, description: 'مستلزمات مكتبية - حبر وورق' },
-  { amount: 1250, vendor: 'STC Business', date: '2026-04-08', category: 'UTILITIES', vatAmount: 163.04, description: 'فاتورة الاتصالات - أبريل' },
-  { amount: 2800, vendor: 'Print House', date: '2026-04-05', category: 'MARKETING', vatAmount: 365.22, description: 'طباعة بطاقات عمل وبروشورات' },
-]
-
 interface ReceiptCaptureProps {
+  businessId: string
   onSave: (data: {
     amount: number
     vendor: string
@@ -66,7 +52,7 @@ interface ReceiptCaptureProps {
   }) => void
 }
 
-export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
+export function ReceiptCapture({ businessId, onSave }: ReceiptCaptureProps) {
   const t = useTranslations('bookkeeper')
   const tCommon = useTranslations('common')
   const locale = useLocale()
@@ -74,6 +60,7 @@ export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [step, setStep] = useState<CaptureStep>('capture')
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const [amount, setAmount] = useState('')
   const [vendor, setVendor] = useState('')
@@ -85,6 +72,7 @@ export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
   const handleReset = useCallback(() => {
     setStep('capture')
     setPreviewUrl(null)
+    setError(null)
     setAmount('')
     setVendor('')
     setDate('')
@@ -93,25 +81,72 @@ export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
     setDescription('')
   }, [])
 
-  const handleFileSelect = useCallback((file: File) => {
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
+  const handleFileSelect = useCallback(async (file: File) => {
+    // For images, show a preview; PDFs won't have a visual preview
+    const isPdf = file.type === 'application/pdf'
+    if (!isPdf) {
+      const url = URL.createObjectURL(file)
+      setPreviewUrl(url)
+    } else {
+      setPreviewUrl(null)
+    }
     setStep('analyzing')
+    setError(null)
 
-    // Simulate AI analysis with mock data
-    const mockIndex = Math.floor(Math.random() * MOCK_EXTRACTIONS.length)
-    const mock = MOCK_EXTRACTIONS[mockIndex]
+    try {
+      // Read file as base64
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          // Strip the data URL prefix (e.g. "data:image/jpeg;base64,")
+          const base64 = result.split(',')[1]
+          if (!base64) {
+            reject(new Error('Failed to read file'))
+            return
+          }
+          resolve(base64)
+        }
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsDataURL(file)
+      })
 
-    setTimeout(() => {
-      setAmount(String(mock.amount))
-      setVendor(mock.vendor)
-      setDate(mock.date)
-      setCategory(mock.category)
-      setVatAmount(String(mock.vatAmount))
-      setDescription(mock.description)
+      const mediaType = file.type || 'image/jpeg'
+
+      const response = await fetch('/api/analyze-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base64Data, mediaType, businessId }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to analyze document')
+      }
+
+      const result = await response.json()
+
+      setAmount(result.total_amount != null ? String(result.total_amount) : '')
+      setVendor(result.vendor_name ?? '')
+      setDate(result.date ?? '')
+      setCategory(result.category ?? 'OTHER_EXPENSE')
+      setVatAmount(result.vat_amount != null ? String(result.vat_amount) : '')
+      setDescription(
+        Array.isArray(result.line_items) && result.line_items.length > 0
+          ? result.line_items.map((item: { description: string }) => item.description).join(', ')
+          : ''
+      )
       setStep('confirm')
-    }, 2000)
-  }, [])
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Analysis failed'
+      setError(
+        locale === 'ar'
+          ? 'تعذر تحليل المستند. تأكد من وضوح الصورة أو ملف PDF.'
+          : message
+      )
+      setStep('capture')
+    }
+  }, [businessId, locale])
 
   const handleSubmit = useCallback(() => {
     if (!amount || !date) return
@@ -239,6 +274,12 @@ export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
                             />
                           </label>
                         </div>
+
+                        {error && (
+                          <p className="mt-3 text-center text-sm text-red-500">
+                            {error}
+                          </p>
+                        )}
                       </div>
                     </motion.div>
                   )}

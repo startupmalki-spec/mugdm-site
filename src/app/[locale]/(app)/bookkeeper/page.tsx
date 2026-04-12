@@ -376,7 +376,7 @@ export default function BookkeeperPage() {
             <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <ReceiptCapture onSave={handleAddReceipt} />
+            <ReceiptCapture businessId={businessId} onSave={handleAddReceipt} />
             <TransactionForm onSave={handleAddTransaction} />
           </div>
         </div>

@@ -8,7 +8,7 @@ import type { TransactionCategory } from '@/lib/supabase/types'
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
 const MAX_BASE64_SIZE = 10 * 1024 * 1024
-const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const
+const ALLOWED_MEDIA_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'] as const
 
 const TRANSACTION_CATEGORIES: TransactionCategory[] = [
   'REVENUE',
@@ -49,32 +49,37 @@ interface ReceiptExtractionResult {
   ai_confidence: number
 }
 
-const EXTRACTION_PROMPT = `You are an expert at reading Saudi Arabian receipts and invoices, including Arabic text.
+const EXTRACTION_PROMPT = `You are an expert at reading Saudi Arabian receipts and invoices (فواتير وإيصالات), including Arabic text. You handle both single-page receipts and multi-page PDF invoices.
 
-Analyze this receipt image and extract the following information as JSON. Return ONLY valid JSON, no explanations.
+Analyze this receipt or invoice and extract the following information as JSON. Return ONLY valid JSON, no explanations.
 
 Required fields:
-- total_amount: the final total amount paid as a number (e.g. 150.00), or null if not found
-- vendor_name: the business or store name (in Arabic or English), or null
-- date: the transaction date as ISO string (YYYY-MM-DD), or null
+- total_amount: the final total amount (المبلغ الإجمالي) paid as a number (e.g. 150.00), or null if not found. For invoices, use the grand total / amount due.
+- vendor_name: the business, store, or supplier name (in Arabic or English), or null
+- date: the transaction or invoice date as ISO string (YYYY-MM-DD), or null. For invoices, prefer the invoice date over the due date.
 - category: best matching expense category from this list: ${TRANSACTION_CATEGORIES.join(', ')}
 - vat_amount: the VAT (ضريبة القيمة المضافة) amount as a number, or null
-- line_items: array of items purchased, each with description, quantity, unit_price, total (use null for missing values)
+- line_items: array of items or services, each with description, quantity, unit_price, total (use null for missing values). For multi-page documents, include items from all pages.
 - ai_confidence: a number between 0 and 1 representing your confidence in the extraction accuracy
 
 Category guidance:
 - REVENUE / OTHER_INCOME: for income receipts
-- GOVERNMENT: government fees, licenses, permits
+- GOVERNMENT: government fees, licenses, permits (رسوم حكومية)
 - SALARY: payroll, wages
-- RENT: rent, lease payments
-- UTILITIES: electricity, water, internet, phone bills
-- SUPPLIES: office supplies, equipment, materials
-- TRANSPORT: fuel, shipping, courier, travel
-- MARKETING: advertising, printing, promotions
-- PROFESSIONAL: consulting, legal, accounting services
-- INSURANCE: insurance premiums
-- BANK_FEES: bank charges, transfer fees
+- RENT: rent, lease payments (إيجار)
+- UTILITIES: electricity, water, internet, phone bills (مرافق)
+- SUPPLIES: office supplies, equipment, materials (مستلزمات)
+- TRANSPORT: fuel, shipping, courier, travel (نقل)
+- MARKETING: advertising, printing, promotions (تسويق)
+- PROFESSIONAL: consulting, legal, accounting services (خدمات مهنية)
+- INSURANCE: insurance premiums (تأمين)
+- BANK_FEES: bank charges, transfer fees (رسوم بنكية)
 - OTHER_EXPENSE: any other expense
+
+Additional guidance:
+- If an invoice number is visible, include it in the first line_item description prefixed with "Invoice #"
+- For invoices with payment terms (e.g. Net 30), note them in the last line_item description
+- Always extract the total amount even if individual line items are unclear
 
 Return exactly this JSON structure:
 {
@@ -165,7 +170,7 @@ export async function POST(request: Request) {
 
     if (body.base64Data.length > MAX_BASE64_SIZE) {
       return NextResponse.json(
-        { error: 'Image data exceeds maximum size (10MB)' },
+        { error: 'File data exceeds maximum size (10MB)' },
         { status: 413 }
       )
     }
@@ -197,8 +202,28 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic()
 
     const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
-      ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
+      ? body.mediaType!
       : 'image/jpeg'
+
+    const isPdf = mediaType === 'application/pdf'
+
+    const documentBlock: Anthropic.ContentBlockParam = isPdf
+      ? {
+          type: 'document' as const,
+          source: {
+            type: 'base64' as const,
+            media_type: 'application/pdf' as const,
+            data: body.base64Data,
+          },
+        }
+      : {
+          type: 'image' as const,
+          source: {
+            type: 'base64' as const,
+            media_type: mediaType as Anthropic.Base64ImageSource['media_type'],
+            data: body.base64Data,
+          },
+        }
 
     const response = await anthropic.messages.create({
       model: CLAUDE_MODEL,
@@ -207,14 +232,7 @@ export async function POST(request: Request) {
         {
           role: 'user',
           content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: body.base64Data,
-              },
-            },
+            documentBlock,
             { type: 'text', text: EXTRACTION_PROMPT },
           ],
         },
@@ -228,6 +246,13 @@ export async function POST(request: Request) {
 
     const result = parseClaudeResponse(responseText)
 
+    if (result.ai_confidence === 0 && result.total_amount === null && result.vendor_name === null) {
+      return NextResponse.json(
+        { error: 'Could not extract data from the uploaded document. Please ensure the image or PDF is clear and readable.' },
+        { status: 422 }
+      )
+    }
+
     return NextResponse.json(result)
   } catch (error) {
     console.error('[API] analyze-receipt failed:', {
@@ -235,8 +260,15 @@ export async function POST(request: Request) {
       businessId,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
+
+    const message = error instanceof Error ? error.message : ''
+    const isMediaError = message.includes('Could not process image') || message.includes('invalid_request_error')
+    const userMessage = isMediaError
+      ? 'The uploaded file could not be processed. Please ensure it is a clear, readable image or PDF of a receipt or invoice.'
+      : 'Could not extract data from the uploaded document. Please ensure the image or PDF is clear and readable.'
+
     return NextResponse.json(
-      { error: 'Receipt analysis failed' },
+      { error: userMessage },
       { status: 502 }
     )
   }
