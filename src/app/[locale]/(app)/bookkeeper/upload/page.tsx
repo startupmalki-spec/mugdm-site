@@ -2,15 +2,11 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { Link } from '@/i18n/routing'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDropzone } from 'react-dropzone'
 import {
-  ArrowLeft,
-  ArrowRight,
   FileSpreadsheet,
   FileText,
-  Upload,
   Loader2,
   Landmark,
   CheckCircle2,
@@ -18,6 +14,7 @@ import {
   Save,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Breadcrumbs } from '@/components/ui/breadcrumbs'
 import { SAUDI_BANKS } from '@/lib/bookkeeper/demo-data'
 import { ReviewQueue } from '@/components/bookkeeper/ReviewQueue'
 import { createClient } from '@/lib/supabase/client'
@@ -48,12 +45,12 @@ interface ParseStatementResponse {
 
 export default function UploadStatementPage() {
   const t = useTranslations('bookkeeper.upload')
-  const tCommon = useTranslations('common')
+  const tBookkeeper = useTranslations('bookkeeper')
   const locale = useLocale()
   const isRtl = locale === 'ar'
 
   const [step, setStep] = useState<UploadStep>('select')
-  const [selectedFormat, setSelectedFormat] = useState<FileFormat | null>(null)
+  const [, setSelectedFormat] = useState<FileFormat | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
   const [detectedBank, setDetectedBank] = useState<string | null>(null)
@@ -158,7 +155,7 @@ export default function UploadStatementPage() {
           ? (SAUDI_BANKS.find((b) => b.id === detectedBank)?.nameEn ?? 'Unknown')
           : 'Unknown'
 
-        const { data: uploadRecord } = await (supabase.from('bank_statement_uploads') as any)
+        const { data: uploadRecord } = (await supabase.from('bank_statement_uploads')
           .insert({
             business_id: businessId,
             bank_name: bankName,
@@ -169,9 +166,9 @@ export default function UploadStatementPage() {
             period_end: null,
             transaction_count: null,
             error_message: null,
-          })
+          } as never)
           .select('id')
-          .single() as { data: { id: string } | null; error: unknown }
+          .single()) as unknown as { data: { id: string } | null; error: unknown }
 
         if (uploadRecord) {
           uploadId = (uploadRecord as { id: string }).id
@@ -226,13 +223,13 @@ export default function UploadStatementPage() {
 
       // Update upload record to REVIEW_PENDING
       if (uploadId && businessId) {
-        await (supabase.from('bank_statement_uploads') as any)
+        await supabase.from('bank_statement_uploads')
           .update({
             status: 'REVIEW_PENDING',
             period_start: result.period_start,
             period_end: result.period_end,
             transaction_count: result.transactions.length,
-          })
+          } as never)
           .eq('id', uploadId)
       }
 
@@ -305,14 +302,14 @@ export default function UploadStatementPage() {
         is_reviewed: true,
       }))
 
-      const { error: insertError } = await (supabase.from('transactions') as any)
-        .insert(rows) as { error: unknown }
+      const { error: insertError } = (await supabase.from('transactions')
+        .insert(rows as never)) as unknown as { error: unknown }
 
       if (insertError) throw insertError
 
       if (uploadRecordId) {
-        await (supabase.from('bank_statement_uploads') as any)
-          .update({ status: 'COMPLETED' })
+        await supabase.from('bank_statement_uploads')
+          .update({ status: 'COMPLETED' } as never)
           .eq('id', uploadRecordId)
       }
 
@@ -328,21 +325,19 @@ export default function UploadStatementPage() {
     }
   }, [businessId, transactions, uploadRecordId, locale])
 
-  const BackArrow = isRtl ? ArrowRight : ArrowLeft
   const bank = detectedBank ? SAUDI_BANKS.find((b) => b.id === detectedBank) : null
   const acceptedCount = transactions.filter((tx) => tx.is_reviewed).length
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      {/* Back Link + Title */}
+      {/* Breadcrumbs + Title */}
       <div>
-        <Link
-          href="/bookkeeper"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <BackArrow className="h-4 w-4" />
-          {tCommon('back')}
-        </Link>
+        <Breadcrumbs
+          items={[
+            { label: tBookkeeper('title'), href: '/bookkeeper' },
+            { label: t('title') },
+          ]}
+        />
         <h1 className="mt-3 text-2xl font-bold text-foreground">{t('title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('subtitle')}</p>
       </div>

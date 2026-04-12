@@ -11,6 +11,8 @@ const PUBLIC_PATHS = [
   '/login',
   '/signup',
   '/auth/callback',
+  '/terms',
+  '/privacy',
 ]
 
 function isPublicPath(pathname: string): boolean {
@@ -52,12 +54,7 @@ export default async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Skip auth checks only if explicitly in demo mode AND Supabase is not configured
-  if (process.env.ENABLE_DEMO_MODE === 'true' && (!supabaseUrl || !supabaseKey)) {
-    return intlResponse
-  }
-
-  // If Supabase is not configured outside demo mode, skip auth (avoids crash)
+  // If Supabase is not configured, skip auth (avoids crash in dev)
   if (!supabaseUrl || !supabaseKey) {
     return intlResponse
   }

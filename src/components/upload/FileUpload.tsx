@@ -3,12 +3,12 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useTranslations } from 'next-intl'
+import Image from 'next/image'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Upload,
   Camera,
   FileText,
-  Image as ImageIcon,
   CheckCircle2,
   AlertCircle,
   X,
@@ -326,10 +326,12 @@ export function FileUpload({
             >
               {isCircular ? (
                 previewUrl ? (
-                  <img
+                  <Image
                     src={previewUrl}
                     alt=""
-                    className="h-full w-full rounded-full object-cover"
+                    fill
+                    unoptimized
+                    className="rounded-full object-cover"
                   />
                 ) : (
                   <CheckCircle2 className="h-8 w-8 text-green-400" />
@@ -337,12 +339,14 @@ export function FileUpload({
               ) : (
                 <>
                   {/* Preview thumbnail */}
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-surface-2">
+                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-surface-2">
                     {isImage && previewUrl ? (
-                      <img
+                      <Image
                         src={previewUrl}
                         alt=""
-                        className="h-full w-full rounded-lg object-cover"
+                        fill
+                        unoptimized
+                        className="rounded-lg object-cover"
                       />
                     ) : (
                       <FileText className="h-6 w-6 text-primary" />

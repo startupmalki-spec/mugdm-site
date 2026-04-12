@@ -33,7 +33,7 @@ export function Contact() {
       <div
         className="absolute bottom-0 left-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
         style={{
-          background: "radial-gradient(circle, rgba(91,91,255,0.08) 0%, transparent 70%)",
+          background: "radial-gradient(circle, rgba(30,64,175,0.08) 0%, transparent 70%)",
           filter: "blur(80px)",
           animation: "contact-glow-pulse 4s ease-in-out infinite",
         }}
@@ -53,13 +53,13 @@ export function Contact() {
         </Reveal>
 
         {/* Glass form card */}
-        <Reveal delay={0.2} className="relative max-w-[640px] mx-auto p-10 sm:p-10 rounded-2xl border border-border bg-[rgba(37,37,54,0.5)] backdrop-blur-[20px] transition-all duration-400 hover:border-primary/30 hover:shadow-[0_20px_60px_rgba(91,91,255,0.08)]">
+        <Reveal delay={0.2} className="relative max-w-[640px] mx-auto p-10 sm:p-10 rounded-2xl border border-border bg-[rgba(37,37,54,0.5)] backdrop-blur-[20px] transition-all duration-400 hover:border-primary/30 hover:shadow-[0_20px_60px_rgba(30,64,175,0.08)]">
         <div>
           {/* Spinning conic gradient border */}
           <div
             className="absolute inset-[-1px] rounded-[17px] p-px pointer-events-none opacity-50"
             style={{
-              background: "conic-gradient(from var(--form-angle, 0deg), transparent 60%, rgba(91,91,255,0.4) 80%, transparent 100%)",
+              background: "conic-gradient(from var(--form-angle, 0deg), transparent 60%, rgba(30,64,175,0.4) 80%, transparent 100%)",
               WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
               WebkitMaskComposite: "xor",
               maskComposite: "exclude",
@@ -91,7 +91,7 @@ export function Contact() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="h-12 w-full rounded-[10px] border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(91,91,255,0.15),0_4px_20px_rgba(91,91,255,0.08)] focus:bg-surface-2"
+                  className="h-12 w-full rounded-[10px] border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2"
                 />
                 <input
                   type="email"
@@ -99,7 +99,7 @@ export function Contact() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="h-12 w-full rounded-[10px] border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(91,91,255,0.15),0_4px_20px_rgba(91,91,255,0.08)] focus:bg-surface-2"
+                  className="h-12 w-full rounded-[10px] border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2"
                 />
               </div>
               <textarea
@@ -108,12 +108,12 @@ export function Contact() {
                 rows={5}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="w-full rounded-[10px] border border-border bg-surface-1 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(91,91,255,0.15),0_4px_20px_rgba(91,91,255,0.08)] focus:bg-surface-2 resize-none min-h-[120px]"
+                className="w-full rounded-[10px] border border-border bg-surface-1 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2 resize-none min-h-[120px]"
               />
               <button
                 type="submit"
                 disabled={formState === "sending"}
-                className="relative w-full h-[52px] mt-5 rounded-xl bg-primary text-white border-none text-[15px] font-semibold flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_15px_rgba(91,91,255,0.25)] hover:bg-[#4a4aee] hover:shadow-[0_8px_30px_rgba(91,91,255,0.4)] hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 overflow-hidden"
+                className="relative w-full h-[52px] mt-5 rounded-xl bg-primary text-white border-none text-[15px] font-semibold flex items-center justify-center gap-2 transition-all duration-300 shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#4a4aee] hover:shadow-[0_8px_30px_rgba(30,64,175,0.4)] hover:-translate-y-0.5 active:scale-[0.98] disabled:opacity-50 overflow-hidden"
               >
                 {/* Shimmer effect */}
                 <span
@@ -156,7 +156,7 @@ export function Contact() {
           </a>
           <span className="text-border">|</span>
           <a
-            href="https://cal.com"
+            href="https://cal.com/mugdm"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-lg transition-all duration-300 hover:text-foreground hover:bg-primary/[0.08]"

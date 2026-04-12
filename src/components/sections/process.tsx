@@ -54,9 +54,9 @@ export function Process() {
 
           {steps.map((step) => (
             <StaggerItem key={step.step} className="relative text-center">
-              <div className="relative w-20 h-20 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-5 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(91,91,255,0.1)]">
+              <div className="relative w-20 h-20 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mx-auto mb-5 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_20px_rgba(30,64,175,0.1)]">
                 <step.icon size={28} className="text-primary" />
-                <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shadow-[0_4px_10px_rgba(91,91,255,0.3)]">
+                <span className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center shadow-[0_4px_10px_rgba(30,64,175,0.3)]">
                   {step.step}
                 </span>
               </div>

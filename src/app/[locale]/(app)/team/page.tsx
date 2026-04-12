@@ -15,7 +15,6 @@ import {
   Loader2,
   Check,
   AlertTriangle,
-  Search,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -242,11 +241,11 @@ export default function TeamPage() {
         return
       }
 
-      const { data: biz } = await supabase
+      const { data: biz } = (await supabase
         .from('businesses')
         .select('id')
         .eq('user_id', user.id)
-        .single() as { data: { id: string } | null; error: any }
+        .single()) as unknown as { data: { id: string } | null; error: unknown }
 
       if (!biz) {
         setIsLoading(false)
@@ -255,11 +254,11 @@ export default function TeamPage() {
 
       setBusinessId(biz.id)
 
-      const { data: teamData } = await supabase
+      const { data: teamData } = (await supabase
         .from('team_members')
         .select('*')
         .eq('business_id', biz.id)
-        .order('created_at', { ascending: false }) as { data: TeamMember[] | null; error: any }
+        .order('created_at', { ascending: false })) as unknown as { data: TeamMember[] | null; error: unknown }
 
       if (teamData) setMembers(teamData)
       setIsLoading(false)
@@ -340,15 +339,14 @@ export default function TeamPage() {
     }
 
     // NOTE: Supabase typed client resolves .insert()/.update() param to
-    // `never` with this @supabase/ssr version. Cast through `any` at boundary.
-    const teamTable = supabase.from('team_members') as any
+    // `never` with this @supabase/ssr version. Cast through `unknown` at boundary.
 
     if (editingMember) {
-      const { data } = await teamTable
-        .update(payload)
+      const { data } = (await supabase.from('team_members')
+        .update(payload as never)
         .eq('id', editingMember.id)
         .select()
-        .single() as { data: TeamMember | null; error: any }
+        .single()) as unknown as { data: TeamMember | null; error: unknown }
 
       if (data) {
         setMembers((prev) =>
@@ -356,10 +354,10 @@ export default function TeamPage() {
         )
       }
     } else {
-      const { data } = await teamTable
-        .insert(payload)
+      const { data } = (await supabase.from('team_members')
+        .insert(payload as never)
         .select()
-        .single() as { data: TeamMember | null; error: any }
+        .single()) as unknown as { data: TeamMember | null; error: unknown }
 
       if (data) {
         setMembers((prev) => [data, ...prev])
@@ -379,14 +377,14 @@ export default function TeamPage() {
 
     const supabase = createClient()
 
-    const { data } = await (supabase.from('team_members') as any)
+    const { data } = (await supabase.from('team_members')
       .update({
         status: 'TERMINATED',
         termination_date: new Date().toISOString().split('T')[0],
-      })
+      } as never)
       .eq('id', confirmDeactivate.id)
       .select()
-      .single() as { data: TeamMember | null; error: any }
+      .single()) as unknown as { data: TeamMember | null; error: unknown }
 
     if (data) {
       setMembers((prev) => prev.map((m) => (m.id === data.id ? data : m)))

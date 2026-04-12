@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateObligations } from '@/lib/compliance/rules-engine'
-import type { Business } from '@/lib/supabase/types'
+import type { Business, Database } from '@/lib/supabase/types'
+
+type Tables = Database['public']['Tables']
+
+/**
+ * Workaround for Supabase typed client resolving .insert()/.update() params
+ * to `never` with this @supabase/ssr version. Provides a minimal query
+ * builder interface typed to the actual table schema.
+ */
+interface TypedTableBuilder<TInsert, TRow> {
+  insert(values: TInsert | TInsert[]): {
+    select(): { single(): PromiseLike<{ data: TRow | null; error: { message: string } | null }> }
+  } & PromiseLike<{ error: { message: string } | null }>
+  select(columns: string): {
+    eq(column: string, value: string): {
+      maybeSingle(): PromiseLike<{ data: Pick<TRow, 'id' extends keyof TRow ? 'id' : never> | null }>
+      eq(column: string, value: string): {
+        maybeSingle(): PromiseLike<{ data: Pick<TRow, 'id' extends keyof TRow ? 'id' : never> | null }>
+      }
+    }
+  }
+}
+
+type BusinessTableBuilder = TypedTableBuilder<Tables['businesses']['Insert'], Business>
+type TeamMemberTableBuilder = TypedTableBuilder<Tables['team_members']['Insert'], Tables['team_members']['Row']>
+type DocumentTableBuilder = TypedTableBuilder<Tables['documents']['Insert'], Tables['documents']['Row']>
+type ObligationTableBuilder = TypedTableBuilder<Tables['obligations']['Insert'], Tables['obligations']['Row']>
 
 interface Owner {
   name: string
@@ -28,10 +54,13 @@ interface OnboardingPayload {
 }
 
 // NOTE: Supabase typed client resolves .insert()/.update() params to `never`
-// with this version of @supabase/ssr. Using `as any` at call boundaries is
-// the standard workaround; the runtime payloads match the DB schema.
+// with this version of @supabase/ssr. We cast through `unknown` at call
+// boundaries; the runtime payloads match the DB schema.
 
 export async function POST(request: Request) {
+  let userId: string | undefined
+  let businessId: string | undefined
+
   try {
     const supabase = await createClient()
 
@@ -46,6 +75,7 @@ export async function POST(request: Request) {
         { status: 401 }
       )
     }
+    userId = user.id
 
     const body: OnboardingPayload = await request.json()
 
@@ -58,10 +88,10 @@ export async function POST(request: Request) {
 
     // Prevent duplicate business creation (double-submit, network retry)
     const { data: existingBusiness } = await (supabase
-      .from('businesses') as any)
+      .from('businesses') as unknown as BusinessTableBuilder)
       .select('id')
       .eq('user_id', user.id)
-      .maybeSingle() as { data: { id: string } | null }
+      .maybeSingle()
 
     if (existingBusiness) {
       return NextResponse.json(
@@ -78,10 +108,8 @@ export async function POST(request: Request) {
       )
     }
 
-    // NOTE: Supabase typed client resolves .insert()/.update() param to
-    // `never` with this @supabase/ssr version. Cast through `any` at boundary.
     const { data: business, error: insertError } = await (supabase
-      .from('businesses') as any)
+      .from('businesses') as unknown as BusinessTableBuilder)
       .insert({
         user_id: user.id,
         name_ar: body.name_ar,
@@ -93,7 +121,7 @@ export async function POST(request: Request) {
         fiscal_year_end: null,
         cr_issuance_date: body.cr_issuance_date ?? null,
         cr_expiry_date: body.cr_expiry_date ?? null,
-        owners: body.owners ?? null,
+        owners: (body.owners as Record<string, unknown>[] | undefined) ?? null,
         logo_url: body.logo_url ?? null,
         stamp_url: body.stamp_url ?? null,
         contact_phone: body.contact_phone ?? null,
@@ -104,7 +132,7 @@ export async function POST(request: Request) {
         profile_history: [],
       })
       .select()
-      .single() as { data: Business | null; error: any }
+      .single()
 
     if (insertError || !business) {
       return NextResponse.json(
@@ -112,12 +140,13 @@ export async function POST(request: Request) {
         { status: 500 }
       )
     }
+    businessId = business.id
 
     // Create the owner as the first team member
     const ownerName =
       body.owners?.[0]?.name || user.user_metadata?.full_name || user.email || ''
 
-    const { error: teamError } = await (supabase.from('team_members') as any).insert({
+    const { error: teamError } = await (supabase.from('team_members') as unknown as TeamMemberTableBuilder).insert({
       business_id: business.id,
       name: ownerName,
       nationality: body.owners?.[0]?.nationality ?? 'Saudi',
@@ -130,12 +159,12 @@ export async function POST(request: Request) {
     })
 
     if (teamError) {
-      console.error('[API] onboarding: team member insert failed:', teamError.message)
+      console.error('[API] onboarding failed:', { userId, businessId: business.id, step: 'team_member_insert', error: teamError.message })
     }
 
     // Store CR document reference if provided
     if (body.cr_document_url) {
-      const { error: docError } = await (supabase.from('documents') as any).insert({
+      const { error: docError } = await (supabase.from('documents') as unknown as DocumentTableBuilder).insert({
         business_id: business.id,
         type: 'CR',
         name: 'Commercial Registration',
@@ -150,18 +179,23 @@ export async function POST(request: Request) {
       })
 
       if (docError) {
-        console.error('[API] onboarding: document insert failed:', docError.message)
+        console.error('[API] onboarding failed:', { userId, businessId: business.id, step: 'document_insert', error: docError.message })
       }
     }
 
     // Auto-generate compliance obligations for the new business
     const obligationSeeds = generateObligations(business)
     if (obligationSeeds.length > 0) {
-      await (supabase.from('obligations') as any).insert(obligationSeeds)
+      await (supabase.from('obligations') as unknown as ObligationTableBuilder).insert(obligationSeeds)
     }
 
     return NextResponse.json({ business }, { status: 201 })
-  } catch {
+  } catch (error) {
+    console.error('[API] onboarding failed:', {
+      userId,
+      businessId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

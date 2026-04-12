@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, Play } from "lucide-react";
+import Link from "next/link";
 import { AnimatedText, AuroraBackground, Magnetic, ReactiveShadda } from "@/lib/animations";
 
 export function Hero() {
@@ -50,7 +51,7 @@ export function Hero() {
         if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(91,91,255,0.4)";
+        ctx.fillStyle = "rgba(30,64,175,0.4)";
         ctx.fill();
         for (let j = i + 1; j < particles.length; j++) {
           const q = particles[j];
@@ -61,7 +62,7 @@ export function Hero() {
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
             ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(91,91,255,${0.12 * (1 - dist / maxDist)})`;
+            ctx.strokeStyle = `rgba(30,64,175,${0.12 * (1 - dist / maxDist)})`;
             ctx.lineWidth = 0.5;
             ctx.stroke();
           }
@@ -142,7 +143,7 @@ export function Hero() {
           className="absolute inset-0"
           style={{
             backgroundImage:
-              "linear-gradient(rgba(91,91,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(91,91,255,0.03) 1px, transparent 1px)",
+              "linear-gradient(rgba(30,64,175,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(30,64,175,0.03) 1px, transparent 1px)",
             backgroundSize: "60px 60px",
             maskImage: "radial-gradient(ellipse at center, black 20%, transparent 70%)",
             WebkitMaskImage: "radial-gradient(ellipse at center, black 20%, transparent 70%)",
@@ -152,13 +153,13 @@ export function Hero() {
           data-speed="0.03"
           className="absolute top-[15%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[80px] transition-transform duration-150 ease-out"
           style={{
-            background: "radial-gradient(circle, rgba(91,91,255,0.12) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(30,64,175,0.12) 0%, transparent 70%)",
             animation: "orb-float-1 12s ease-in-out infinite",
           }}
         />
         <div
           data-speed="0.05"
-          className="absolute bottom-[10%] left-[20%] w-[400px] h-[400px] rounded-full blur-[60px] transition-transform duration-150 ease-out"
+          className="absolute bottom-[10%] ltr:left-[20%] rtl:right-[20%] w-[400px] h-[400px] rounded-full blur-[60px] transition-transform duration-150 ease-out"
           style={{
             background: "radial-gradient(circle, rgba(139,92,246,0.08) 0%, transparent 70%)",
             animation: "orb-float-2 15s ease-in-out infinite",
@@ -166,9 +167,9 @@ export function Hero() {
         />
         <div
           data-speed="0.02"
-          className="absolute top-[30%] right-[10%] w-[300px] h-[300px] rounded-full blur-[50px] transition-transform duration-150 ease-out"
+          className="absolute top-[30%] ltr:right-[10%] rtl:left-[10%] w-[300px] h-[300px] rounded-full blur-[50px] transition-transform duration-150 ease-out"
           style={{
-            background: "radial-gradient(circle, rgba(91,91,255,0.06) 0%, transparent 70%)",
+            background: "radial-gradient(circle, rgba(30,64,175,0.06) 0%, transparent 70%)",
             animation: "orb-float-1 18s ease-in-out infinite reverse",
           }}
         />
@@ -223,14 +224,14 @@ export function Hero() {
           style={{ animation: "fade-up 0.8s ease-out 0.45s forwards" }}
         >
           <Magnetic strength={0.15}>
-            <a
+            <Link
               href="/signup"
-              className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(91,91,255,0.3)] hover:shadow-[0_12px_40px_rgba(91,91,255,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
+              className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(30,64,175,0.3)] hover:shadow-[0_12px_40px_rgba(30,64,175,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
               style={{ animation: "glow 3s ease-in-out infinite" }}
             >
               Get Started Free
               <ArrowRight size={20} />
-            </a>
+            </Link>
           </Magnetic>
           <Magnetic strength={0.15}>
             <a

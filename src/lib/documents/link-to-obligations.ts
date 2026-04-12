@@ -1,7 +1,34 @@
 import { addYears } from 'date-fns'
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Document, DocumentType, ObligationFrequency, ObligationType } from '@/lib/supabase/types'
+import type { Database, Document, DocumentType, ObligationFrequency, ObligationType } from '@/lib/supabase/types'
+
+type ObligationInsert = Database['public']['Tables']['obligations']['Insert']
+type ObligationUpdate = Database['public']['Tables']['obligations']['Update']
+
+interface ObligationSelectBuilder {
+  select(columns: string): {
+    eq(col: string, val: string): {
+      eq(col: string, val: string): {
+        maybeSingle(): PromiseLike<{ data: { id: string } | null }>
+      }
+    }
+  }
+}
+
+interface ObligationUpdateBuilder {
+  update(values: ObligationUpdate): {
+    eq(col: string, val: string): PromiseLike<{ error: { message: string } | null }>
+  }
+}
+
+interface ObligationInsertBuilder {
+  insert(values: ObligationInsert): {
+    select(columns: string): {
+      single(): PromiseLike<{ data: { id: string } | null }>
+    }
+  }
+}
 
 interface ObligationMapping {
   obligationType: ObligationType
@@ -35,11 +62,11 @@ async function linkDocumentToObligation(
       : addYears(new Date(), 1).toISOString().split('T')[0]
 
     const { data: existing } = await (supabase
-      .from('obligations') as any)
+      .from('obligations') as unknown as ObligationSelectBuilder)
       .select('id')
       .eq('business_id', businessId)
       .eq('type', mapping.obligationType)
-      .maybeSingle() as { data: { id: string } | null }
+      .maybeSingle()
 
     if (existing) {
       const updatePayload: Record<string, unknown> = {
@@ -49,15 +76,15 @@ async function linkDocumentToObligation(
         updatePayload.next_due_date = document.expiry_date
       }
 
-      await (supabase.from('obligations') as any)
-        .update(updatePayload)
+      await (supabase.from('obligations') as unknown as ObligationUpdateBuilder)
+        .update(updatePayload as ObligationUpdate)
         .eq('id', existing.id)
 
       return existing.id
     }
 
     const { data: created } = await (supabase
-      .from('obligations') as any)
+      .from('obligations') as unknown as ObligationInsertBuilder)
       .insert({
         business_id: businessId,
         type: mapping.obligationType,
@@ -74,7 +101,7 @@ async function linkDocumentToObligation(
         notes: null,
       })
       .select('id')
-      .single() as { data: { id: string } | null }
+      .single()
 
     return created?.id ?? null
   } catch (err) {

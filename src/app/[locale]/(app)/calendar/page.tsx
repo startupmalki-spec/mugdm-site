@@ -209,7 +209,7 @@ function ObligationListItem({
                   <p className="text-sm text-muted-foreground">{obligation.description}</p>
                 )}
                 {obligation.notes && (
-                  <p className="mt-2 text-xs text-muted-foreground italic">
+                  <p className="mt-2 text-xs text-muted-foreground">
                     {obligation.notes}
                   </p>
                 )}
@@ -261,7 +261,6 @@ function CalendarMonthView({
   currentMonth: Date
   onMonthChange: (month: Date) => void
 }) {
-  const t = useTranslations('calendar')
   const dateLocale = locale === 'ar' ? ar : enUS
   const weekdays = locale === 'ar' ? WEEKDAYS_AR : WEEKDAYS_EN
   const [popoverDate, setPopoverDate] = useState<Date | null>(null)
@@ -472,10 +471,10 @@ function AddObligationDialog({
       notes: null,
     }
 
-    const { data, error } = await (supabase.from('obligations') as any)
-      .insert(payload)
+    const { data, error } = (await supabase.from('obligations')
+      .insert(payload as never)
       .select()
-      .single() as { data: Obligation | null; error: unknown }
+      .single()) as unknown as { data: Obligation | null; error: unknown }
 
     setIsSaving(false)
 
@@ -761,7 +760,7 @@ export default function CalendarPage() {
       updates.reminder_1d_sent = false
     }
 
-    await (supabase.from('obligations') as any).update(updates).eq('id', id)
+    await supabase.from('obligations').update(updates as never).eq('id', id)
 
     setToast({ message: t('obligationSaved'), undoId: id })
     setTimeout(() => setToast(null), 5000)
@@ -776,11 +775,11 @@ export default function CalendarPage() {
     setToast(null)
 
     const supabase = createClient()
-    await (supabase.from('obligations') as any)
+    await supabase.from('obligations')
       .update({
         last_completed_at: backup.last_completed_at,
         next_due_date: backup.next_due_date,
-      })
+      } as never)
       .eq('id', id)
   }, [undoBackup])
 
@@ -790,8 +789,8 @@ export default function CalendarPage() {
     )
 
     const supabase = createClient()
-    await (supabase.from('obligations') as any)
-      .update({ last_completed_at: null })
+    await supabase.from('obligations')
+      .update({ last_completed_at: null } as never)
       .eq('id', id)
   }, [])
 

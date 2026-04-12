@@ -82,17 +82,24 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="fixed inset-y-0 z-30 hidden w-[280px] flex-col border-border bg-surface-1 lg:flex ltr:left-0 ltr:border-r rtl:right-0 rtl:border-l"
       >
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+        <div className="flex h-16 items-center border-b border-border px-5">
+          <Link href="/dashboard" className="flex items-center">
             <Image
-              src="/brand/8.png"
-              alt=""
-              width={32}
-              height={32}
-              className="h-8 w-8 rounded-md"
+              src="/brand/1-transparent.png"
+              alt="Mugdm"
+              width={120}
+              height={36}
+              className="hidden h-8 w-auto dark:block"
               priority
             />
-            <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
+            <Image
+              src="/brand/2-transparent.png"
+              alt="Mugdm"
+              width={120}
+              height={36}
+              className="h-8 w-auto dark:hidden"
+              priority
+            />
           </Link>
         </div>
 
@@ -165,15 +172,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       >
         {/* Mobile Logo + Close */}
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
-          <Link href="/dashboard" className="flex items-center gap-2.5">
+          <Link href="/dashboard" className="flex items-center">
             <Image
-              src="/brand/8.png"
-              alt=""
-              width={28}
-              height={28}
-              className="h-7 w-7 rounded-md"
+              src="/brand/1-transparent.png"
+              alt="Mugdm"
+              width={100}
+              height={30}
+              className="hidden h-7 w-auto dark:block"
             />
-            <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
+            <Image
+              src="/brand/2-transparent.png"
+              alt="Mugdm"
+              width={100}
+              height={30}
+              className="h-7 w-auto dark:hidden"
+            />
           </Link>
           <button
             type="button"
@@ -278,7 +291,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             style={{ zIndex: 0 }}
           >
             <Image
-              src="/brand/logo-shadda.png"
+              src="/brand/7-transparent.png"
               alt=""
               width={320}
               height={320}

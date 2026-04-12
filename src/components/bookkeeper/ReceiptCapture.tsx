@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import Image from 'next/image'
 import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -251,11 +252,13 @@ export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
                       exit={{ opacity: 0, x: 20 }}
                     >
                       {previewUrl && (
-                        <div className="mb-4 overflow-hidden rounded-xl border border-border">
-                          <img
+                        <div className="relative mb-4 h-48 w-full overflow-hidden rounded-xl border border-border">
+                          <Image
                             src={previewUrl}
                             alt="Receipt preview"
-                            className="h-48 w-full object-cover opacity-60"
+                            fill
+                            unoptimized
+                            className="object-cover opacity-60"
                           />
                         </div>
                       )}
@@ -288,11 +291,13 @@ export function ReceiptCapture({ onSave }: ReceiptCaptureProps) {
                       exit={{ opacity: 0, x: 20 }}
                     >
                       {previewUrl && (
-                        <div className="mb-4 overflow-hidden rounded-xl border border-border">
-                          <img
+                        <div className="relative mb-4 h-32 w-full overflow-hidden rounded-xl border border-border">
+                          <Image
                             src={previewUrl}
                             alt="Receipt preview"
-                            className="h-32 w-full object-cover"
+                            fill
+                            unoptimized
+                            className="object-cover"
                           />
                         </div>
                       )}

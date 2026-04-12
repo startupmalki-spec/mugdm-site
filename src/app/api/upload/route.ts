@@ -7,63 +7,107 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const SIGNED_URL_EXPIRY_SECONDS = 3600
 
 export async function POST(request: Request) {
-  // Verify the user is authenticated
-  const authClient = await createAuthClient()
-  const { data: { user }, error: authError } = await authClient.auth.getUser()
+  let userId: string | undefined
 
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  try {
+    // Verify the user is authenticated
+    const authClient = await createAuthClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
 
-  const formData = await request.formData()
-  const file = formData.get('file') as File | null
-  const bucket = formData.get('bucket') as string | null
-  const path = formData.get('path') as string | null
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    userId = user.id
 
-  if (!file || !bucket || !path) {
-    return NextResponse.json({ error: 'file, bucket, and path are required' }, { status: 400 })
-  }
+    const formData = await request.formData()
+    const file = formData.get('file') as File | null
+    const bucket = formData.get('bucket') as string | null
+    const path = formData.get('path') as string | null
 
-  if (!ALLOWED_BUCKETS.includes(bucket as typeof ALLOWED_BUCKETS[number])) {
-    return NextResponse.json({ error: 'Invalid bucket' }, { status: 400 })
-  }
+    if (!file || !bucket || !path) {
+      return NextResponse.json({ error: 'file, bucket, and path are required' }, { status: 400 })
+    }
 
-  if (file.size > MAX_FILE_SIZE) {
-    return NextResponse.json({ error: 'File too large' }, { status: 413 })
-  }
+    if (!ALLOWED_BUCKETS.includes(bucket as typeof ALLOWED_BUCKETS[number])) {
+      return NextResponse.json({ error: 'Invalid bucket' }, { status: 400 })
+    }
 
-  // Use service role client to bypass RLS for storage
-  const serviceClient = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json({ error: 'File too large' }, { status: 413 })
+    }
 
-  const fileExt = file.name.split('.').pop() ?? 'bin'
-  const filePath = `${path}/${Date.now()}.${fileExt}`
+    // Verify the upload path belongs to the user's business
+    const pathParts = path.split('/')
+    if (pathParts.length > 0) {
+      const serviceClient = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
 
-  const arrayBuffer = await file.arrayBuffer()
-  const { data, error: uploadError } = await serviceClient.storage
-    .from(bucket)
-    .upload(filePath, arrayBuffer, {
-      contentType: file.type,
-      cacheControl: '3600',
-      upsert: false,
-    })
+      // Check business ownership if path starts with a UUID-like segment
+      const possibleBusinessId = pathParts[0]
+      if (possibleBusinessId && possibleBusinessId.length > 8) {
+        const { data: business } = await serviceClient
+          .from('businesses')
+          .select('id')
+          .eq('id', possibleBusinessId)
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-  if (uploadError) {
-    return NextResponse.json({ error: uploadError.message }, { status: 500 })
-  }
+        // Allow upload if no business match (could be user-level upload like onboarding)
+        // but block if business exists but doesn't belong to user
+        if (!business) {
+          const { count } = await serviceClient
+            .from('businesses')
+            .select('id', { count: 'exact', head: true })
+            .eq('id', possibleBusinessId)
 
-  const { data: signedUrlData, error: signedUrlError } = await serviceClient.storage
-    .from(bucket)
-    .createSignedUrl(data.path, SIGNED_URL_EXPIRY_SECONDS)
+          if (count && count > 0) {
+            return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+          }
+        }
+      }
+    }
 
-  if (signedUrlError || !signedUrlData?.signedUrl) {
-    return NextResponse.json(
-      { error: signedUrlError?.message ?? 'Failed to generate signed URL' },
-      { status: 500 }
+    // Use service role client to bypass RLS for storage
+    const serviceClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-  }
 
-  return NextResponse.json({ url: signedUrlData.signedUrl, path: data.path })
+    const fileExt = file.name.split('.').pop() ?? 'bin'
+    const filePath = `${path}/${Date.now()}.${fileExt}`
+
+    const arrayBuffer = await file.arrayBuffer()
+    const { data, error: uploadError } = await serviceClient.storage
+      .from(bucket)
+      .upload(filePath, arrayBuffer, {
+        contentType: file.type,
+        cacheControl: '3600',
+        upsert: false,
+      })
+
+    if (uploadError) {
+      return NextResponse.json({ error: uploadError.message }, { status: 500 })
+    }
+
+    const { data: signedUrlData, error: signedUrlError } = await serviceClient.storage
+      .from(bucket)
+      .createSignedUrl(data.path, SIGNED_URL_EXPIRY_SECONDS)
+
+    if (signedUrlError || !signedUrlData?.signedUrl) {
+      return NextResponse.json(
+        { error: signedUrlError?.message ?? 'Failed to generate signed URL' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({ url: signedUrlData.signedUrl, path: data.path })
+  } catch (error) {
+    console.error('[API] upload failed:', {
+      userId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+  }
 }

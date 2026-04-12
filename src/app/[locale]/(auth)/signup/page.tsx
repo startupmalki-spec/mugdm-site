@@ -42,12 +42,12 @@ export default function SignupPage() {
     return (
       <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
         <div className="pointer-events-none absolute bottom-[-60px] right-[-40px] opacity-[0.04]">
-          <Image src="/brand/logo-shadda.png" alt="" width={280} height={280} className="brightness-200" aria-hidden="true" />
+          <Image src="/brand/7-transparent.png" alt="" width={280} height={280} className="brightness-200" aria-hidden="true" />
         </div>
         <div className="relative z-[1] w-full max-w-md space-y-8 text-center">
           <Link href="/" className="inline-flex items-center justify-center gap-3">
-            <Image src="/brand/8.png" alt="" width={40} height={40} className="h-10 w-10 rounded-lg" />
-            <span className="text-3xl font-bold tracking-tight text-foreground">Mugdm</span>
+            <Image src="/brand/1-transparent.png" alt="Mugdm" width={160} height={48} className="hidden h-10 w-auto dark:block" />
+            <Image src="/brand/2-transparent.png" alt="Mugdm" width={160} height={48} className="h-10 w-auto dark:hidden" />
           </Link>
           <div className="rounded-xl border border-border bg-card p-8 shadow-lg">
             <p className="text-lg font-semibold text-foreground">{t('magicLinkSent')}</p>
@@ -69,8 +69,8 @@ export default function SignupPage() {
         {/* Brand logo */}
         <div className="text-center">
           <Link href="/" className="inline-flex items-center justify-center gap-3 mb-6">
-            <Image src="/brand/8.png" alt="" width={40} height={40} className="h-10 w-10 rounded-lg" />
-            <span className="text-3xl font-bold tracking-tight text-foreground">Mugdm</span>
+            <Image src="/brand/1-transparent.png" alt="Mugdm" width={160} height={48} className="hidden h-10 w-auto dark:block" />
+            <Image src="/brand/2-transparent.png" alt="Mugdm" width={160} height={48} className="h-10 w-auto dark:hidden" />
           </Link>
           <h1 className="text-2xl font-bold text-foreground">
             {t('signUpTitle')}
@@ -137,13 +137,13 @@ export default function SignupPage() {
 
           <p className="mt-4 text-center text-xs text-muted-foreground">
             {t('termsAgreement')}{' '}
-            <a href="#" className="text-primary hover:underline">
+            <Link href="/terms" className="text-primary hover:underline">
               {t('termsOfService')}
-            </a>{' '}
+            </Link>{' '}
             {t('and')}{' '}
-            <a href="#" className="text-primary hover:underline">
+            <Link href="/privacy" className="text-primary hover:underline">
               {t('privacyPolicy')}
-            </a>
+            </Link>
           </p>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">

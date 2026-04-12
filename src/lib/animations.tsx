@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
+import Image from "next/image";
 
 /* ─── Scroll-triggered reveal wrapper ─── */
 export function Reveal({
@@ -212,7 +213,6 @@ export function Counter({
 
   useEffect(() => {
     if (!isInView) return;
-    let start = 0;
     const startTime = Date.now();
     const durationMs = duration * 1000;
 
@@ -243,21 +243,21 @@ export function AuroraBackground({ className = "" }: { className?: string }) {
       <div
         className="absolute w-[800px] h-[600px] top-[-10%] left-[10%] rounded-full opacity-30 blur-[120px]"
         style={{
-          background: "linear-gradient(135deg, rgba(91,91,255,0.3), rgba(139,92,246,0.2), rgba(59,130,246,0.15))",
+          background: "linear-gradient(135deg, rgba(30,64,175,0.3), rgba(139,92,246,0.2), rgba(59,130,246,0.15))",
           animation: "aurora-drift-1 12s ease-in-out infinite alternate",
         }}
       />
       <div
         className="absolute w-[600px] h-[500px] top-[20%] right-[-5%] rounded-full opacity-20 blur-[100px]"
         style={{
-          background: "linear-gradient(225deg, rgba(139,92,246,0.25), rgba(91,91,255,0.2), rgba(34,211,238,0.1))",
+          background: "linear-gradient(225deg, rgba(139,92,246,0.25), rgba(30,64,175,0.2), rgba(34,211,238,0.1))",
           animation: "aurora-drift-2 15s ease-in-out infinite alternate",
         }}
       />
       <div
         className="absolute w-[500px] h-[400px] bottom-[10%] left-[30%] rounded-full opacity-15 blur-[90px]"
         style={{
-          background: "linear-gradient(45deg, rgba(59,130,246,0.2), rgba(91,91,255,0.15), rgba(168,85,247,0.1))",
+          background: "linear-gradient(45deg, rgba(59,130,246,0.2), rgba(30,64,175,0.15), rgba(168,85,247,0.1))",
           animation: "aurora-drift-3 18s ease-in-out infinite alternate",
         }}
       />
@@ -333,8 +333,8 @@ export function ScrollProgressLine({
         style={{
           width,
           maxWidth: "75%",
-          background: "linear-gradient(90deg, rgba(91,91,255,0.8), rgba(139,92,246,0.6), rgba(91,91,255,0.4))",
-          boxShadow: "0 0 12px rgba(91,91,255,0.4), 0 0 4px rgba(91,91,255,0.6)",
+          background: "linear-gradient(90deg, rgba(30,64,175,0.8), rgba(139,92,246,0.6), rgba(30,64,175,0.4))",
+          boxShadow: "0 0 12px rgba(30,64,175,0.4), 0 0 4px rgba(30,64,175,0.6)",
         }}
       />
     </div>
@@ -365,8 +365,8 @@ export function FloatingElements({ className = "" }: { className?: string }) {
             height: `${el.size}px`,
             left: el.x,
             top: el.y,
-            background: `rgba(91,91,255,${el.alpha})`,
-            boxShadow: `0 0 ${el.size * 3}px rgba(91,91,255,0.3)`,
+            background: `rgba(30,64,175,${el.alpha})`,
+            boxShadow: `0 0 ${el.size * 3}px rgba(30,64,175,0.3)`,
           }}
           animate={{
             y: [0, -30, 0, 20, 0],
@@ -421,13 +421,13 @@ export function ReactiveShadda() {
       const translateY = (dy / maxDist) * -15;
 
       el.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${scale}) rotate(${rotate}deg)`;
-      el.style.filter = `brightness(${1.5 + proximity * 0.8}) drop-shadow(0 0 ${20 + glow * 40}px rgba(91,91,255,${0.1 + glow}))`;
+      el.style.filter = `brightness(${1.5 + proximity * 0.8}) drop-shadow(0 0 ${20 + glow * 40}px rgba(30,64,175,${0.1 + glow}))`;
     }
 
     function handleMouseLeave() {
       if (!el) return;
       el.style.transform = "translate(-50%, -50%) scale(1) rotate(0deg)";
-      el.style.filter = "brightness(1.5) drop-shadow(0 0 20px rgba(91,91,255,0.1))";
+      el.style.filter = "brightness(1.5) drop-shadow(0 0 20px rgba(30,64,175,0.1))";
     }
 
     section.addEventListener("mousemove", handleMouseMove);
@@ -446,13 +446,15 @@ export function ReactiveShadda() {
         transform: "translate(-50%,-50%) scale(0.8)",
         opacity: entered ? 0.08 : 0,
         transition: "opacity 2s cubic-bezier(0.25,0.8,0.25,1), transform 0.2s ease-out, filter 0.2s ease-out",
-        filter: "brightness(1.5) drop-shadow(0 0 20px rgba(91,91,255,0.1))",
+        filter: "brightness(1.5) drop-shadow(0 0 20px rgba(30,64,175,0.1))",
         animation: entered ? "shadda-breathe 4s ease-in-out infinite" : "none",
       }}
     >
-      <img
-        src="/brand/logo-shadda.png"
+      <Image
+        src="/brand/7-transparent.png"
         alt=""
+        width={500}
+        height={500}
         className="w-full h-full object-contain"
       />
     </div>
@@ -478,7 +480,7 @@ export function FloatingShaddas({ count = 5, className = "" }: { count?: number;
       {shaddas.map((s, i) => (
         <motion.img
           key={i}
-          src="/brand/logo-shadda.png"
+          src="/brand/7-transparent.png"
           alt=""
           className="absolute object-contain"
           style={{
@@ -521,8 +523,8 @@ export function GlowDivider({ className = "" }: { className?: string }) {
         animate={isInView ? { scaleX: 1, opacity: 1 } : { scaleX: 0, opacity: 0 }}
         transition={{ duration: 1.2, ease: [0.25, 0.8, 0.25, 1] }}
         style={{
-          background: "linear-gradient(90deg, transparent, rgba(91,91,255,0.5), rgba(139,92,246,0.3), rgba(91,91,255,0.5), transparent)",
-          boxShadow: "0 0 20px rgba(91,91,255,0.2)",
+          background: "linear-gradient(90deg, transparent, rgba(30,64,175,0.5), rgba(139,92,246,0.3), rgba(30,64,175,0.5), transparent)",
+          boxShadow: "0 0 20px rgba(30,64,175,0.2)",
         }}
       />
     </div>

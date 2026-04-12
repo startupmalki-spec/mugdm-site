@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { FileUpload } from '@/components/upload/FileUpload'
-import { isValidCRNumber } from '@/lib/validations'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { Business } from '@/lib/supabase/types'
@@ -74,7 +73,6 @@ function SectionCard({
   children: React.ReactNode
   editContent: React.ReactNode
 }) {
-  const tCommon = useTranslations('common')
   const tProfile = useTranslations('profile')
   const Icon = SECTION_ICONS[sectionKey]
 
@@ -176,7 +174,6 @@ function SectionCard({
 /* ───────── Field Display ───────── */
 
 function FieldRow({ label, value }: { label: string; value: string | null | undefined }) {
-  const tCommon = useTranslations('common')
   return (
     <div className="flex items-baseline justify-between gap-4 py-2">
       <span className="shrink-0 text-sm text-muted-foreground">{label}</span>
@@ -241,38 +238,6 @@ export default function ProfilePage() {
     contact_address: '',
   })
 
-  /* ─── Load Business ─── */
-
-  useEffect(() => {
-    async function loadBusiness() {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        setIsLoading(false)
-        return
-      }
-
-      const { data } = await supabase
-        .from('businesses')
-        .select('*')
-        .eq('user_id', user.id)
-        .single() as { data: Business | null; error: any }
-
-      if (data) {
-        setBusiness(data)
-        syncEditState(data)
-      } else {
-        router.push(`/${locale}/onboarding`)
-        return
-      }
-      setIsLoading(false)
-    }
-
-    loadBusiness()
-  }, [router, locale])
-
   function syncEditState(biz: Business) {
     setEditIdentity({
       name_ar: biz.name_ar || '',
@@ -293,6 +258,38 @@ export default function ProfilePage() {
       contact_address: biz.contact_address || '',
     })
   }
+
+  /* ─── Load Business ─── */
+
+  useEffect(() => {
+    async function loadBusiness() {
+      const supabase = createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (!user) {
+        setIsLoading(false)
+        return
+      }
+
+      const { data } = (await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', user.id)
+        .single()) as unknown as { data: Business | null; error: unknown }
+
+      if (data) {
+        setBusiness(data)
+        syncEditState(data)
+      } else {
+        router.push(`/${locale}/onboarding`)
+        return
+      }
+      setIsLoading(false)
+    }
+
+    loadBusiness()
+  }, [router, locale])
 
   /* ─── Toggles ─── */
 
@@ -374,12 +371,12 @@ export default function ProfilePage() {
       }
 
       // NOTE: Supabase typed client resolves .update() param to `never` with
-      // this @supabase/ssr version. Casting through `any` at the boundary.
-      const { data, error } = await ((supabase.from('businesses') as any)
-        .update(fullUpdate)
+      // this @supabase/ssr version. Casting through `unknown` at the boundary.
+      const { data, error } = (await supabase.from('businesses')
+        .update(fullUpdate as never)
         .eq('id', business.id)
         .select()
-        .single()) as { data: Business | null; error: any }
+        .single()) as unknown as { data: Business | null; error: unknown }
 
       setSaving((prev) => ({ ...prev, [section]: false }))
 
@@ -418,11 +415,11 @@ export default function ProfilePage() {
         ],
       }
 
-      const { data } = await ((supabase.from('businesses') as any)
-        .update(brandingUpdate)
+      const { data } = (await supabase.from('businesses')
+        .update(brandingUpdate as never)
         .eq('id', business.id)
         .select()
-        .single()) as { data: Business | null; error: any }
+        .single()) as unknown as { data: Business | null; error: unknown }
 
       if (data) {
         setBusiness(data)

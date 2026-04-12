@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
+import { useLocale } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Check,
@@ -47,7 +47,6 @@ interface ReviewQueueProps {
 }
 
 export function ReviewQueue({ transactions, duplicateIds, onAccept, onChangeCategory }: ReviewQueueProps) {
-  const t = useTranslations('bookkeeper')
   const locale = useLocale()
 
   const [acceptedIds, setAcceptedIds] = useState<Set<string>>(new Set())

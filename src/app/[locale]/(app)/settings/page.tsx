@@ -159,7 +159,7 @@ export default function SettingsPage() {
       setIsSaving(true)
       try {
         const supabase = createClient()
-        await (supabase.auth as any).updateUser({
+        await supabase.auth.updateUser({
           data: {
             notification_prefs: prefs,
             theme: currentTheme,

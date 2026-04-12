@@ -121,11 +121,11 @@ export default function OnboardingPage() {
 
       // Check CR number uniqueness before advancing
       const supabase = createClient()
-      const { data: existing } = await (supabase
-        .from('businesses') as any)
+      const { data: existing } = (await supabase
+        .from('businesses')
         .select('id')
         .eq('cr_number', data.crNumber)
-        .maybeSingle() as { data: { id: string } | null }
+        .maybeSingle()) as unknown as { data: { id: string } | null }
 
       if (existing) {
         setErrors({
@@ -139,7 +139,7 @@ export default function OnboardingPage() {
 
     setDirection(1)
     setStep((prev) => Math.min(prev + 1, TOTAL_STEPS))
-  }, [step, data, tCommon, tProfile])
+  }, [step, data, t, tCommon, tProfile])
 
   const handleBack = useCallback(() => {
     setDirection(-1)

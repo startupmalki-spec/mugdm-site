@@ -32,21 +32,23 @@ async function countTodayAICalls(businessId: string): Promise<number> {
   const supabase = getServiceRoleClient()
   const today = getTodayStart()
 
-  const [{ count: docCount }, { count: uploadCount }] = await Promise.all([
+  // Both counts run as a single parallel batch to minimize latency.
+  // These are HEAD requests (no row data transferred), only counts.
+  const results = await Promise.all([
     supabase
       .from('documents')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('business_id', businessId)
       .gte('uploaded_at', today)
       .not('ai_confidence', 'is', null),
     supabase
       .from('bank_statement_uploads')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('business_id', businessId)
       .gte('created_at', today),
   ])
 
-  return (docCount ?? 0) + (uploadCount ?? 0)
+  return results.reduce((sum, { count }) => sum + (count ?? 0), 0)
 }
 
 export async function checkRateLimit(businessId: string): Promise<RateLimitResult> {

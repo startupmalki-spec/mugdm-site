@@ -85,11 +85,11 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: business } = await (supabase
-    .from('businesses') as any)
+  const { data: business } = (await supabase
+    .from('businesses')
     .select('id')
     .eq('user_id', user.id)
-    .single() as { data: { id: string } | null }
+    .single()) as unknown as { data: { id: string } | null }
 
   if (!business) return null
 
@@ -97,20 +97,20 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
 
   // Fetch documents, obligations, and transactions in parallel
   const [docsResult, obligationsResult, txResult] = await Promise.all([
-    (supabase.from('documents') as any)
+    supabase.from('documents')
       .select('expiry_date')
       .eq('business_id', businessId)
-      .eq('is_current', true) as Promise<{ data: Pick<Document, 'expiry_date'>[] | null }>,
+      .eq('is_current', true) as unknown as Promise<{ data: Pick<Document, 'expiry_date'>[] | null }>,
 
-    (supabase.from('obligations') as any)
+    supabase.from('obligations')
       .select('*')
       .eq('business_id', businessId)
-      .order('next_due_date', { ascending: true }) as Promise<{ data: Obligation[] | null }>,
+      .order('next_due_date', { ascending: true }) as unknown as Promise<{ data: Obligation[] | null }>,
 
-    (supabase.from('transactions') as any)
+    supabase.from('transactions')
       .select('type, amount')
       .eq('business_id', businessId)
-      .gte('date', startOfMonth(new Date()).toISOString().split('T')[0]) as Promise<{
+      .gte('date', startOfMonth(new Date()).toISOString().split('T')[0]) as unknown as Promise<{
         data: Pick<Transaction, 'type' | 'amount'>[] | null
       }>,
   ])

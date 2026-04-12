@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 
 const navLinks = [
   { label: "Features", href: "#features" },
@@ -30,18 +31,23 @@ export function Navbar() {
       }`}
     >
       <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="flex items-center gap-2.5 group">
+        <a href="#" className="flex items-center group">
           <Image
-            src="/brand/8.png"
-            alt=""
-            width={32}
-            height={32}
-            className="h-8 w-8 rounded-md transition-transform duration-300 group-hover:scale-110"
+            src="/brand/1-transparent.png"
+            alt="Mugdm"
+            width={130}
+            height={40}
+            className="hidden h-9 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
             priority
           />
-          <span className="text-xl font-bold tracking-tight text-foreground transition-colors">
-            Mugdm
-          </span>
+          <Image
+            src="/brand/2-transparent.png"
+            alt="Mugdm"
+            width={130}
+            height={40}
+            className="h-9 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
+            priority
+          />
         </a>
 
         {/* Desktop nav */}
@@ -55,12 +61,12 @@ export function Navbar() {
               {link.label}
             </a>
           ))}
-          <a
+          <Link
             href="/signup"
-            className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-all duration-200 shadow-[0_4px_15px_rgba(91,91,255,0.25)] hover:bg-[#4a4aee] hover:shadow-[0_6px_25px_rgba(91,91,255,0.4)] hover:-translate-y-px active:scale-[0.98]"
+            className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-all duration-200 shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
           >
             Get Started
-          </a>
+          </Link>
         </div>
 
         {/* Mobile toggle */}
@@ -86,13 +92,13 @@ export function Navbar() {
                 {link.label}
               </a>
             ))}
-            <a
+            <Link
               href="/signup"
               className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium mt-2"
               onClick={() => setMobileOpen(false)}
             >
               Get Started
-            </a>
+            </Link>
           </div>
         </div>
       )}

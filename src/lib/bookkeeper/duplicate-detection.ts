@@ -19,12 +19,21 @@ export async function checkDuplicateTransactions(
   const minDate = dates.reduce((a, b) => (a < b ? a : b))
   const maxDate = dates.reduce((a, b) => (a > b ? a : b))
 
+  type TransactionSubset = Pick<Transaction, 'date' | 'amount' | 'description' | 'business_id'>
   const { data: existing } = await (supabase
-    .from('transactions') as any)
+    .from('transactions') as unknown as {
+      select(columns: string): {
+        eq(col: string, val: string): {
+          gte(col: string, val: string): {
+            lte(col: string, val: string): PromiseLike<{ data: TransactionSubset[] | null }>
+          }
+        }
+      }
+    })
     .select('date, amount, description, business_id')
     .eq('business_id', businessId)
     .gte('date', minDate)
-    .lte('date', maxDate) as { data: Pick<Transaction, 'date' | 'amount' | 'description' | 'business_id'>[] | null }
+    .lte('date', maxDate)
 
   if (!existing || existing.length === 0) {
     return { duplicates: [], unique: candidates }

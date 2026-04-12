@@ -196,7 +196,7 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic()
 
-    const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as any)
+    const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
       ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
       : 'image/jpeg'
 

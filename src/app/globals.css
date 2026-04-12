@@ -10,17 +10,17 @@
   --color-foreground: #e8e8f0;
   --color-card: #252536;
   --color-card-foreground: #e8e8f0;
-  --color-primary: #5b5bff;
-  --color-primary-foreground: #ffffff;
+  --color-primary: #1E40AF;
+  --color-primary-foreground: #F3F4F6;
   --color-secondary: #2a2a3e;
   --color-secondary-foreground: #c8c8d8;
   --color-muted: #2a2a3e;
   --color-muted-foreground: #8888a8;
-  --color-accent: #5b5bff;
-  --color-accent-foreground: #ffffff;
+  --color-accent: #3B82F6;
+  --color-accent-foreground: #F3F4F6;
   --color-border: #33334a;
   --color-input: #33334a;
-  --color-ring: #5b5bff;
+  --color-ring: #1E40AF;
   --color-surface-0: #1e1e2e;
   --color-surface-1: #252536;
   --color-surface-2: #2a2a3e;
@@ -56,8 +56,8 @@
   to { opacity: 1; transform: scale(1); }
 }
 @keyframes glow {
-  0%, 100% { box-shadow: 0 0 20px rgba(91, 91, 255, 0.1); }
-  50% { box-shadow: 0 0 40px rgba(91, 91, 255, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(30, 64, 175, 0.1); }
+  50% { box-shadow: 0 0 40px rgba(30, 64, 175, 0.3); }
 }
 @keyframes float {
   0%, 100% { transform: translateY(0); }
@@ -154,17 +154,17 @@ html:not(.dark) {
   --color-foreground: #1a1a2e;
   --color-card: #ffffff;
   --color-card-foreground: #1a1a2e;
-  --color-primary: #4f4ff7;
+  --color-primary: #1E40AF;
   --color-primary-foreground: #ffffff;
   --color-secondary: #eeeef8;
   --color-secondary-foreground: #4a4a6a;
   --color-muted: #eeeef8;
   --color-muted-foreground: #6a6a8a;
-  --color-accent: #4f4ff7;
+  --color-accent: #3B82F6;
   --color-accent-foreground: #ffffff;
   --color-border: #dcdce8;
   --color-input: #dcdce8;
-  --color-ring: #4f4ff7;
+  --color-ring: #1E40AF;
   --color-surface-0: #f8f9fc;
   --color-surface-1: #ffffff;
   --color-surface-2: #eeeef8;
@@ -188,7 +188,7 @@ body {
 }
 
 ::selection {
-  background-color: rgba(91, 91, 255, 0.25);
+  background-color: rgba(30, 64, 175, 0.25);
   color: #ffffff;
 }
 
@@ -205,7 +205,7 @@ body {
 html { scroll-behavior: smooth; }
 
 .text-gradient {
-  background: linear-gradient(135deg, #5b5bff, #8b5cf6, #a78bfa);
+  background: linear-gradient(135deg, #1E40AF, #3B82F6, #60A5FA);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -236,13 +236,13 @@ html:not(.dark) ::-webkit-scrollbar-thumb:hover {
 
 /* Light-mode selection */
 html:not(.dark) ::selection {
-  background-color: rgba(79, 79, 247, 0.2);
+  background-color: rgba(30, 64, 175, 0.2);
   color: #1a1a2e;
 }
 
 /* Light-mode text gradient */
 html:not(.dark) .text-gradient {
-  background: linear-gradient(135deg, #4f4ff7, #7c3aed, #8b5cf6);
+  background: linear-gradient(135deg, #1E40AF, #2563EB, #3B82F6);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -254,7 +254,7 @@ html:not(.dark) .text-gradient {
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background-image: url('/brand/logo-shadda.png');
+  background-image: url('/brand/7-transparent.png');
   background-repeat: repeat;
   background-size: 100px;
   opacity: 0.018;

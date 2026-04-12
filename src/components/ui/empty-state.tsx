@@ -52,7 +52,7 @@ export function EmptyState({
           {actionLabel && (
             actionHref ? (
               <Button asChild>
-                <Link href={actionHref as any}>{actionLabel}</Link>
+                <Link href={actionHref as string}>{actionLabel}</Link>
               </Button>
             ) : (
               <Button onClick={onAction}>{actionLabel}</Button>
@@ -62,7 +62,7 @@ export function EmptyState({
           {secondaryActionLabel && (
             secondaryActionHref ? (
               <Button variant="outline" asChild>
-                <Link href={secondaryActionHref as any}>{secondaryActionLabel}</Link>
+                <Link href={secondaryActionHref as string}>{secondaryActionLabel}</Link>
               </Button>
             ) : (
               <Button variant="outline" onClick={onSecondaryAction}>{secondaryActionLabel}</Button>

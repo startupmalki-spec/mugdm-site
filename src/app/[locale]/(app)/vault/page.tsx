@@ -118,7 +118,6 @@ function DocumentCard({
   onView: (doc: Document) => void
 }) {
   const t = useTranslations('vault')
-  const Icon = getDocumentTypeIcon(doc.type)
   const status = getExpiryStatus(doc.expiry_date)
   const dateLocale = locale === 'ar' ? ar : enUS
 
@@ -147,7 +146,7 @@ function DocumentCard({
     >
       <div className="flex items-start justify-between">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-2 text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-          <Icon className="h-5 w-5" />
+          {getDocumentTypeIcon(doc.type)({ className: 'h-5 w-5' })}
         </div>
         {status !== 'none' && <StatusBadge status={status} label={statusLabel} />}
       </div>
@@ -187,7 +186,6 @@ function DocumentListRow({
   onView: (doc: Document) => void
 }) {
   const t = useTranslations('vault')
-  const Icon = getDocumentTypeIcon(doc.type)
   const status = getExpiryStatus(doc.expiry_date)
   const dateLocale = locale === 'ar' ? ar : enUS
 
@@ -211,7 +209,7 @@ function DocumentListRow({
       )}
     >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
-        <Icon className="h-4 w-4" />
+        {getDocumentTypeIcon(doc.type)({ className: 'h-4 w-4' })}
       </div>
 
       <div className="min-w-0 flex-1">
@@ -255,7 +253,6 @@ function DocumentDetailPanel({
   onArchive: (doc: Document) => void
 }) {
   const t = useTranslations('vault')
-  const Icon = getDocumentTypeIcon(doc.type)
   const status = getExpiryStatus(doc.expiry_date)
   const dateLocale = locale === 'ar' ? ar : enUS
 
@@ -278,7 +275,7 @@ function DocumentDetailPanel({
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-surface-2 text-primary">
-            <Icon className="h-6 w-6" />
+            {getDocumentTypeIcon(doc.type)({ className: 'h-6 w-6' })}
           </div>
           <div>
             <h3 className="font-semibold text-foreground">{doc.name}</h3>
@@ -421,8 +418,8 @@ function UploadDialog({
 
         const signedUrl = signedUrlData.signedUrl
 
-        const { data: insertedDoc, error: insertError } = await (supabase
-          .from('documents') as any)
+        const { data: insertedDoc, error: insertError } = (await supabase
+          .from('documents')
           .insert({
             business_id: businessId,
             name: file.name,
@@ -431,9 +428,9 @@ function UploadDialog({
             mime_type: file.type,
             type: 'OTHER',
             is_current: true,
-          })
+          } as never)
           .select()
-          .single() as { data: Document | null; error: unknown }
+          .single()) as unknown as { data: Document | null; error: unknown }
 
         if (insertError || !insertedDoc) throw insertError ?? new Error('Insert failed')
 
@@ -492,12 +489,12 @@ function UploadDialog({
         ai_confidence: analysis?.confidence ?? null,
       }
 
-      const { data: updatedDoc } = await (supabase
-        .from('documents') as any)
-        .update(updatePayload)
+      const { data: updatedDoc } = (await supabase
+        .from('documents')
+        .update(updatePayload as never)
         .eq('id', insertedDocId)
         .select()
-        .single() as { data: Document | null; error: unknown }
+        .single()) as unknown as { data: Document | null; error: unknown }
 
       if (updatedDoc) {
         onDocumentAdded(updatedDoc)
@@ -681,7 +678,6 @@ function UploadDialog({
 
 export default function VaultPage() {
   const t = useTranslations('vault')
-  const tCommon = useTranslations('common')
   const tEmpty = useTranslations('emptyStates')
   const locale = useLocale()
 
@@ -747,11 +743,11 @@ export default function VaultPage() {
     const supabase = createClient()
     const archivedAt = new Date().toISOString()
 
-    const { data } = await (supabase.from('documents') as any)
-      .update({ archived_at: archivedAt, is_current: false })
+    const { data } = (await supabase.from('documents')
+      .update({ archived_at: archivedAt, is_current: false } as never)
       .eq('id', doc.id)
       .select()
-      .single() as { data: Document | null; error: unknown }
+      .single()) as unknown as { data: Document | null; error: unknown }
 
     if (data) {
       setDocuments((prev) => prev.map((d) => (d.id === data.id ? data : d)))

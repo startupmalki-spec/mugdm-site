@@ -1,7 +1,10 @@
 const CR_NUMBER_LENGTH = 10
 const IQAMA_LENGTH = 10
-const SAUDI_PHONE_REGEX = /^\+966\s?5\d{8}$/
-const SAUDI_PHONE_RAW_REGEX = /^05\d{8}$/
+// Matches: +966XXXXXXXXX, 966XXXXXXXXX, 05XXXXXXXX, 5XXXXXXXX
+// Mobile (05x) and landline (01x) patterns
+const SAUDI_PHONE_INTL_REGEX = /^\+?966[015]\d{8}$/
+const SAUDI_PHONE_LOCAL_REGEX = /^0[15]\d{8}$/
+const SAUDI_PHONE_SHORT_REGEX = /^[15]\d{8}$/
 
 export function isValidCRNumber(cr: string): boolean {
   const digits = cr.replace(/\s/g, '')
@@ -16,7 +19,11 @@ export function isValidIqama(iqama: string): boolean {
 
 export function isValidSaudiPhone(phone: string): boolean {
   const cleaned = phone.replace(/[\s-]/g, '')
-  return SAUDI_PHONE_REGEX.test(cleaned) || SAUDI_PHONE_RAW_REGEX.test(cleaned)
+  return (
+    SAUDI_PHONE_INTL_REGEX.test(cleaned) ||
+    SAUDI_PHONE_LOCAL_REGEX.test(cleaned) ||
+    SAUDI_PHONE_SHORT_REGEX.test(cleaned)
+  )
 }
 
 export function formatSaudiPhone(phone: string): string {

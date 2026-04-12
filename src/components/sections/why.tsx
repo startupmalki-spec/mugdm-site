@@ -62,13 +62,13 @@ export function Why() {
             <StaggerItem key={item.title}>
               <TiltCard
                 tiltAmount={5}
-                className="group relative p-8 rounded-2xl border border-border bg-card overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.25,0.8,0.25,1)] hover:border-primary/30 hover:shadow-[0_12px_40px_rgba(91,91,255,0.1)] h-full"
+                className="group relative p-8 rounded-2xl border border-border bg-card overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.25,0.8,0.25,1)] hover:border-primary/30 hover:shadow-[0_12px_40px_rgba(30,64,175,0.1)] h-full"
               >
                 {/* Animated gradient border glow */}
                 <div
                   className="absolute inset-[-1px] rounded-[17px] p-px opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
                   style={{
-                    background: "linear-gradient(135deg, transparent 30%, rgba(91,91,255,0.5) 50%, transparent 70%)",
+                    background: "linear-gradient(135deg, transparent 30%, rgba(30,64,175,0.5) 50%, transparent 70%)",
                     backgroundSize: "300% 300%",
                     WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                     WebkitMaskComposite: "xor",
@@ -80,12 +80,12 @@ export function Why() {
                 <div
                   className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
                   style={{
-                    background: "radial-gradient(ellipse at var(--glow-x, 50%) var(--glow-y, 50%), rgba(91,91,255,0.06) 0%, transparent 60%)",
+                    background: "radial-gradient(ellipse at var(--glow-x, 50%) var(--glow-y, 50%), rgba(30,64,175,0.06) 0%, transparent 60%)",
                   }}
                 />
 
                 <div className="relative flex items-start gap-5">
-                  <div className="shrink-0 w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center transition-all duration-400 group-hover:bg-primary/25 group-hover:scale-110 group-hover:rotate-[5deg] group-hover:shadow-[0_0_20px_rgba(91,91,255,0.2)]">
+                  <div className="shrink-0 w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center transition-all duration-400 group-hover:bg-primary/25 group-hover:scale-110 group-hover:rotate-[5deg] group-hover:shadow-[0_0_20px_rgba(30,64,175,0.2)]">
                     <item.icon size={26} className="text-primary transition-transform duration-300 group-hover:scale-110" />
                   </div>
                   <div>

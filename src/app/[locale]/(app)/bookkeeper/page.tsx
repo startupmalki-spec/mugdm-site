@@ -16,7 +16,6 @@ import {
   Receipt,
   PenLine,
   ArrowUpRight,
-  Loader2,
   Search,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
@@ -34,7 +33,7 @@ import {
   Area,
   Tooltip as RechartsTooltip,
 } from 'recharts'
-import { startOfMonth, endOfMonth, subMonths, startOfYear, endOfDay } from 'date-fns'
+import { startOfMonth, subMonths, startOfYear, endOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -179,13 +178,13 @@ export default function BookkeeperPage() {
 
         if (txData) setTransactions(txData)
 
-        const { data: vatObligation } = await (supabase.from('obligations') as any)
+        const { data: vatObligation } = (await supabase.from('obligations')
           .select('next_due_date')
           .eq('business_id', biz.id)
           .eq('type', 'ZATCA_VAT')
           .order('next_due_date', { ascending: true })
           .limit(1)
-          .single() as { data: { next_due_date: string } | null; error: unknown }
+          .single()) as unknown as { data: { next_due_date: string } | null; error: unknown }
 
         if (vatObligation) setNextVatDueDate(vatObligation.next_due_date)
       } catch {
@@ -295,10 +294,10 @@ export default function BookkeeperPage() {
       is_reviewed: true,
     }
 
-    const { data: newTx } = await (supabase.from('transactions') as any)
-      .insert(payload)
+    const { data: newTx } = (await supabase.from('transactions')
+      .insert(payload as never)
       .select()
-      .single() as { data: Transaction | null; error: unknown }
+      .single()) as unknown as { data: Transaction | null; error: unknown }
 
     if (newTx) {
       setTransactions((prev) => [newTx, ...prev])
@@ -329,10 +328,10 @@ export default function BookkeeperPage() {
       is_reviewed: true,
     }
 
-    const { data: newTx } = await (supabase.from('transactions') as any)
-      .insert(payload)
+    const { data: newTx } = (await supabase.from('transactions')
+      .insert(payload as never)
       .select()
-      .single() as { data: Transaction | null; error: unknown }
+      .single()) as unknown as { data: Transaction | null; error: unknown }
 
     if (newTx) {
       setTransactions((prev) => [newTx, ...prev])

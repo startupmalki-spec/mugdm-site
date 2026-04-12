@@ -1,7 +1,10 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { addMonths } from 'date-fns'
 
-import type { ObligationType, Transaction } from '@/lib/supabase/types'
+import type { Database, ObligationType, Transaction } from '@/lib/supabase/types'
+
+type TransactionUpdate = Database['public']['Tables']['transactions']['Update']
+type ObligationUpdate = Database['public']['Tables']['obligations']['Update']
 
 interface DetectionResult {
   isGovernment: boolean
@@ -102,32 +105,40 @@ export async function linkTransactionToObligation(
 
   if (fetchError || !obligation) return false
 
-  const transactionUpdate: Record<string, unknown> = {
+  const transactionUpdate: TransactionUpdate = {
     linked_obligation_id: obligation.id,
   }
 
-  const { error: txError } = await supabase
-    .from('transactions')
-    .update(transactionUpdate as any)
+  const { error: txError } = await (supabase
+    .from('transactions') as unknown as {
+      update(values: TransactionUpdate): {
+        eq(col: string, val: string): PromiseLike<{ error: { message: string } | null }>
+      }
+    })
+    .update(transactionUpdate)
     .eq('id', transaction.id)
 
   if (txError) return false
 
   // Mark obligation completed if this is an expense payment
   if (transaction.type === 'EXPENSE') {
-    const obligationUpdate: Record<string, unknown> = {
+    const obligationUpdateData: ObligationUpdate = {
       last_completed_at: new Date().toISOString(),
     }
 
     // Advance next_due_date for monthly obligations (e.g. GOSI)
     if (obligation.frequency === 'MONTHLY') {
       const currentDue = new Date(obligation.next_due_date)
-      obligationUpdate.next_due_date = addMonths(currentDue, 1).toISOString().split('T')[0]
+      obligationUpdateData.next_due_date = addMonths(currentDue, 1).toISOString().split('T')[0]
     }
 
-    await supabase
-      .from('obligations')
-      .update(obligationUpdate as any)
+    await (supabase
+      .from('obligations') as unknown as {
+        update(values: ObligationUpdate): {
+          eq(col: string, val: string): PromiseLike<{ error: { message: string } | null }>
+        }
+      })
+      .update(obligationUpdateData)
       .eq('id', obligation.id)
   }
 
