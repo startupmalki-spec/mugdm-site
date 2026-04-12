@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
   '/auth/callback',
   '/terms',
   '/privacy',
+  '/opengraph-image',
 ]
 
 function isPublicPath(pathname: string): boolean {
