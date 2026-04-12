@@ -2,7 +2,7 @@
 
 import { UserPlus, Upload, CalendarCheck, Shield } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Reveal, StaggerContainer, StaggerItem, ScrollProgressLine } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, ScrollProgressLine, ParticleNetwork } from "@/lib/animations";
 
 const STEP_KEYS = ["step1", "step2", "step3", "step4"] as const;
 const STEP_ICONS = [UserPlus, Upload, CalendarCheck, Shield] as const;
@@ -11,6 +11,7 @@ export function Process() {
   const t = useTranslations("landing.howItWorks");
   return (
     <section id="how-it-works" className="relative py-24 sm:py-32 bg-surface-1/50">
+      <ParticleNetwork className="z-[0]" density={25000} opacity={0.15} lineOpacity={0.05} speed={0.2} />
       <div className="max-w-[1280px] mx-auto px-6">
         <Reveal className="text-center mb-16">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-6">

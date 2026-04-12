@@ -24,6 +24,7 @@ import {
   Check,
 } from 'lucide-react'
 import FloatingAssistant from '@/components/chat/FloatingAssistant'
+import { ParticleNetwork } from '@/lib/animations'
 import { BusinessProvider, useBusiness } from '@/lib/business-context'
 import { initPostHog, identifyUser } from '@/lib/analytics/posthog'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
@@ -415,6 +416,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         {/* Page Content */}
         <main className="relative flex-1 px-4 py-6 lg:px-8 lg:py-8">
+          <ParticleNetwork className="z-[0]" density={40000} opacity={0.08} lineOpacity={0.03} speed={0.15} />
           {/* Shadda watermark */}
           <div
             className="pointer-events-none fixed bottom-[-60px] opacity-[0.04] ltr:right-[-40px] rtl:left-[-40px]"

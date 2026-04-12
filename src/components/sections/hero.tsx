@@ -4,82 +4,11 @@ import { useEffect, useRef } from "react";
 import { ArrowRight, Play } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { AnimatedText, AuroraBackground, Magnetic, ReactiveShadda } from "@/lib/animations";
+import { AnimatedText, AuroraBackground, Magnetic, ParticleNetwork, ReactiveShadda } from "@/lib/animations";
 
 export function Hero() {
   const t = useTranslations("landing.hero");
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
-  const particlesRef = useRef<{ x: number; y: number; vx: number; vy: number; r: number }[]>([]);
-  const animRef = useRef<number>(0);
-
-  // Particle system
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    function initParticles() {
-      cancelAnimationFrame(animRef.current);
-      const section = sectionRef.current;
-      if (!section || !canvas) return;
-      canvas.width = section.offsetWidth;
-      canvas.height = section.offsetHeight;
-      particlesRef.current = [];
-      const count = Math.floor((canvas.width * canvas.height) / 14000);
-      for (let i = 0; i < count; i++) {
-        particlesRef.current.push({
-          x: Math.random() * canvas.width,
-          y: Math.random() * canvas.height,
-          vx: (Math.random() - 0.5) * 0.4,
-          vy: (Math.random() - 0.5) * 0.4,
-          r: Math.random() * 1.8 + 0.8,
-        });
-      }
-      drawParticles();
-    }
-
-    function drawParticles() {
-      if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const particles = particlesRef.current;
-      const maxDist = 130;
-      for (let i = 0; i < particles.length; i++) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
-        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(30,64,175,0.4)";
-        ctx.fill();
-        for (let j = i + 1; j < particles.length; j++) {
-          const q = particles[j];
-          const dx = p.x - q.x;
-          const dy = p.y - q.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < maxDist) {
-            ctx.beginPath();
-            ctx.moveTo(p.x, p.y);
-            ctx.lineTo(q.x, q.y);
-            ctx.strokeStyle = `rgba(30,64,175,${0.12 * (1 - dist / maxDist)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
-      }
-      animRef.current = requestAnimationFrame(drawParticles);
-    }
-
-    initParticles();
-    window.addEventListener("resize", initParticles);
-    return () => {
-      cancelAnimationFrame(animRef.current);
-      window.removeEventListener("resize", initParticles);
-    };
-  }, []);
 
   // 3D Parallax mouse tracking
   useEffect(() => {
@@ -130,10 +59,7 @@ export function Hero() {
       style={{ padding: "120px 24px 80px" }}
     >
       {/* Particle canvas */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 z-[1] pointer-events-none"
-      />
+      <ParticleNetwork className="z-[1]" />
 
       {/* Aurora gradient background */}
       <AuroraBackground className="z-0" />

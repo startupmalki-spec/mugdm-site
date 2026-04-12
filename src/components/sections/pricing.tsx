@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas, ParticleNetwork } from "@/lib/animations";
 import { PRICE_IDS } from "@/lib/stripe/price-ids";
 
 const tiers = [
@@ -84,6 +84,7 @@ export function Pricing() {
 
   return (
     <section id="pricing" className="relative py-24 sm:py-32">
+      <ParticleNetwork className="z-[0]" density={30000} opacity={0.1} lineOpacity={0.04} speed={0.15} />
       <FloatingElements />
       <FloatingShaddas count={4} />
       <div className="shadda-pattern" />

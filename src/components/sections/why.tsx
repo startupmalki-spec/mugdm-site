@@ -2,7 +2,7 @@
 
 import { Brain, Shield, Globe, Zap } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingElements, FloatingShaddas } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingElements, FloatingShaddas, ParticleNetwork } from "@/lib/animations";
 
 const ITEM_KEYS = ["affordable", "ai", "saudi", "replaces"] as const;
 const ITEM_ICONS = { affordable: Zap, ai: Brain, saudi: Shield, replaces: Globe } as const;
@@ -17,6 +17,7 @@ export function Why() {
   const t = useTranslations("landing.why");
   return (
     <section id="why" className="relative py-24 sm:py-32">
+      <ParticleNetwork className="z-[0]" density={30000} opacity={0.1} lineOpacity={0.04} speed={0.15} />
       <FloatingElements />
       <FloatingShaddas count={3} />
       <div className="shadda-pattern" />

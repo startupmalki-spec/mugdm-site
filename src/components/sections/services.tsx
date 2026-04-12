@@ -2,7 +2,7 @@
 
 import { FileText, CalendarCheck, Receipt, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas } from "@/lib/animations";
+import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas, ParticleNetwork } from "@/lib/animations";
 
 const FEATURE_KEYS = ["vault", "calendar", "bookkeeper", "team"] as const;
 const FEATURE_ICONS = { vault: FileText, calendar: CalendarCheck, bookkeeper: Receipt, team: Users } as const;
@@ -11,6 +11,7 @@ export function Services() {
   const t = useTranslations("landing.features");
   return (
     <section id="features" className="relative py-24 sm:py-32">
+      <ParticleNetwork className="z-[0]" density={30000} opacity={0.1} lineOpacity={0.04} speed={0.15} />
       <FloatingElements />
       <FloatingShaddas count={4} />
       <div className="shadda-pattern" />

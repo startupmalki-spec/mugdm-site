@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
+import { ParticleNetwork } from '@/lib/animations'
 
 export default function LoginPage() {
   const t = useTranslations('auth')
@@ -58,6 +59,7 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-background px-4 overflow-hidden">
+      <ParticleNetwork className="z-[0]" density={25000} opacity={0.12} lineOpacity={0.04} speed={0.2} />
       {/* Shadda watermark */}
       <div className="pointer-events-none absolute bottom-[-60px] right-[-40px] opacity-[0.04]">
         <Image src="/brand/logo-shadda.png" alt="" width={280} height={280} className="brightness-200" aria-hidden="true" />

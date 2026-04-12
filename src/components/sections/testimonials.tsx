@@ -9,6 +9,7 @@ import {
   Counter,
   FloatingElements,
   FloatingShaddas,
+  ParticleNetwork,
 } from "@/lib/animations";
 
 const testimonials = [
@@ -61,6 +62,7 @@ function Stars() {
 export function Testimonials() {
   return (
     <section id="testimonials" className="relative py-24 sm:py-32">
+      <ParticleNetwork className="z-[0]" density={30000} opacity={0.1} lineOpacity={0.04} speed={0.15} />
       <FloatingElements />
       <FloatingShaddas count={3} />
       <div className="shadda-pattern" />

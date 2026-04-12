@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Send, Mail, Calendar, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
-import { Reveal } from "@/lib/animations";
+import { Reveal, ParticleNetwork } from "@/lib/animations";
 
 export function Contact() {
   const t = useTranslations("landing.contact");
@@ -31,6 +31,7 @@ export function Contact() {
 
   return (
     <section id="contact" className="relative py-24 sm:py-32">
+      <ParticleNetwork className="z-[0]" density={25000} opacity={0.15} lineOpacity={0.05} speed={0.2} />
       {/* Pulsing glow */}
       <div
         className="absolute bottom-0 left-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"

@@ -510,6 +510,114 @@ export function FloatingShaddas({ count = 5, className = "" }: { count?: number;
   );
 }
 
+/* ─── Particle Network Canvas ─── */
+interface ParticleNetworkProps {
+  className?: string;
+  /** Particle density — higher = more particles. Default: 14000 (area per particle) */
+  density?: number;
+  /** Particle color in rgba format. Default: "30,64,175" */
+  color?: string;
+  /** Particle opacity. Default: 0.4 */
+  opacity?: number;
+  /** Line opacity multiplier. Default: 0.12 */
+  lineOpacity?: number;
+  /** Max connection distance. Default: 130 */
+  maxDistance?: number;
+  /** Particle speed multiplier. Default: 0.4 */
+  speed?: number;
+}
+
+export function ParticleNetwork({
+  className = "",
+  density = 14000,
+  color = "30,64,175",
+  opacity = 0.4,
+  lineOpacity = 0.12,
+  maxDistance = 130,
+  speed = 0.4,
+}: ParticleNetworkProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<{ x: number; y: number; vx: number; vy: number; r: number }[]>([]);
+  const animRef = useRef<number>(0);
+
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    function initParticles() {
+      cancelAnimationFrame(animRef.current);
+      if (!canvas) return;
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      canvas.width = parent.offsetWidth;
+      canvas.height = parent.offsetHeight;
+      particlesRef.current = [];
+      const count = Math.floor((canvas.width * canvas.height) / density);
+      for (let i = 0; i < count; i++) {
+        particlesRef.current.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height,
+          vx: (Math.random() - 0.5) * speed,
+          vy: (Math.random() - 0.5) * speed,
+          r: Math.random() * 1.8 + 0.8,
+        });
+      }
+      drawParticles();
+    }
+
+    function drawParticles() {
+      if (!ctx || !canvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const particles = particlesRef.current;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${color},${opacity})`;
+        ctx.fill();
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < maxDistance) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.strokeStyle = `rgba(${color},${lineOpacity * (1 - dist / maxDistance)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      animRef.current = requestAnimationFrame(drawParticles);
+    }
+
+    initParticles();
+    window.addEventListener("resize", initParticles);
+    return () => {
+      cancelAnimationFrame(animRef.current);
+      window.removeEventListener("resize", initParticles);
+    };
+  }, [density, color, opacity, lineOpacity, maxDistance, speed]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={`absolute inset-0 pointer-events-none ${className}`}
+    />
+  );
+}
+
 /* ─── Glowing Section Divider ─── */
 export function GlowDivider({ className = "" }: { className?: string }) {
   const ref = useRef(null);
