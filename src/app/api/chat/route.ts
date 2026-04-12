@@ -2,6 +2,14 @@ import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
 import { buildBusinessContext } from '@/lib/chat/context-builder'
+import {
+  addTransaction,
+  addTeamMember,
+  updateTeamMember,
+  markObligationDone,
+  addObligation,
+  getDocumentSummary,
+} from '@/lib/chat/actions'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
@@ -72,6 +80,94 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
         nationality: { type: 'string', description: 'Filter by nationality' },
         role: { type: 'string', description: 'Filter by role' },
       },
+      required: [],
+    },
+  },
+  // ── Action tools ─────────────────────────────────────────────────
+  {
+    name: 'add_transaction',
+    description:
+      'Add a new income or expense transaction to the bookkeeper. Always confirm the details with the user before calling this tool.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        date: { type: 'string', description: 'Transaction date (YYYY-MM-DD)' },
+        amount: { type: 'number', description: 'Transaction amount in SAR (positive number)' },
+        type: { type: 'string', enum: ['INCOME', 'EXPENSE'], description: 'Transaction type' },
+        category: { type: 'string', description: 'Transaction category (e.g., RENT, SALARY, SALES, SUPPLIES)' },
+        description: { type: 'string', description: 'Description of the transaction' },
+        vendor_or_client: { type: 'string', description: 'Vendor name (for expenses) or client name (for income)' },
+      },
+      required: ['date', 'amount', 'type', 'category', 'description'],
+    },
+  },
+  {
+    name: 'add_team_member',
+    description:
+      'Add a new team member/employee. Always confirm the details with the user before calling this tool.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Full name of the team member' },
+        nationality: { type: 'string', description: 'Nationality (e.g., Saudi, Indian, Filipino)' },
+        role: { type: 'string', description: 'Job role/title' },
+        salary: { type: 'number', description: 'Monthly salary in SAR' },
+        start_date: { type: 'string', description: 'Start date (YYYY-MM-DD), defaults to today' },
+        iqama_number: { type: 'string', description: 'Iqama (residence permit) number' },
+      },
+      required: ['name', 'nationality'],
+    },
+  },
+  {
+    name: 'update_team_member',
+    description:
+      'Update an existing team member\'s details (salary, role, or status). Use query_team first to find the member ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        member_id: { type: 'string', description: 'UUID of the team member to update' },
+        salary: { type: 'number', description: 'New monthly salary in SAR' },
+        role: { type: 'string', description: 'New job role/title' },
+        status: { type: 'string', enum: ['ACTIVE', 'TERMINATED'], description: 'New status' },
+      },
+      required: ['member_id'],
+    },
+  },
+  {
+    name: 'mark_obligation_done',
+    description:
+      'Mark a compliance obligation as completed for the current period. For recurring obligations, this advances the next due date automatically.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        obligation_id: { type: 'string', description: 'UUID of the obligation to mark as done' },
+      },
+      required: ['obligation_id'],
+    },
+  },
+  {
+    name: 'add_obligation',
+    description:
+      'Create a new compliance obligation/deadline. Always confirm the details with the user before calling this tool.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Name of the obligation' },
+        type: { type: 'string', description: 'Obligation type (e.g., TAX, GOSI, ZAKAT, LICENSE, VISA, CUSTOM)' },
+        frequency: { type: 'string', enum: ['MONTHLY', 'QUARTERLY', 'ANNUAL', 'ONE_TIME', 'CUSTOM'], description: 'How often this obligation recurs' },
+        next_due_date: { type: 'string', description: 'Next due date (YYYY-MM-DD)' },
+        description: { type: 'string', description: 'Optional description or notes' },
+      },
+      required: ['name', 'type', 'frequency', 'next_due_date'],
+    },
+  },
+  {
+    name: 'get_document_summary',
+    description:
+      'Get a summary of all current business documents with their expiry status.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
       required: [],
     },
   },
@@ -168,6 +264,65 @@ async function executeToolCall(
       return JSON.stringify(data ?? [], null, 2)
     }
 
+    // ── Action tools ─────────────────────────────────────────────────
+    case 'add_transaction': {
+      const result = await addTransaction(supabase, businessId, {
+        date: toolInput.date as string,
+        amount: toolInput.amount as number,
+        type: toolInput.type as 'INCOME' | 'EXPENSE',
+        category: toolInput.category as string,
+        description: toolInput.description as string,
+        vendor_or_client: toolInput.vendor_or_client as string | undefined,
+      })
+      return JSON.stringify(result)
+    }
+
+    case 'add_team_member': {
+      const result = await addTeamMember(supabase, businessId, {
+        name: toolInput.name as string,
+        nationality: toolInput.nationality as string,
+        role: toolInput.role as string | undefined,
+        salary: toolInput.salary as number | undefined,
+        start_date: toolInput.start_date as string | undefined,
+        iqama_number: toolInput.iqama_number as string | undefined,
+      })
+      return JSON.stringify(result)
+    }
+
+    case 'update_team_member': {
+      const result = await updateTeamMember(
+        supabase,
+        toolInput.member_id as string,
+        {
+          salary: toolInput.salary as number | undefined,
+          role: toolInput.role as string | undefined,
+          status: toolInput.status as 'ACTIVE' | 'TERMINATED' | undefined,
+        }
+      )
+      return JSON.stringify(result)
+    }
+
+    case 'mark_obligation_done': {
+      const result = await markObligationDone(supabase, toolInput.obligation_id as string)
+      return JSON.stringify(result)
+    }
+
+    case 'add_obligation': {
+      const result = await addObligation(supabase, businessId, {
+        name: toolInput.name as string,
+        type: toolInput.type as string,
+        frequency: toolInput.frequency as string,
+        next_due_date: toolInput.next_due_date as string,
+        description: toolInput.description as string | undefined,
+      })
+      return JSON.stringify(result)
+    }
+
+    case 'get_document_summary': {
+      const result = await getDocumentSummary(supabase, businessId)
+      return JSON.stringify(result)
+    }
+
     default:
       return `Unknown tool: ${toolName}`
   }
@@ -188,6 +343,7 @@ Guidelines:
 - If you don't have enough data to answer, say so clearly and suggest what the user might need to add.
 - Never make up data. If a query returns empty results, tell the user.
 - Keep responses focused on business management topics.
+- You can also MODIFY data using action tools (add transactions, add team members, mark obligations done, etc.). Before performing any action, confirm the details with the user. After performing an action, relay the confirmation message to the user.
 
 When the user uploads a spreadsheet, you will receive the parsed data. Analyze it and:
 1. Summarize what the spreadsheet contains (number of rows, columns, and what the data appears to represent).

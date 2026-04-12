@@ -22,6 +22,9 @@ export type ObligationType =
   | 'MISA'
   | 'INSURANCE'
   | 'QIWA'
+  | 'FOOD_SAFETY'
+  | 'SAFETY_CERT'
+  | 'HEALTH_LICENSE'
   | 'CUSTOM'
 
 export type ObligationFrequency =

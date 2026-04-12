@@ -15,6 +15,10 @@ import {
   Loader2,
   Check,
   AlertTriangle,
+  Calculator,
+  Clock,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,6 +26,12 @@ import { isValidIqama, maskIqama, isSaudiNational } from '@/lib/validations'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import type { TeamMember } from '@/lib/supabase/types'
+import {
+  calculateGOSI,
+  calculateTenure,
+  getContractExpiryWarning,
+  type GOSIContribution,
+} from '@/lib/team/gosi-calculator'
 
 /* ───────── Constants ───────── */
 
@@ -36,6 +46,23 @@ const NATIONALITY_FLAGS: Record<string, string> = {
   Sudanese: '\u{1F1F8}\u{1F1E9}',
   Jordanian: '\u{1F1EF}\u{1F1F4}',
   Syrian: '\u{1F1F8}\u{1F1FE}',
+}
+
+/** Determine if a team member is Saudi based on iqama or nationality */
+function isMemberSaudi(member: TeamMember): boolean {
+  if (member.iqama_number && isSaudiNational(member.iqama_number)) return true
+  return (
+    member.nationality?.toLowerCase() === 'saudi' ||
+    member.nationality?.toLowerCase() === 'سعودي'
+  )
+}
+
+/** Format number with commas */
+function formatSAR(amount: number): string {
+  return amount.toLocaleString('en-SA', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })
 }
 
 interface MemberForm {
@@ -54,6 +81,216 @@ const EMPTY_FORM: MemberForm = {
   iqama_number: '',
   start_date: '',
   salary: '',
+}
+
+/* ───────── GOSI Summary Card ───────── */
+
+function GOSISummaryCard({
+  members,
+}: {
+  members: TeamMember[]
+}) {
+  const t = useTranslations('team')
+
+  const activeMembers = members.filter((m) => m.status === 'ACTIVE')
+
+  let totalSaudiGOSI = 0
+  let totalNonSaudiGOSI = 0
+
+  for (const member of activeMembers) {
+    if (!member.salary) continue
+    const saudi = isMemberSaudi(member)
+    const gosi = calculateGOSI(member.salary, saudi)
+    if (saudi) {
+      totalSaudiGOSI += gosi.total
+    } else {
+      totalNonSaudiGOSI += gosi.total
+    }
+  }
+
+  const grandTotal = totalSaudiGOSI + totalNonSaudiGOSI
+
+  if (grandTotal === 0) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-xl border border-border bg-card p-4"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <Calculator className="h-4 w-4 text-primary" />
+        <h3 className="text-sm font-semibold text-foreground">
+          {t('monthlyGosi')}
+        </h3>
+      </div>
+
+      <p className="text-2xl font-bold text-foreground">
+        SAR {formatSAR(grandTotal)}
+      </p>
+
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+          <span>
+            {t('gosiSaudiTotal')}: SAR {formatSAR(totalSaudiGOSI)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+          <span>
+            {t('gosiNonSaudiTotal')}: SAR {formatSAR(totalNonSaudiGOSI)}
+          </span>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+/* ───────── GOSI What-If Simulator ───────── */
+
+function GOSISimulator({
+  currentTotal,
+}: {
+  currentTotal: number
+}) {
+  const t = useTranslations('team')
+  const [simSalary, setSimSalary] = useState('')
+  const [simIsSaudi, setSimIsSaudi] = useState(true)
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const simAmount = simSalary ? Number(simSalary) : 0
+  const simGosi = simAmount > 0 ? calculateGOSI(simAmount, simIsSaudi) : null
+  const newTotal = simGosi ? currentTotal + simGosi.total : currentTotal
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-xl border border-border bg-card"
+    >
+      <button
+        type="button"
+        onClick={() => setIsExpanded((p) => !p)}
+        className="flex w-full items-center justify-between p-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Calculator className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">
+            {t('gosiSimulator')}
+          </span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        )}
+      </button>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                {t('simulatorPrompt')}
+              </p>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    {t('simulatorSalary')}
+                  </label>
+                  <Input
+                    value={simSalary}
+                    onChange={(e) =>
+                      setSimSalary(e.target.value.replace(/\D/g, ''))
+                    }
+                    placeholder="8,000"
+                    dir="ltr"
+                    inputMode="numeric"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-foreground">
+                    {t('simulatorNationality')}
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSimIsSaudi(true)}
+                      className={cn(
+                        'flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                        simIsSaudi
+                          ? 'border-green-500 bg-green-500/10 text-green-400'
+                          : 'border-border bg-surface-2 text-muted-foreground'
+                      )}
+                    >
+                      {t('saudiEmployee')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimIsSaudi(false)}
+                      className={cn(
+                        'flex-1 rounded-lg border px-3 py-2 text-xs font-medium transition-colors',
+                        !simIsSaudi
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-400'
+                          : 'border-border bg-surface-2 text-muted-foreground'
+                      )}
+                    >
+                      {t('nonSaudiEmployee')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {simGosi && (
+                <div className="rounded-lg bg-surface-2/50 p-3 space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {t('employeeShare')}
+                    </span>
+                    <span className="font-mono text-foreground">
+                      SAR {formatSAR(simGosi.employeeShare)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {t('employerShare')}
+                    </span>
+                    <span className="font-mono text-foreground">
+                      SAR {formatSAR(simGosi.employerShare)}
+                    </span>
+                  </div>
+                  <div className="border-t border-border pt-1.5 flex justify-between text-xs font-semibold">
+                    <span className="text-foreground">
+                      {t('newMonthlyGosi')}
+                    </span>
+                    <span className="font-mono text-primary">
+                      SAR {formatSAR(newTotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {t('increase')}
+                    </span>
+                    <span className="font-mono text-yellow-400">
+                      +SAR {formatSAR(simGosi.total)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  )
 }
 
 /* ───────── Saudization Bar ───────── */
@@ -122,6 +359,15 @@ function MemberCard({
     NATIONALITY_FLAGS[member.nationality || ''] ||
     NATIONALITY_FLAGS.Saudi
 
+  const saudi = isMemberSaudi(member)
+  const gosi: GOSIContribution | null =
+    member.salary ? calculateGOSI(member.salary, saudi) : null
+
+  const tenure = member.start_date ? calculateTenure(member.start_date) : null
+  const expiryWarning = member.start_date
+    ? getContractExpiryWarning(member.start_date)
+    : null
+
   return (
     <motion.div
       layout
@@ -129,75 +375,134 @@ function MemberCard({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
       className={cn(
-        'group flex items-center justify-between rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-surface-2/30',
+        'group rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-surface-2/30',
         isTerminated && 'opacity-50'
       )}
     >
-      <div className="flex items-center gap-4">
-        {/* Avatar */}
-        <div
-          className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-full text-lg',
-            isTerminated ? 'bg-surface-3' : 'bg-primary/10'
-          )}
-        >
-          {flag}
-        </div>
-
-        {/* Info */}
-        <div>
-          <p className="text-sm font-semibold text-foreground">{member.name}</p>
-          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            {member.role && <span>{member.role}</span>}
-            {member.iqama_number && (
-              <>
-                <span className="text-border">|</span>
-                <span className="font-mono">
-                  {maskIqama(member.iqama_number)}
-                </span>
-              </>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div
+            className={cn(
+              'flex h-10 w-10 items-center justify-center rounded-full text-lg',
+              isTerminated ? 'bg-surface-3' : 'bg-primary/10'
             )}
+          >
+            {flag}
           </div>
+
+          {/* Info */}
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground">
+                {member.name}
+              </p>
+              {/* Nationality badge */}
+              <span
+                className={cn(
+                  'rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                  saudi
+                    ? 'bg-green-500/10 text-green-400'
+                    : 'bg-blue-500/10 text-blue-400'
+                )}
+              >
+                {saudi ? tTeam('saudiEmployee') : tTeam('nonSaudiEmployee')}
+              </span>
+            </div>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {member.role && <span>{member.role}</span>}
+              {member.iqama_number && (
+                <>
+                  <span className="text-border">|</span>
+                  <span className="font-mono">
+                    {maskIqama(member.iqama_number)}
+                  </span>
+                </>
+              )}
+              {tenure && (tenure.years > 0 || tenure.months > 0) && (
+                <>
+                  <span className="text-border">|</span>
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {tTeam('yearsMonths', {
+                      years: tenure.years,
+                      months: tenure.months,
+                    })}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Status Badge */}
+          <span
+            className={cn(
+              'rounded-full px-2.5 py-0.5 text-xs font-semibold',
+              isTerminated
+                ? 'bg-red-500/10 text-red-400'
+                : 'bg-green-500/10 text-green-400'
+            )}
+          >
+            {isTerminated
+              ? tTeam('status.disabled')
+              : tTeam('status.active')}
+          </span>
+
+          {/* Actions */}
+          {!isTerminated && (
+            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+              <button
+                type="button"
+                onClick={onEdit}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+                aria-label={tTeam('role')}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={onDeactivate}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
+                aria-label={tTeam('removeMember')}
+              >
+                <UserX className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {/* Status Badge */}
-        <span
-          className={cn(
-            'rounded-full px-2.5 py-0.5 text-xs font-semibold',
-            isTerminated
-              ? 'bg-red-500/10 text-red-400'
-              : 'bg-green-500/10 text-green-400'
+      {/* GOSI + Contract row */}
+      {!isTerminated && (gosi || expiryWarning) && (
+        <div className="mt-3 flex flex-wrap items-center gap-4 border-t border-border/50 pt-3">
+          {gosi && (
+            <div className="flex items-center gap-3 text-xs">
+              <span className="text-muted-foreground">
+                {tTeam('gosiContribution')}:
+              </span>
+              <span className="font-mono text-foreground">
+                SAR {formatSAR(gosi.total)}
+              </span>
+              <span className="text-muted-foreground">
+                ({tTeam('employeeShare')}: {formatSAR(gosi.employeeShare)} /{' '}
+                {tTeam('employerShare')}: {formatSAR(gosi.employerShare)})
+              </span>
+            </div>
           )}
-        >
-          {isTerminated
-            ? tTeam('status.disabled')
-            : tTeam('status.active')}
-        </span>
-
-        {/* Actions */}
-        {!isTerminated && (
-          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-            <button
-              type="button"
-              onClick={onEdit}
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
-              aria-label={tTeam('role')}
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={onDeactivate}
-              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
-              aria-label={tTeam('removeMember')}
-            >
-              <UserX className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        )}
-      </div>
+          {expiryWarning && (
+            <div className="flex items-center gap-1.5 text-xs">
+              <AlertTriangle className="h-3 w-3 text-yellow-400" />
+              <span className="text-yellow-400">
+                {tTeam('contractExpiryWarning', {
+                  days: expiryWarning.daysUntilExpiry,
+                })}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -272,13 +577,13 @@ export default function TeamPage() {
   const activeMembers = members.filter((m) => m.status === 'ACTIVE')
   const terminatedMembers = members.filter((m) => m.status === 'TERMINATED')
 
-  const saudiCount = activeMembers.filter((m) => {
-    if (m.iqama_number && isSaudiNational(m.iqama_number)) return true
-    return (
-      m.nationality?.toLowerCase() === 'saudi' ||
-      m.nationality?.toLowerCase() === 'سعودي'
-    )
-  }).length
+  const saudiCount = activeMembers.filter((m) => isMemberSaudi(m)).length
+
+  /* ─── GOSI totals for simulator ─── */
+  const currentTotalGOSI = activeMembers.reduce((sum, m) => {
+    if (!m.salary) return sum
+    return sum + calculateGOSI(m.salary, isMemberSaudi(m)).total
+  }, 0)
 
   const visibleMembers = isShowTerminated ? members : activeMembers
 
@@ -446,6 +751,16 @@ export default function TeamPage() {
           saudiCount={saudiCount}
           totalCount={activeMembers.length}
         />
+      )}
+
+      {/* GOSI Summary */}
+      {activeMembers.length > 0 && (
+        <GOSISummaryCard members={members} />
+      )}
+
+      {/* GOSI Simulator */}
+      {activeMembers.length > 0 && (
+        <GOSISimulator currentTotal={currentTotalGOSI} />
       )}
 
       {/* Members List */}

@@ -232,6 +232,7 @@ function getNextRecurrence(frequency: ObligationFrequency, fromDate: Date): Date
 }
 
 export {
+  buildSeed,
   generateObligations,
   getNextOccurrence,
   getNextRecurrence,

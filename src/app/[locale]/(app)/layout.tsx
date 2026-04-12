@@ -20,6 +20,7 @@ import {
   Globe,
   LogOut,
 } from 'lucide-react'
+import FloatingAssistant from '@/components/chat/FloatingAssistant'
 
 interface NavItem {
   href: string
@@ -306,6 +307,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </main>
       </div>
+
+      <FloatingAssistant />
     </div>
   )
 }

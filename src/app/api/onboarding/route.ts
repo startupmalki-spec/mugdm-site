@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateObligations } from '@/lib/compliance/rules-engine'
+import { generateObligationsFromCR, toObligationSeeds } from '@/lib/compliance/obligation-generator'
+import type { CRData } from '@/lib/compliance/obligation-generator'
 import type { Business, Database } from '@/lib/supabase/types'
 
 type Tables = Database['public']['Tables']
@@ -183,10 +185,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Auto-generate compliance obligations for the new business
-    const obligationSeeds = generateObligations(business)
-    if (obligationSeeds.length > 0) {
-      await (supabase.from('obligations') as unknown as ObligationTableBuilder).insert(obligationSeeds)
+    // Auto-generate compliance obligations from CR data (covers all base
+    // obligations plus business-type-specific ones like food safety, etc.)
+    const crData: CRData = {
+      crNumber: business.cr_number,
+      businessName: business.name_ar,
+      activityType: business.activity_type,
+      expiryDate: business.cr_expiry_date,
+      city: business.city,
+    }
+    const generated = generateObligationsFromCR(crData)
+    const obligationSeeds = toObligationSeeds(business.id, generated)
+
+    // Fall back to the basic generator if CR-based generation returned nothing
+    // (e.g. missing CR expiry date could reduce output)
+    const seeds = obligationSeeds.length > 0 ? obligationSeeds : generateObligations(business)
+
+    if (seeds.length > 0) {
+      await (supabase.from('obligations') as unknown as ObligationTableBuilder).insert(seeds)
     }
 
     return NextResponse.json({ business }, { status: 201 })

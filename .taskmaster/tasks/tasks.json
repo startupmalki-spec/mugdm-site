@@ -855,8 +855,9 @@
         "testStrategy": "1. Visual testing: Verify pricing cards render correctly in both Arabic (RTL) and English (LTR)\n2. Responsive testing: Check layout on mobile, tablet, desktop viewports\n3. Toggle testing: Ensure monthly/annual toggle updates prices correctly with 2-month discount calculation\n4. Translation testing: Verify all text is properly translated and formatted for both locales\n5. Navigation testing: Confirm CTA buttons link to signup with correct tier parameter",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:49:40.333Z"
       },
       {
         "id": "32",
@@ -923,8 +924,9 @@
         "testStrategy": "1. Template testing: Render all email templates in both Arabic and English, verify formatting\n2. Delivery testing: Send test emails to various providers (Gmail, Outlook, etc.)\n3. RTL testing: Verify Arabic emails display correctly in email clients\n4. Preference testing: Confirm users can opt-in/out of each email type from settings\n5. Reminder timing: Test compliance reminders trigger at correct intervals (7d, 3d, 1d)\n6. Error handling: Test email failures are logged and retried appropriately\n7. Digest content: Verify weekly digest contains accurate activity summary\n8. Spam testing: Check emails pass spam filters and DKIM/SPF validation",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:50:04.927Z"
       },
       {
         "id": "38",
@@ -985,8 +987,9 @@
         "dependencies": [
           "41"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:48:47.549Z"
       },
       {
         "id": "43",
@@ -1040,8 +1043,9 @@
         "dependencies": [
           "45"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:49:15.366Z"
       },
       {
         "id": "47",
@@ -1104,9 +1108,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-12T11:37:31.988Z",
+      "lastModified": "2026-04-12T11:50:04.931Z",
       "taskCount": 50,
-      "completedCount": 2,
+      "completedCount": 6,
       "tags": [
         "master"
       ]

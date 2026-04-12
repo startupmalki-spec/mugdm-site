@@ -53,6 +53,18 @@ const OBLIGATION_PATTERNS: Record<ObligationType, [string[], string[]]> = {
     ['insurance', 'تأمين', 'medgulf', 'bupa', 'tawuniya'],
   ],
   CR_CONFIRMATION: [[], []],
+  FOOD_SAFETY: [
+    ['الهيئة العامة للغذاء والدواء', 'saudi food and drug authority'],
+    ['sfda', 'سلامة الغذاء', 'food safety'],
+  ],
+  SAFETY_CERT: [
+    ['شهادة السلامة', 'safety certificate'],
+    ['سلامة', 'safety cert'],
+  ],
+  HEALTH_LICENSE: [
+    ['وزارة الصحة', 'ministry of health'],
+    ['health license', 'رخصة صحية'],
+  ],
   CUSTOM: [[], []],
 }
 

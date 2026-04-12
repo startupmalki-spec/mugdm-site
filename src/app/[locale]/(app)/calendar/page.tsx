@@ -52,6 +52,7 @@ import {
   getObligationDotColor,
   getNextRecurrence,
 } from '@/lib/compliance/rules-engine'
+import { estimatePenalty } from '@/lib/compliance/penalties'
 import { createClient } from '@/lib/supabase/client'
 
 import type { Obligation, ObligationType, ObligationFrequency } from '@/lib/supabase/types'
@@ -61,7 +62,8 @@ import type { ObligationStatus } from '@/lib/compliance/rules-engine'
 
 const ALL_OBLIGATION_TYPES: ObligationType[] = [
   'CR_CONFIRMATION', 'GOSI', 'ZATCA_VAT', 'CHAMBER', 'ZAKAT',
-  'BALADY', 'MISA', 'INSURANCE', 'QIWA', 'CUSTOM',
+  'BALADY', 'MISA', 'INSURANCE', 'QIWA', 'FOOD_SAFETY',
+  'SAFETY_CERT', 'HEALTH_LICENSE', 'CUSTOM',
 ]
 
 const OBLIGATION_TYPE_LABELS: Record<ObligationType, { en: string; ar: string }> = {
@@ -74,6 +76,9 @@ const OBLIGATION_TYPE_LABELS: Record<ObligationType, { en: string; ar: string }>
   MISA: { en: 'MISA', ar: 'الاستثمار' },
   INSURANCE: { en: 'Insurance', ar: 'التأمين' },
   QIWA: { en: 'Qiwa', ar: 'قوى' },
+  FOOD_SAFETY: { en: 'Food Safety', ar: 'سلامة الغذاء' },
+  SAFETY_CERT: { en: 'Safety Certificate', ar: 'شهادة السلامة' },
+  HEALTH_LICENSE: { en: 'Health License', ar: 'رخصة صحية' },
   CUSTOM: { en: 'Custom', ar: 'مخصص' },
 }
 
@@ -213,6 +218,21 @@ function ObligationListItem({
                     {obligation.notes}
                   </p>
                 )}
+                {status === 'overdue' && (() => {
+                  const penalty = estimatePenalty(obligation.type, Math.abs(daysUntil))
+                  if (penalty.amount <= 0) return null
+                  return (
+                    <div className="mt-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-red-400" />
+                        <span className="text-xs font-semibold text-red-400">
+                          {locale === 'ar' ? 'غرامة تقديرية' : 'Est. penalty'}: SAR {penalty.amount.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] text-red-400/70">{penalty.description}</p>
+                    </div>
+                  )
+                })()}
                 <div className="mt-3 flex gap-2">
                   {!isCompleted ? (
                     <Button
