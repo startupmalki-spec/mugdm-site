@@ -1,5 +1,5 @@
 import type { Transaction, TransactionCategory } from '@/lib/supabase/types'
-import { addMonths, addDays, differenceInDays, parseISO, format } from 'date-fns'
+import { addMonths, differenceInDays, parseISO, format } from 'date-fns'
 
 export interface RecurringPattern {
   description: string

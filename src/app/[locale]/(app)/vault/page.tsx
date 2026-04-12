@@ -40,7 +40,6 @@ import { ar, enUS } from 'date-fns/locale'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToastContainer, useToast } from '@/components/ui/toast'
 import { cn } from '@/lib/utils'
@@ -259,10 +258,6 @@ function DocumentCard({
         : status === 'expired'
           ? t('status.expired')
           : ''
-
-  const daysLeft = doc.expiry_date
-    ? differenceInDays(new Date(doc.expiry_date), new Date())
-    : null
 
   return (
     <motion.button

@@ -117,6 +117,7 @@ export async function addTeamMember(
 
 export async function updateTeamMember(
   supabase: SupabaseClient,
+  businessId: string,
   memberId: string,
   params: Partial<{
     salary: number
@@ -146,6 +147,7 @@ export async function updateTeamMember(
     .from('team_members')
     .update(updates as never)
     .eq('id', memberId)
+    .eq('business_id', businessId)
 
   if (error) {
     return { success: false, message: `Failed to update team member: ${error.message}` }
@@ -166,6 +168,7 @@ export async function updateTeamMember(
 
 export async function markObligationDone(
   supabase: SupabaseClient,
+  businessId: string,
   obligationId: string
 ): Promise<ActionResult> {
   if (!obligationId) {
@@ -177,6 +180,7 @@ export async function markObligationDone(
     .from('obligations')
     .select('id, name, frequency, next_due_date')
     .eq('id', obligationId)
+    .eq('business_id', businessId)
     .single()) as unknown as { data: { id: string; name: string; frequency: string; next_due_date: string } | null; error: { message: string } | null }
 
   if (fetchError || !obligation) {
@@ -221,6 +225,7 @@ export async function markObligationDone(
     .from('obligations')
     .update(updates as never)
     .eq('id', obligationId)
+    .eq('business_id', businessId)
 
   if (error) {
     return { success: false, message: `Failed to mark obligation as done: ${error.message}` }

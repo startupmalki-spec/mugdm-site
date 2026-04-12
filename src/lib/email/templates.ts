@@ -2,6 +2,7 @@ interface TemplateOptions {
   locale?: 'en' | 'ar'
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function baseLayout(content: string, _options?: TemplateOptions): string {
   return `<!DOCTYPE html>
 <html lang="en" dir="ltr">

@@ -84,7 +84,6 @@ import {
 } from '@/lib/bookkeeper/reconciliation'
 import {
   detectFuzzyDuplicates,
-  type FuzzyDuplicatePair,
   type DuplicateResolution,
 } from '@/lib/bookkeeper/duplicate-detection'
 import {

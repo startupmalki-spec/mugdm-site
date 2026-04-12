@@ -56,7 +56,6 @@ export async function exportTransactionsToExcel(
   sheet.getColumn('vat_amount').numFmt = '#,##0.00'
 
   // Add summary row
-  const lastRowNum = sheet.rowCount
   const summaryRow = sheet.addRow({
     date: '',
     description: `Total (${transactions.length} transactions)`,

@@ -140,7 +140,7 @@ function getObligationTypeLabel(type: ObligationType, locale: string): string {
 
 // --- Components ---
 
-function TotalPenaltyRiskCard({ obligations, locale }: { obligations: Obligation[]; locale: string }) {
+function TotalPenaltyRiskCard({ obligations }: { obligations: Obligation[] }) {
   const t = useTranslations('calendar')
   const tCommon = useTranslations('common')
 
@@ -1073,7 +1073,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Total Penalty Risk */}
-      <TotalPenaltyRiskCard obligations={obligations} locale={locale} />
+      <TotalPenaltyRiskCard obligations={obligations} />
 
       {/* Status Summary */}
       <div className="flex flex-wrap gap-2">

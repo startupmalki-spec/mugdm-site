@@ -107,6 +107,7 @@ function matchesAnyPattern(text: string, patterns: string[]): boolean {
  * 2. Saudi-specific rule-based patterns
  * 3. Default fallback
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function categorizeTransaction(
   description: string,
   vendor: string,

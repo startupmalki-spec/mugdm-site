@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
@@ -61,9 +61,19 @@ export function FileUpload({
   )
   const [progress, setProgress] = useState(0)
   const [previewUrl, setPreviewUrl] = useState<string | null>(externalPreviewUrl ?? null)
+  const objectUrlRef = useRef<string | null>(null)
   const [fileName, setFileName] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isImage, setIsImage] = useState(false)
+
+  // Revoke object URL on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+      }
+    }
+  }, [])
 
   const handleUpload = useCallback(
     async (file: File) => {
@@ -76,7 +86,11 @@ export function FileUpload({
       setIsImage(fileIsImage)
 
       if (fileIsImage) {
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current)
+        }
         const objectUrl = URL.createObjectURL(file)
+        objectUrlRef.current = objectUrl
         setPreviewUrl(objectUrl)
       } else {
         setPreviewUrl(null)
@@ -168,6 +182,10 @@ export function FileUpload({
   )
 
   const handleReset = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current)
+      objectUrlRef.current = null
+    }
     setUploadState('idle')
     setProgress(0)
     setPreviewUrl(null)

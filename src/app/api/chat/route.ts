@@ -372,6 +372,7 @@ async function executeToolCall(
     case 'update_team_member': {
       const result = await updateTeamMember(
         supabase,
+        businessId,
         toolInput.member_id as string,
         {
           salary: toolInput.salary as number | undefined,
@@ -383,7 +384,7 @@ async function executeToolCall(
     }
 
     case 'mark_obligation_done': {
-      const result = await markObligationDone(supabase, toolInput.obligation_id as string)
+      const result = await markObligationDone(supabase, businessId, toolInput.obligation_id as string)
       return JSON.stringify(result)
     }
 

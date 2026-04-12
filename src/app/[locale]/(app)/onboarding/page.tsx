@@ -171,7 +171,7 @@ export default function OnboardingPage() {
     setRevealDone(false)
     const timer = setTimeout(() => {
       setRevealDone(true)
-    }, 2800)
+    }, 4500)
     return () => clearTimeout(timer)
   }, [step])
 
@@ -184,6 +184,13 @@ export default function OnboardingPage() {
       return () => clearTimeout(timer)
     }
   }, [revealDone, step])
+
+  const handleRevealContinue = useCallback(() => {
+    if (step === 2) {
+      setDirection(1)
+      setStep(3)
+    }
+  }, [step])
 
   /* ─── Navigation ─── */
 
@@ -522,6 +529,21 @@ export default function OnboardingPage() {
           <p className="text-sm font-medium text-green-400">
             {allFound ? t('revealAllFound') : t('revealPartialFound')}
           </p>
+        </motion.div>
+
+        {/* Manual continue button */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 + fields.length * 0.4 + 0.6, duration: 0.3 }}
+        >
+          <Button
+            onClick={handleRevealContinue}
+            className="gap-2"
+          >
+            {t('nextStep')}
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </motion.div>
       </div>
     )

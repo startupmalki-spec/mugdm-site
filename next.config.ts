@@ -31,7 +31,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' *.supabase.co data: blob:",
               "font-src 'self'",
-              "connect-src 'self' *.supabase.co",
+              "connect-src 'self' *.supabase.co us.i.posthog.com",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",

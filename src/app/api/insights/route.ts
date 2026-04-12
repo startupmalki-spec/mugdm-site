@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
 import { buildBusinessContext } from '@/lib/chat/context-builder'
+import { enforceRateLimit } from '@/lib/rate-limit-middleware'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
@@ -12,7 +13,7 @@ export interface Insight {
   action_url: string
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createClient()
 
@@ -23,15 +24,28 @@ export async function GET() {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // Accept businessId as a query param and validate ownership
+    const { searchParams } = new URL(request.url)
+    const businessId = searchParams.get('businessId')
+
+    if (!businessId) {
+      return Response.json({ error: 'businessId query parameter is required' }, { status: 400 })
+    }
+
     const { data: business } = (await supabase
       .from('businesses')
       .select('id')
+      .eq('id', businessId)
       .eq('user_id', user.id)
       .single()) as unknown as { data: { id: string } | null }
 
     if (!business) {
-      return Response.json({ error: 'No business found' }, { status: 404 })
+      return Response.json({ error: 'Business not found or access denied' }, { status: 404 })
     }
+
+    // Enforce rate limiting
+    const rateLimitResponse = await enforceRateLimit(business.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const context = await buildBusinessContext(business.id, supabase)
 

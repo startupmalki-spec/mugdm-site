@@ -13,7 +13,7 @@ function getLocaleFromCookies(cookieStore: ReturnType<typeof cookies> extends Pr
 }
 
 function isSafeRedirect(path: string): boolean {
-  return path.startsWith('/') && !path.startsWith('//')
+  return path.startsWith('/') && !path.startsWith('//') && !path.includes('://')
 }
 
 export async function GET(request: Request) {

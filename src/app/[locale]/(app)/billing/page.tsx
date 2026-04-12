@@ -81,6 +81,7 @@ export default function BillingPage() {
   const [business, setBusiness] = useState<BusinessBilling | null>(null)
   const [loading, setLoading] = useState(true)
   const [portalLoading, setPortalLoading] = useState(false)
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
   const [usage, setUsage] = useState<UsageStats | null>(null)
 
   useEffect(() => {
@@ -139,7 +140,8 @@ export default function BillingPage() {
 
   const handleUpgrade = useCallback(
     async (priceId: string) => {
-      if (!business) return
+      if (!business || checkoutLoading) return
+      setCheckoutLoading(true)
       try {
         const res = await fetch('/api/stripe/checkout', {
           method: 'POST',
@@ -152,9 +154,11 @@ export default function BillingPage() {
         }
       } catch {
         console.error('Failed to create checkout session')
+      } finally {
+        setCheckoutLoading(false)
       }
     },
-    [business]
+    [business, checkoutLoading]
   )
 
   if (loading) {
@@ -222,9 +226,14 @@ export default function BillingPage() {
                 onClick={() =>
                   handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID ?? '')
                 }
-                className="flex flex-col items-start rounded-lg border border-primary/20 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
+                disabled={checkoutLoading}
+                className="flex flex-col items-start rounded-lg border border-primary/20 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10 disabled:opacity-50 disabled:pointer-events-none"
               >
-                <span className="text-sm font-semibold text-primary">Pro</span>
+                {checkoutLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                ) : (
+                  <span className="text-sm font-semibold text-primary">Pro</span>
+                )}
                 <span className="text-xs text-muted-foreground mt-1">
                   SAR 99/mo &mdash; {t('proDescription')}
                 </span>
@@ -235,9 +244,14 @@ export default function BillingPage() {
               onClick={() =>
                 handleUpgrade(process.env.NEXT_PUBLIC_STRIPE_BUSINESS_MONTHLY_PRICE_ID ?? '')
               }
-              className="flex flex-col items-start rounded-lg border border-primary/20 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10"
+              disabled={checkoutLoading}
+              className="flex flex-col items-start rounded-lg border border-primary/20 bg-primary/5 p-4 text-left transition-colors hover:bg-primary/10 disabled:opacity-50 disabled:pointer-events-none"
             >
-              <span className="text-sm font-semibold text-primary">Business</span>
+              {checkoutLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              ) : (
+                <span className="text-sm font-semibold text-primary">Business</span>
+              )}
               <span className="text-xs text-muted-foreground mt-1">
                 SAR 299/mo &mdash; {t('businessDescription')}
               </span>
