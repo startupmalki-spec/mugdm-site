@@ -31,7 +31,7 @@ export function Footer() {
               alt=""
               width={500}
               height={500}
-              className="h-7 w-7 brightness-0 invert transition-transform duration-300 group-hover:scale-110"
+              className="h-7 w-7 object-contain transition-transform duration-300 group-hover:scale-110"
             />
             <span className="text-lg font-bold tracking-tight text-foreground">
               Mugdm

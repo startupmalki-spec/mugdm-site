@@ -46,7 +46,7 @@ export default function SignupPage() {
         </div>
         <div className="relative z-[1] w-full max-w-md space-y-8 text-center">
           <Link href="/" className="inline-flex items-center justify-center gap-3">
-            <Image src="/brand/7-transparent.png" alt="" width={500} height={500} className="h-10 w-10 brightness-0 invert" />
+            <Image src="/brand/7-transparent.png" alt="" width={500} height={500} className="h-10 w-10 object-contain" />
             <span className="text-3xl font-bold tracking-tight text-foreground">Mugdm</span>
           </Link>
           <div className="rounded-xl border border-border bg-card p-8 shadow-lg">
@@ -69,7 +69,7 @@ export default function SignupPage() {
         {/* Brand logo */}
         <div className="text-center">
           <Link href="/" className="inline-flex items-center justify-center gap-3 mb-6">
-            <Image src="/brand/7-transparent.png" alt="" width={500} height={500} className="h-10 w-10 brightness-0 invert" />
+            <Image src="/brand/7-transparent.png" alt="" width={500} height={500} className="h-10 w-10 object-contain" />
             <span className="text-3xl font-bold tracking-tight text-foreground">Mugdm</span>
           </Link>
           <h1 className="text-2xl font-bold text-foreground">

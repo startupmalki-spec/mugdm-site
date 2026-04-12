@@ -36,7 +36,7 @@ export function Navbar() {
             alt=""
             width={500}
             height={500}
-            className="h-8 w-8 brightness-0 invert transition-transform duration-300 group-hover:scale-110"
+            className="h-8 w-8 object-contain transition-transform duration-300 group-hover:scale-110"
             priority
           />
           <span className="text-xl font-bold tracking-tight text-foreground transition-colors">

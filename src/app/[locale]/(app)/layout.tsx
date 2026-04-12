@@ -89,7 +89,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               alt=""
               width={500}
               height={500}
-              className="h-8 w-8 brightness-0 invert"
+              className="h-8 w-8 object-contain"
               priority
             />
             <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
@@ -171,7 +171,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               alt=""
               width={500}
               height={500}
-              className="h-7 w-7 brightness-0 invert"
+              className="h-7 w-7 object-contain"
             />
             <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
           </Link>

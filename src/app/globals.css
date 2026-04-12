@@ -220,11 +220,6 @@ html:not(.dark) .glass {
   background: rgba(255, 255, 255, 0.85);
 }
 
-/* Light-mode logo: undo invert so the original purple shows */
-html:not(.dark) .brightness-0.invert {
-  filter: none !important;
-}
-
 /* Light-mode watermark: reduce brightness override */
 html:not(.dark) .brightness-200 {
   filter: brightness(0.6) !important;
