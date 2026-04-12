@@ -27,11 +27,11 @@ export function Footer() {
           {/* Logo */}
           <a href="#" className="flex items-center gap-2.5 group">
             <Image
-              src="/brand/7-transparent.png"
+              src="/brand/8.png"
               alt=""
-              width={500}
-              height={500}
-              className="h-7 w-7 object-contain transition-transform duration-300 group-hover:scale-110"
+              width={28}
+              height={28}
+              className="h-7 w-7 rounded-md transition-transform duration-300 group-hover:scale-110"
             />
             <span className="text-lg font-bold tracking-tight text-foreground">
               Mugdm

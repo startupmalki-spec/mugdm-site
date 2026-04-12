@@ -32,11 +32,11 @@ export function Navbar() {
       <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
         <a href="#" className="flex items-center gap-2.5 group">
           <Image
-            src="/brand/7-transparent.png"
+            src="/brand/8.png"
             alt=""
-            width={500}
-            height={500}
-            className="h-8 w-8 object-contain transition-transform duration-300 group-hover:scale-110"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-md transition-transform duration-300 group-hover:scale-110"
             priority
           />
           <span className="text-xl font-bold tracking-tight text-foreground transition-colors">

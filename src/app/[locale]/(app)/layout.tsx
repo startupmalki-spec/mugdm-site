@@ -85,11 +85,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center gap-2.5 border-b border-border px-5">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <Image
-              src="/brand/7-transparent.png"
+              src="/brand/8.png"
               alt=""
-              width={500}
-              height={500}
-              className="h-8 w-8 object-contain"
+              width={32}
+              height={32}
+              className="h-8 w-8 rounded-md"
               priority
             />
             <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
@@ -167,11 +167,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex h-16 items-center justify-between border-b border-border px-5">
           <Link href="/dashboard" className="flex items-center gap-2.5">
             <Image
-              src="/brand/7-transparent.png"
+              src="/brand/8.png"
               alt=""
-              width={500}
-              height={500}
-              className="h-7 w-7 object-contain"
+              width={28}
+              height={28}
+              className="h-7 w-7 rounded-md"
             />
             <span className="text-lg font-bold tracking-tight text-foreground">Mugdm</span>
           </Link>
