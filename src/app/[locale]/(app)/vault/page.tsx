@@ -15,6 +15,7 @@ import {
   FileText,
   Download,
   ChevronDown,
+  ChevronRight,
   Check,
   Loader2,
   AlertTriangle,
@@ -23,6 +24,9 @@ import {
   Clock,
   Filter,
   ArrowUpDown,
+  FolderOpen,
+  FolderClosed,
+  History,
 } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
@@ -52,7 +56,7 @@ import type { ExpiryStatus } from '@/lib/documents'
 
 // --- Types ---
 
-type ViewMode = 'grid' | 'list'
+type ViewMode = 'grid' | 'list' | 'folder'
 type SortField = 'uploaded_at' | 'expiry_date' | 'type'
 type UploadStep = 'idle' | 'uploading' | 'analyzing' | 'confirm'
 
@@ -60,6 +64,7 @@ interface AnalysisResult {
   type: DocumentType
   confidence: number
   expiryDate: string | null
+  registrationNumber: string | null
 }
 
 // --- Constants ---
@@ -148,7 +153,14 @@ function DocumentCard({
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-2 text-muted-foreground transition-colors group-hover:bg-primary/10 group-hover:text-primary">
           {getDocumentTypeIcon(doc.type)({ className: 'h-5 w-5' })}
         </div>
-        {status !== 'none' && <StatusBadge status={status} label={statusLabel} />}
+        <div className="flex items-center gap-1.5">
+          {doc.version_number > 1 && (
+            <span className="inline-flex items-center rounded-full bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400">
+              v{doc.version_number}
+            </span>
+          )}
+          {status !== 'none' && <StatusBadge status={status} label={statusLabel} />}
+        </div>
       </div>
 
       <p className="mt-3 line-clamp-2 text-sm font-medium text-foreground">{doc.name}</p>
@@ -213,7 +225,14 @@ function DocumentListRow({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{doc.name}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-sm font-medium text-foreground">{doc.name}</p>
+          {doc.version_number > 1 && (
+            <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400">
+              v{doc.version_number}
+            </span>
+          )}
+        </div>
         <div className="mt-0.5 flex items-center gap-2">
           <TypeBadge type={doc.type} locale={locale} />
           <span className="text-xs text-muted-foreground">
@@ -246,11 +265,15 @@ function DocumentDetailPanel({
   locale,
   onClose,
   onArchive,
+  allDocuments,
+  onView,
 }: {
   doc: Document
   locale: string
   onClose: () => void
   onArchive: (doc: Document) => void
+  allDocuments: Document[]
+  onView: (doc: Document) => void
 }) {
   const t = useTranslations('vault')
   const status = getExpiryStatus(doc.expiry_date)
@@ -325,6 +348,15 @@ function DocumentDetailPanel({
         )}
       </div>
 
+      {doc.version_number > 1 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-muted-foreground">{t('version')}</span>
+          <span className="inline-flex items-center rounded-full bg-indigo-500/15 border border-indigo-500/20 px-2 py-0.5 text-xs font-semibold text-indigo-400">
+            v{doc.version_number}
+          </span>
+        </div>
+      )}
+
       <div className="mt-6 flex gap-2">
         <Button variant="outline" size="sm" className="flex-1 gap-2">
           <Eye className="h-4 w-4" />
@@ -349,6 +381,244 @@ function DocumentDetailPanel({
           </Button>
         </div>
       )}
+
+      {/* Version History */}
+      <VersionHistory doc={doc} locale={locale} allDocuments={allDocuments} onView={onView} />
+    </motion.div>
+  )
+}
+
+function VersionHistory({
+  doc,
+  locale,
+  allDocuments,
+  onView,
+}: {
+  doc: Document
+  locale: string
+  allDocuments: Document[]
+  onView: (doc: Document) => void
+}) {
+  const t = useTranslations('vault')
+  const dateLocale = locale === 'ar' ? ar : enUS
+
+  // Build version chain: walk backwards through previous_version_id
+  const versionChain = useMemo(() => {
+    const chain: Document[] = [doc]
+    let current = doc
+    // Walk backwards to find older versions
+    while (current.previous_version_id) {
+      const prev = allDocuments.find((d) => d.id === current.previous_version_id)
+      if (!prev || chain.includes(prev)) break
+      chain.push(prev)
+      current = prev
+    }
+    // Also find newer versions that reference this doc
+    let newest = doc
+    let searching = true
+    while (searching) {
+      const newer = allDocuments.find((d) => d.previous_version_id === newest.id)
+      if (newer && !chain.includes(newer)) {
+        chain.unshift(newer)
+        newest = newer
+      } else {
+        searching = false
+      }
+    }
+    return chain
+  }, [doc, allDocuments])
+
+  if (versionChain.length <= 1) return null
+
+  return (
+    <div className="mt-6">
+      <h4 className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <History className="h-4 w-4 text-muted-foreground" />
+        {t('versionHistory')}
+      </h4>
+      <div className="mt-3 space-y-0">
+        {versionChain.map((v, idx) => {
+          const isCurrent = v.id === doc.id
+          const isLatest = idx === 0
+          return (
+            <div key={v.id} className="relative flex gap-3">
+              {/* Timeline line */}
+              <div className="flex flex-col items-center">
+                <div
+                  className={cn(
+                    'h-3 w-3 rounded-full border-2 shrink-0',
+                    isCurrent
+                      ? 'border-primary bg-primary'
+                      : 'border-muted-foreground/40 bg-card'
+                  )}
+                />
+                {idx < versionChain.length - 1 && (
+                  <div className="w-px flex-1 bg-border" />
+                )}
+              </div>
+              {/* Version info */}
+              <button
+                type="button"
+                onClick={() => !isCurrent && onView(v)}
+                disabled={isCurrent}
+                className={cn(
+                  'mb-3 min-w-0 flex-1 rounded-lg px-3 py-2 text-start text-xs transition-colors',
+                  isCurrent
+                    ? 'bg-primary/10 border border-primary/20'
+                    : 'hover:bg-surface-2 cursor-pointer'
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-foreground">
+                    v{v.version_number}
+                  </span>
+                  {isLatest && (
+                    <span className="rounded-full bg-emerald-500/15 border border-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-400">
+                      {t('currentVersion')}
+                    </span>
+                  )}
+                  {!isLatest && !isCurrent && (
+                    <span className="text-muted-foreground">{t('superseded')}</span>
+                  )}
+                </div>
+                <p className="mt-0.5 truncate text-muted-foreground">
+                  {format(new Date(v.uploaded_at), 'dd MMM yyyy', { locale: dateLocale })}
+                  {' - '}
+                  {v.name}
+                </p>
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function FolderView({
+  documents,
+  locale,
+  onView,
+}: {
+  documents: Document[]
+  locale: string
+  onView: (doc: Document) => void
+}) {
+  const t = useTranslations('vault')
+  const [openFolders, setOpenFolders] = useState<Set<DocumentType>>(new Set())
+
+  // Group documents by type
+  const grouped = useMemo(() => {
+    const groups: Partial<Record<DocumentType, Document[]>> = {}
+    for (const doc of documents) {
+      if (!groups[doc.type]) groups[doc.type] = []
+      groups[doc.type]!.push(doc)
+    }
+    // Sort types by document count descending
+    return Object.entries(groups)
+      .sort(([, a], [, b]) => b.length - a.length) as [DocumentType, Document[]][]
+  }, [documents])
+
+  const toggleFolder = useCallback((type: DocumentType) => {
+    setOpenFolders((prev) => {
+      const next = new Set(prev)
+      if (next.has(type)) {
+        next.delete(type)
+      } else {
+        next.add(type)
+      }
+      return next
+    })
+  }, [])
+
+  return (
+    <motion.div
+      variants={CONTAINER_VARIANTS}
+      initial="hidden"
+      animate="show"
+      className="space-y-2"
+    >
+      {grouped.map(([type, docs]) => {
+        const isOpen = openFolders.has(type)
+        const TypeIcon = getDocumentTypeIcon(type)
+        return (
+          <motion.div key={type} variants={ITEM_VARIANTS}>
+            <button
+              type="button"
+              onClick={() => toggleFolder(type)}
+              className="flex w-full items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-start transition-all hover:border-primary/30 hover:bg-surface-2"
+            >
+              <div className={cn(
+                'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+                isOpen ? 'bg-primary/10 text-primary' : 'bg-surface-2 text-muted-foreground'
+              )}>
+                {isOpen ? (
+                  <FolderOpen className="h-4 w-4" />
+                ) : (
+                  <FolderClosed className="h-4 w-4" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground">
+                    {getDocumentTypeLabel(type, locale)}
+                  </p>
+                  <span className={cn(
+                    'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+                    getDocumentTypeColor(type)
+                  )}>
+                    {docs.length} {t('documents')}
+                  </span>
+                </div>
+              </div>
+              <div className="shrink-0 text-muted-foreground transition-transform">
+                {isOpen ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </div>
+            </button>
+
+            <AnimatePresence>
+              {isOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-1 ps-6 pt-1">
+                    {docs.map((doc) => (
+                      <button
+                        key={doc.id}
+                        type="button"
+                        onClick={() => onView(doc)}
+                        className={cn(
+                          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-start transition-colors hover:bg-surface-2',
+                          !doc.is_current && 'opacity-50'
+                        )}
+                      >
+                        <TypeIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <p className="min-w-0 flex-1 truncate text-sm text-foreground">{doc.name}</p>
+                        {doc.version_number > 1 && (
+                          <span className="inline-flex shrink-0 items-center rounded-full bg-indigo-500/15 border border-indigo-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-400">
+                            v{doc.version_number}
+                          </span>
+                        )}
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {formatFileSize(doc.file_size)}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )
+      })}
     </motion.div>
   )
 }
@@ -360,6 +630,7 @@ function UploadDialog({
   businessId,
   onDocumentAdded,
   onObligationLinked,
+  onRenewalDetected,
 }: {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -367,6 +638,7 @@ function UploadDialog({
   businessId: string | null
   onDocumentAdded: (doc: Document) => void
   onObligationLinked: () => void
+  onRenewalDetected: (previousDocId: string) => void
 }) {
   const t = useTranslations('vault')
   const tCommon = useTranslations('common')
@@ -453,6 +725,7 @@ function UploadDialog({
               type: raw.document_type ?? 'OTHER',
               confidence: raw.ai_confidence ?? 0,
               expiryDate: raw.expiry_date ?? null,
+              registrationNumber: raw.registration_number ?? null,
             }
             setAnalysis(result)
             setSelectedType(result.type)
@@ -495,6 +768,44 @@ function UploadDialog({
         ai_confidence: analysis?.confidence ?? null,
       }
 
+      // Auto-detect renewal: check if a document with the same type and registration number exists
+      if (analysis?.registrationNumber && selectedType !== 'OTHER') {
+        const { data: existingDocs } = (await supabase
+          .from('documents')
+          .select('*')
+          .eq('business_id', businessId)
+          .eq('type', selectedType)
+          .eq('is_current', true)
+          .neq('id', insertedDocId)
+          .order('version_number', { ascending: false })
+          .limit(10)) as unknown as { data: Document[] | null; error: unknown }
+
+        // Find a matching document by registration number in extracted_data
+        const matchingDoc = existingDocs?.find((d) => {
+          const regNum = (d.extracted_data as Record<string, unknown> | null)?.registration_number
+          return regNum === analysis.registrationNumber
+        })
+
+        if (matchingDoc) {
+          // This is a renewal — set version chain
+          updatePayload.previous_version_id = matchingDoc.id
+          updatePayload.version_number = matchingDoc.version_number + 1
+
+          // Mark the previous document as superseded
+          await supabase
+            .from('documents')
+            .update({ is_current: false } as never)
+            .eq('id', matchingDoc.id)
+        }
+      }
+
+      // Store extracted_data with registration_number for future renewal detection
+      if (analysis?.registrationNumber) {
+        updatePayload.extracted_data = {
+          registration_number: analysis.registrationNumber,
+        }
+      }
+
       const { data: updatedDoc } = (await supabase
         .from('documents')
         .update(updatePayload as never)
@@ -504,6 +815,12 @@ function UploadDialog({
 
       if (updatedDoc) {
         onDocumentAdded(updatedDoc)
+
+        // If this was a renewal, also update the superseded doc in local state
+        if (updatePayload.previous_version_id) {
+          onRenewalDetected(updatePayload.previous_version_id as string)
+        }
+
         const obligationId = await linkDocumentToObligation(supabase, businessId, updatedDoc)
         if (obligationId) onObligationLinked()
       }
@@ -511,7 +828,7 @@ function UploadDialog({
       handleReset()
       onOpenChange(false)
     }
-  }, [selectedFile, selectedType, expiryDate, analysis, businessId, insertedDocId, onDocumentAdded, onObligationLinked, onOpenChange, handleReset])
+  }, [selectedFile, selectedType, expiryDate, analysis, businessId, insertedDocId, onDocumentAdded, onObligationLinked, onOpenChange, handleReset, onRenewalDetected])
 
   return (
     <Dialog.Root
@@ -777,6 +1094,19 @@ export default function VaultPage() {
     setTimeout(() => setShowObligationLinkedBanner(false), 5000)
   }, [])
 
+  const handleRenewalDetected = useCallback((previousDocId: string) => {
+    // Mark the superseded document as not current in local state
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === previousDocId ? { ...d, is_current: false } : d))
+    )
+    showToast(
+      locale === 'ar'
+        ? 'تم اكتشاف تجديد -- مرتبط بالإصدار السابق'
+        : 'Renewal detected -- linked to previous version',
+      'success'
+    )
+  }, [locale, showToast])
+
   // Counts for status summary
   const statusCounts = useMemo(() => {
     const current = documents.filter((d) => d.archived_at === null)
@@ -887,6 +1217,19 @@ export default function VaultPage() {
               aria-label="List view"
             >
               <List className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('folder')}
+              className={cn(
+                'rounded-md p-1.5 transition-colors',
+                viewMode === 'folder'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              aria-label={t('folderView')}
+            >
+              <FolderClosed className="h-4 w-4" />
             </button>
           </div>
 
@@ -1079,7 +1422,7 @@ export default function VaultPage() {
                 />
               ))}
             </motion.div>
-          ) : (
+          ) : viewMode === 'list' ? (
             <motion.div
               variants={CONTAINER_VARIANTS}
               initial="hidden"
@@ -1095,6 +1438,12 @@ export default function VaultPage() {
                 />
               ))}
             </motion.div>
+          ) : (
+            <FolderView
+              documents={filteredDocs}
+              locale={locale}
+              onView={setSelectedDoc}
+            />
           )}
         </div>
 
@@ -1107,6 +1456,8 @@ export default function VaultPage() {
                 locale={locale}
                 onClose={() => setSelectedDoc(null)}
                 onArchive={handleArchive}
+                allDocuments={documents}
+                onView={setSelectedDoc}
               />
             </div>
           )}
@@ -1145,6 +1496,7 @@ export default function VaultPage() {
         businessId={businessId}
         onDocumentAdded={handleDocumentAdded}
         onObligationLinked={handleObligationLinked}
+        onRenewalDetected={handleRenewalDetected}
       />
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

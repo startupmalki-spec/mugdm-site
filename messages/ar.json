@@ -171,7 +171,8 @@
       "rename": "إعادة تسمية",
       "replace": "استبدال",
       "delete": "حذف",
-      "share": "مشاركة"
+      "share": "مشاركة",
+      "archive": "أرشفة"
     },
     "details": {
       "fileName": "اسم الملف",
@@ -181,7 +182,15 @@
       "expiresAt": "تاريخ الانتهاء",
       "uploadedBy": "رُفع بواسطة",
       "tags": "الوسوم"
-    }
+    },
+    "folderView": "عرض المجلدات",
+    "documents": "مستندات",
+    "versionHistory": "سجل الإصدارات",
+    "version": "الإصدار",
+    "currentVersion": "الحالي",
+    "previousVersion": "السابق",
+    "superseded": "مُستبدَل",
+    "renewalDetected": "تم اكتشاف تجديد — مرتبط بالإصدار السابق"
   },
   "calendar": {
     "title": "تقويم الالتزامات",

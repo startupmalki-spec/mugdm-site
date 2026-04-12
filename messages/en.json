@@ -171,7 +171,8 @@
       "rename": "Rename",
       "replace": "Replace",
       "delete": "Delete",
-      "share": "Share"
+      "share": "Share",
+      "archive": "Archive"
     },
     "details": {
       "fileName": "File name",
@@ -181,7 +182,15 @@
       "expiresAt": "Expires",
       "uploadedBy": "Uploaded by",
       "tags": "Tags"
-    }
+    },
+    "folderView": "Folder view",
+    "documents": "documents",
+    "versionHistory": "Version History",
+    "version": "Version",
+    "currentVersion": "Current",
+    "previousVersion": "Previous",
+    "superseded": "Superseded",
+    "renewalDetected": "Renewal detected — linked to previous version"
   },
   "calendar": {
     "title": "Compliance Calendar",

@@ -116,6 +116,8 @@ export interface Document {
   is_current: boolean
   extracted_data: Record<string, unknown> | null
   ai_confidence: number | null
+  previous_version_id: string | null
+  version_number: number
   uploaded_at: string
   archived_at: string | null
 }
@@ -183,6 +185,26 @@ export interface GeneratedDocument {
   created_at: string
 }
 
+export type ChatMessageRole = 'user' | 'assistant'
+
+export interface ChatConversation {
+  id: string
+  business_id: string
+  user_id: string
+  title: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ChatMessage {
+  id: string
+  conversation_id: string
+  role: ChatMessageRole
+  content: string
+  metadata: Record<string, unknown>
+  created_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -194,6 +216,7 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<Business, 'id'>>
+
       }
       team_members: {
         Row: TeamMember
@@ -203,14 +226,18 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<TeamMember, 'id'>>
+
       }
       documents: {
         Row: Document
-        Insert: Omit<Document, 'id' | 'uploaded_at'> & {
+        Insert: Omit<Document, 'id' | 'uploaded_at' | 'version_number' | 'previous_version_id'> & {
           id?: string
           uploaded_at?: string
+          version_number?: number
+          previous_version_id?: string | null
         }
         Update: Partial<Omit<Document, 'id'>>
+
       }
       obligations: {
         Row: Obligation
@@ -220,6 +247,7 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<Obligation, 'id'>>
+
       }
       transactions: {
         Row: Transaction
@@ -228,6 +256,7 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<Transaction, 'id'>>
+
       }
       bank_statement_uploads: {
         Row: BankStatementUpload
@@ -236,6 +265,7 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<BankStatementUpload, 'id'>>
+
       }
       generated_documents: {
         Row: GeneratedDocument
@@ -244,6 +274,26 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<GeneratedDocument, 'id'>>
+
+      }
+      chat_conversations: {
+        Row: ChatConversation
+        Insert: Omit<ChatConversation, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<ChatConversation, 'id'>>
+
+      }
+      chat_messages: {
+        Row: ChatMessage
+        Insert: Omit<ChatMessage, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<ChatMessage, 'id'>>
+
       }
     }
   }
