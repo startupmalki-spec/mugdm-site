@@ -19,6 +19,12 @@ import {
   Clock,
   ChevronDown,
   ChevronUp,
+  Paperclip,
+  FileText,
+  CalendarDays,
+  Minus,
+  Plus,
+  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -81,6 +87,393 @@ const EMPTY_FORM: MemberForm = {
   iqama_number: '',
   start_date: '',
   salary: '',
+}
+
+/* ───────── Employee Documents & Leave (localStorage) ───────── */
+
+interface EmployeeDocument {
+  id: string
+  name: string
+  type: 'iqama' | 'contract' | 'certificate' | 'other'
+  url: string
+  uploadedAt: string
+}
+
+interface SalaryChange {
+  from: number
+  to: number
+  date: string
+}
+
+interface LeaveRecord {
+  id: string
+  startDate: string
+  endDate: string
+  type: 'annual' | 'sick'
+  days: number
+}
+
+interface MemberMeta {
+  documents: EmployeeDocument[]
+  salaryHistory: SalaryChange[]
+  leaves: LeaveRecord[]
+}
+
+const ANNUAL_LEAVE_DAYS = 21
+
+function getMemberMetaKey(memberId: string): string {
+  return `mugdm-team-meta-${memberId}`
+}
+
+function getMemberMeta(memberId: string): MemberMeta {
+  if (typeof window === 'undefined') return { documents: [], salaryHistory: [], leaves: [] }
+  try {
+    const raw = localStorage.getItem(getMemberMetaKey(memberId))
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return { documents: [], salaryHistory: [], leaves: [] }
+}
+
+function setMemberMeta(memberId: string, meta: MemberMeta) {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(getMemberMetaKey(memberId), JSON.stringify(meta))
+}
+
+function calculateDaysBetween(start: string, end: string): number {
+  const s = new Date(start)
+  const e = new Date(end)
+  return Math.max(1, Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+}
+
+function getTotalLeaveDays(leaves: LeaveRecord[], type?: 'annual' | 'sick'): number {
+  return leaves
+    .filter((l) => !type || l.type === type)
+    .reduce((sum, l) => sum + l.days, 0)
+}
+
+/* ───────── Audit Log Helper ───────── */
+
+function addAuditLog(action: string) {
+  if (typeof window === 'undefined') return
+  try {
+    const key = 'mugdm-audit-log'
+    const raw = localStorage.getItem(key)
+    const logs: { action: string; timestamp: string }[] = raw ? JSON.parse(raw) : []
+    logs.unshift({ action, timestamp: new Date().toISOString() })
+    // Keep last 100
+    localStorage.setItem(key, JSON.stringify(logs.slice(0, 100)))
+  } catch { /* ignore */ }
+}
+
+/* ───────── Member Detail Panel ───────── */
+
+function MemberDetailPanel({
+  member,
+  onClose,
+}: {
+  member: TeamMember
+  onClose: () => void
+}) {
+  const t = useTranslations('team')
+  const tCommon = useTranslations('common')
+  const [meta, setMeta] = useState<MemberMeta>(() => getMemberMeta(member.id))
+  const [showLeaveForm, setShowLeaveForm] = useState(false)
+  const [leaveStart, setLeaveStart] = useState('')
+  const [leaveEnd, setLeaveEnd] = useState('')
+  const [leaveType, setLeaveType] = useState<'annual' | 'sick'>('annual')
+
+  const annualUsed = getTotalLeaveDays(meta.leaves, 'annual')
+  const sickUsed = getTotalLeaveDays(meta.leaves, 'sick')
+  const annualRemaining = Math.max(0, ANNUAL_LEAVE_DAYS - annualUsed)
+
+  const handleAttachDocument = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      // Determine doc type from name
+      const nameLower = file.name.toLowerCase()
+      let docType: EmployeeDocument['type'] = 'other'
+      if (nameLower.includes('iqama') || nameLower.includes('id')) docType = 'iqama'
+      else if (nameLower.includes('contract')) docType = 'contract'
+      else if (nameLower.includes('cert')) docType = 'certificate'
+
+      const doc: EmployeeDocument = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        type: docType,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString(),
+      }
+
+      const updated = { ...meta, documents: [...meta.documents, doc] }
+      setMeta(updated)
+      setMemberMeta(member.id, updated)
+      addAuditLog(`Attached document "${file.name}" to ${member.name}`)
+    }
+    input.click()
+  }, [meta, member.id, member.name])
+
+  const handleAddLeave = useCallback(() => {
+    if (!leaveStart || !leaveEnd) return
+    const days = calculateDaysBetween(leaveStart, leaveEnd)
+    const record: LeaveRecord = {
+      id: crypto.randomUUID(),
+      startDate: leaveStart,
+      endDate: leaveEnd,
+      type: leaveType,
+      days,
+    }
+    const updated = { ...meta, leaves: [...meta.leaves, record] }
+    setMeta(updated)
+    setMemberMeta(member.id, updated)
+    addAuditLog(`Recorded ${leaveType} leave for ${member.name}: ${days} days`)
+    setShowLeaveForm(false)
+    setLeaveStart('')
+    setLeaveEnd('')
+  }, [leaveStart, leaveEnd, leaveType, meta, member.id, member.name])
+
+  const handleRemoveLeave = useCallback((id: string) => {
+    const updated = { ...meta, leaves: meta.leaves.filter((l) => l.id !== id) }
+    setMeta(updated)
+    setMemberMeta(member.id, updated)
+  }, [meta, member.id])
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 20 }}
+      className="rounded-xl border border-border bg-card p-5 space-y-5"
+    >
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">{member.name}</h3>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Documents Section */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">{t('documents')}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleAttachDocument}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+          >
+            <Paperclip className="h-3 w-3" />
+            {t('attachDocument')}
+          </button>
+        </div>
+        {meta.documents.length > 0 ? (
+          <div className="space-y-1.5">
+            {meta.documents.map((doc) => (
+              <div
+                key={doc.id}
+                className="flex items-center justify-between rounded-lg bg-surface-2/50 px-3 py-2"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <span className="text-xs text-foreground truncate">{doc.name}</span>
+                  <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                    {t(`docType.${doc.type}`)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">{t('noDocuments')}</p>
+        )}
+      </div>
+
+      {/* Salary History */}
+      {meta.salaryHistory.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-2">
+            <History className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">{t('salaryHistory')}</span>
+          </div>
+          <div className="space-y-1">
+            {meta.salaryHistory.map((change, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <span className="font-mono">SAR {formatSAR(change.from)}</span>
+                <span className="text-primary">&rarr;</span>
+                <span className="font-mono text-foreground">SAR {formatSAR(change.to)}</span>
+                <span className="text-muted-foreground/60">
+                  {new Date(change.date).toLocaleDateString('en-SA', {
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Leave Tracking */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-foreground">{t('leaveBalance')}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowLeaveForm((p) => !p)}
+            className="flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+          >
+            <Plus className="h-3 w-3" />
+            {t('recordLeave')}
+          </button>
+        </div>
+
+        {/* Leave balance bar */}
+        <div className="rounded-lg bg-surface-2/50 px-3 py-2 space-y-2">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">{t('annualLeave')}</span>
+            <span className="font-medium text-foreground">
+              {annualRemaining} / {ANNUAL_LEAVE_DAYS} {t('daysRemaining')}
+            </span>
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all',
+                annualRemaining > 10 ? 'bg-emerald-500' : annualRemaining > 5 ? 'bg-amber-500' : 'bg-red-500'
+              )}
+              style={{ width: `${(annualRemaining / ANNUAL_LEAVE_DAYS) * 100}%` }}
+            />
+          </div>
+          {sickUsed > 0 && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{t('sickLeave')}</span>
+              <span className="font-medium text-foreground">{sickUsed} {t('daysTaken')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Add leave form */}
+        <AnimatePresence>
+          {showLeaveForm && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 rounded-lg border border-border p-3 space-y-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLeaveType('annual')}
+                    className={cn(
+                      'flex-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                      leaveType === 'annual'
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-surface-2 text-muted-foreground'
+                    )}
+                  >
+                    {t('annualLeave')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLeaveType('sick')}
+                    className={cn(
+                      'flex-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors',
+                      leaveType === 'sick'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                        : 'border-border bg-surface-2 text-muted-foreground'
+                    )}
+                  >
+                    {t('sickLeave')}
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="date"
+                    value={leaveStart}
+                    onChange={(e) => setLeaveStart(e.target.value)}
+                    dir="ltr"
+                  />
+                  <Input
+                    type="date"
+                    value={leaveEnd}
+                    onChange={(e) => setLeaveEnd(e.target.value)}
+                    dir="ltr"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLeaveForm(false)}
+                    className="rounded-lg px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    {tCommon('cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleAddLeave}
+                    disabled={!leaveStart || !leaveEnd}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  >
+                    {tCommon('save')}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Leave records */}
+        {meta.leaves.length > 0 && (
+          <div className="mt-2 space-y-1">
+            {meta.leaves.map((leave) => (
+              <div
+                key={leave.id}
+                className="flex items-center justify-between rounded-lg bg-surface-2/30 px-3 py-1.5 text-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    'rounded-full px-1.5 py-0.5 text-[10px] font-medium',
+                    leave.type === 'annual' ? 'bg-primary/10 text-primary' : 'bg-amber-500/10 text-amber-400'
+                  )}>
+                    {leave.type === 'annual' ? t('annualLeave') : t('sickLeave')}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {leave.startDate} &mdash; {leave.endDate}
+                  </span>
+                  <span className="font-medium text-foreground">{leave.days}d</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveLeave(leave.id)}
+                  className="rounded p-1 text-muted-foreground hover:text-red-400"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  )
 }
 
 /* ───────── GOSI Summary Card ───────── */
@@ -348,10 +741,12 @@ function MemberCard({
   member,
   onEdit,
   onDeactivate,
+  onShowDetails,
 }: {
   member: TeamMember
   onEdit: () => void
   onDeactivate: () => void
+  onShowDetails: () => void
 }) {
   const tTeam = useTranslations('team')
   const isTerminated = member.status === 'TERMINATED'
@@ -455,6 +850,14 @@ function MemberCard({
             <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
               <button
                 type="button"
+                onClick={onShowDetails}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+                aria-label={tTeam('documents')}
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
                 onClick={onEdit}
                 className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
                 aria-label={tTeam('role')}
@@ -530,6 +933,9 @@ export default function TeamPage() {
 
   // Show terminated toggle
   const [isShowTerminated, setIsShowTerminated] = useState(false)
+
+  // Detail panel
+  const [detailMember, setDetailMember] = useState<TeamMember | null>(null)
 
   // Toast
   const [toast, setToast] = useState<string | null>(null)
@@ -648,6 +1054,20 @@ export default function TeamPage() {
     // `never` with this @supabase/ssr version. Cast through `unknown` at boundary.
 
     if (editingMember) {
+      // Track salary change in localStorage
+      const oldSalary = editingMember.salary
+      const newSalary = form.salary ? Number(form.salary) : null
+      if (oldSalary && newSalary && oldSalary !== newSalary) {
+        const meta = getMemberMeta(editingMember.id)
+        meta.salaryHistory.push({
+          from: oldSalary,
+          to: newSalary,
+          date: new Date().toISOString(),
+        })
+        setMemberMeta(editingMember.id, meta)
+        addAuditLog(`Updated salary for ${editingMember.name}: SAR ${formatSAR(oldSalary)} to SAR ${formatSAR(newSalary)}`)
+      }
+
       const { data } = (await supabase.from('team_members')
         .update(payload as never)
         .eq('id', editingMember.id)
@@ -667,6 +1087,7 @@ export default function TeamPage() {
 
       if (data) {
         setMembers((prev) => [data, ...prev])
+        addAuditLog(`Added team member ${data.name}`)
       }
     }
 
@@ -769,12 +1190,26 @@ export default function TeamPage() {
         <div className="space-y-3">
           <AnimatePresence>
             {visibleMembers.map((member) => (
-              <MemberCard
-                key={member.id}
-                member={member}
-                onEdit={() => handleOpenEdit(member)}
-                onDeactivate={() => setConfirmDeactivate(member)}
-              />
+              <div key={member.id} className="space-y-2">
+                <MemberCard
+                  member={member}
+                  onEdit={() => handleOpenEdit(member)}
+                  onDeactivate={() => setConfirmDeactivate(member)}
+                  onShowDetails={() =>
+                    setDetailMember((prev) =>
+                      prev?.id === member.id ? null : member
+                    )
+                  }
+                />
+                <AnimatePresence>
+                  {detailMember?.id === member.id && (
+                    <MemberDetailPanel
+                      member={member}
+                      onClose={() => setDetailMember(null)}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
             ))}
           </AnimatePresence>
         </div>

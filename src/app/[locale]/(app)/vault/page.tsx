@@ -31,6 +31,9 @@ import {
   AlertCircle,
   CheckCircle2,
   RotateCcw,
+  Share2,
+  Copy,
+  Link2,
 } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
@@ -368,6 +371,186 @@ function DocumentListRow({
   )
 }
 
+type ShareExpiry = 3600 | 86400 | 604800
+
+function ShareDocument({ doc }: { doc: Document }) {
+  const t = useTranslations('vault')
+  const [isOpen, setIsOpen] = useState(false)
+  const [expiry, setExpiry] = useState<ShareExpiry>(86400)
+  const [signedUrl, setSignedUrl] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const [error, setError] = useState(false)
+
+  const expiryOptions: { value: ShareExpiry; label: string }[] = [
+    { value: 3600, label: t('share.oneHour') },
+    { value: 86400, label: t('share.twentyFourHours') },
+    { value: 604800, label: t('share.sevenDays') },
+  ]
+
+  const handleGenerate = useCallback(async () => {
+    setIsGenerating(true)
+    setError(false)
+    setSignedUrl(null)
+    try {
+      const supabase = createClient()
+      // Extract the storage path from the file_url
+      // file_url is typically: bucket/path/to/file
+      const path = doc.file_url
+      const { data, error: urlError } = await supabase.storage
+        .from('documents')
+        .createSignedUrl(path, expiry)
+
+      if (urlError || !data?.signedUrl) {
+        setError(true)
+      } else {
+        setSignedUrl(data.signedUrl)
+      }
+    } catch {
+      setError(true)
+    } finally {
+      setIsGenerating(false)
+    }
+  }, [doc.file_url, expiry])
+
+  const handleCopy = useCallback(async () => {
+    if (!signedUrl) return
+    try {
+      await navigator.clipboard.writeText(signedUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+      const input = document.querySelector<HTMLInputElement>('[data-share-url-input]')
+      if (input) {
+        input.select()
+        document.execCommand('copy')
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }
+    }
+  }, [signedUrl])
+
+  if (!isOpen) {
+    return (
+      <div className="mt-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full gap-2"
+          onClick={() => setIsOpen(true)}
+        >
+          <Share2 className="h-4 w-4" />
+          {t('actions.share')}
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      className="mt-3 overflow-hidden rounded-lg border border-primary/20 bg-primary/5 p-4"
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Link2 className="h-4 w-4 text-primary" />
+          <h4 className="text-sm font-medium text-foreground">{t('share.title')}</h4>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setIsOpen(false)
+            setSignedUrl(null)
+            setError(false)
+          }}
+          className="rounded-md p-1 text-muted-foreground hover:bg-surface-2 hover:text-foreground"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      <p className="mb-3 text-xs text-muted-foreground">{t('share.subtitle')}</p>
+
+      <div className="mb-3">
+        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          {t('share.expiry')}
+        </label>
+        <div className="flex gap-1 rounded-lg bg-surface-1 p-1">
+          {expiryOptions.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                setExpiry(opt.value)
+                setSignedUrl(null)
+              }}
+              className={cn(
+                'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-all',
+                expiry === opt.value
+                  ? 'bg-primary text-primary-foreground shadow'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {!signedUrl ? (
+        <Button
+          variant="default"
+          size="sm"
+          className="w-full gap-2"
+          onClick={handleGenerate}
+          disabled={isGenerating}
+        >
+          {isGenerating ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Share2 className="h-3.5 w-3.5" />
+          )}
+          {isGenerating ? t('share.generating') : t('share.generate')}
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input
+              data-share-url-input
+              type="text"
+              readOnly
+              value={signedUrl}
+              className="h-8 flex-1 rounded-md border border-border bg-surface-1 px-2 text-xs text-foreground focus:outline-none"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 shrink-0"
+              onClick={handleCopy}
+            >
+              {copied ? (
+                <Check className="h-3.5 w-3.5 text-green-400" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {copied ? t('share.copied') : t('share.copyLink')}
+            </Button>
+          </div>
+          <p className="text-[10px] text-muted-foreground">
+            {t('share.linkReady')}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <p className="mt-2 text-xs text-red-400">{t('share.error')}</p>
+      )}
+    </motion.div>
+  )
+}
+
 function DocumentDetailPanel({
   doc,
   locale,
@@ -475,6 +658,9 @@ function DocumentDetailPanel({
           {t('actions.download')}
         </Button>
       </div>
+
+      {/* Share Document */}
+      <ShareDocument doc={doc} />
 
       {!doc.archived_at && (
         <div className="mt-3">

@@ -38,6 +38,18 @@ import { getObligationStatus } from '@/lib/compliance/rules-engine'
 import { createClient } from '@/lib/supabase/client'
 import type { Obligation, Document, Transaction } from '@/lib/supabase/types'
 import { GettingStartedChecklist } from '@/components/ui/getting-started-checklist'
+import { TourOverlay, type TourStep } from '@/components/ui/tour-overlay'
+
+// --- Tour steps ---
+
+const TOUR_STEPS: TourStep[] = [
+  { target: '[data-tour="welcome"]', titleKey: 'tourWelcomeTitle', descriptionKey: 'tourWelcomeDesc' },
+  { target: '[data-tour="compliance"]', titleKey: 'tourComplianceTitle', descriptionKey: 'tourComplianceDesc' },
+  { target: '[data-tour="documents"]', titleKey: 'tourDocumentsTitle', descriptionKey: 'tourDocumentsDesc' },
+  { target: '[data-tour="financials"]', titleKey: 'tourFinancialsTitle', descriptionKey: 'tourFinancialsDesc' },
+  { target: '[data-tour="quick-actions"]', titleKey: 'tourQuickActionsTitle', descriptionKey: 'tourQuickActionsDesc' },
+  { target: '[data-tour="chat"]', titleKey: 'tourChatTitle', descriptionKey: 'tourChatDesc' },
+]
 
 // --- Constants ---
 
@@ -172,7 +184,7 @@ function ComplianceCard({
   const dateLocale = locale === 'ar' ? ar : enUS
 
   return (
-    <motion.div variants={ITEM_VARIANTS}>
+    <motion.div variants={ITEM_VARIANTS} data-tour="compliance">
       <Link
         href="/calendar"
         className="group block rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:bg-surface-2"
@@ -268,7 +280,7 @@ function DocumentStatusCard({ docCounts }: { docCounts: DocCounts }) {
   const total = docCounts.valid + docCounts.expiring + docCounts.expired
 
   return (
-    <motion.div variants={ITEM_VARIANTS}>
+    <motion.div variants={ITEM_VARIANTS} data-tour="documents">
       <Link
         href="/vault"
         className="group block rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:bg-surface-2"
@@ -322,7 +334,7 @@ function FinancialSummaryCard({ financials }: { financials: Financials }) {
   const hasData = financials.moneyIn > 0 || financials.moneyOut > 0
 
   return (
-    <motion.div variants={ITEM_VARIANTS}>
+    <motion.div variants={ITEM_VARIANTS} data-tour="financials">
       <Link
         href="/bookkeeper"
         className="group block rounded-xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:bg-surface-2"
@@ -656,8 +668,11 @@ export default function DashboardPage() {
       animate="show"
       className="space-y-8"
     >
+      {/* Guided Tour */}
+      <TourOverlay steps={TOUR_STEPS} ns="dashboard" />
+
       {/* Welcome Header */}
-      <motion.div variants={ITEM_VARIANTS}>
+      <motion.div variants={ITEM_VARIANTS} data-tour="welcome">
         <h1 className="text-2xl font-bold text-foreground">{t('welcomeDefault')}</h1>
         <p className="mt-1 text-muted-foreground">
           {format(new Date(), 'EEEE, dd MMMM yyyy', {
@@ -670,7 +685,7 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Quick Actions */}
-      <motion.section variants={ITEM_VARIANTS}>
+      <motion.section variants={ITEM_VARIANTS} data-tour="quick-actions">
         <h2 className="mb-3 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
           {t('quickActions')}
         </h2>

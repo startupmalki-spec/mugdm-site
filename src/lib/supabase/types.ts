@@ -88,6 +88,9 @@ export interface Business {
   cr_expiry_date: string | null
   data_sharing_consent: boolean
   profile_history: Record<string, unknown>[] | null
+  stripe_customer_id: string | null
+  subscription_status: string | null
+  subscription_tier: string | null
   created_at: string
   updated_at: string
 }
@@ -213,10 +216,13 @@ export interface Database {
     Tables: {
       businesses: {
         Row: Business
-        Insert: Omit<Business, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: Omit<Business, 'id' | 'created_at' | 'updated_at' | 'stripe_customer_id' | 'subscription_status' | 'subscription_tier'> & {
           id?: string
           created_at?: string
           updated_at?: string
+          stripe_customer_id?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string | null
         }
         Update: Partial<Omit<Business, 'id'>>
       }

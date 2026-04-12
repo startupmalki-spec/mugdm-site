@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -16,6 +16,7 @@ import {
   User,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { categorizeTransaction } from '@/lib/bookkeeper/smart-categorizer'
 import type { TransactionType, TransactionCategory } from '@/lib/supabase/types'
 
 const INCOME_CATEGORIES: TransactionCategory[] = ['REVENUE', 'OTHER_INCOME']
@@ -73,8 +74,25 @@ export function TransactionForm({ onSave }: TransactionFormProps) {
   const [category, setCategory] = useState<TransactionCategory | ''>('')
   const [description, setDescription] = useState('')
   const [vendor, setVendor] = useState('')
+  const [autoSuggested, setAutoSuggested] = useState(false)
+  const userPickedCategory = useRef(false)
 
   const categories = type === 'INCOME' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+
+  // Auto-suggest category based on vendor/description using smart categorizer
+  useEffect(() => {
+    const suggest = () => {
+      if (userPickedCategory.current || type === 'INCOME') return
+      if (!description && !vendor) return
+
+      const result = categorizeTransaction(description, vendor, amount ? parseFloat(amount) : undefined)
+      if (result.confidence >= 0.5 && result.source !== 'default') {
+        setCategory(result.category)
+        setAutoSuggested(true)
+      }
+    }
+    suggest()
+  }, [description, vendor, amount, type])
 
   const handleReset = useCallback(() => {
     setType('EXPENSE')
@@ -83,6 +101,8 @@ export function TransactionForm({ onSave }: TransactionFormProps) {
     setCategory('')
     setDescription('')
     setVendor('')
+    setAutoSuggested(false)
+    userPickedCategory.current = false
   }, [])
 
   const handleSubmit = useCallback(() => {
@@ -228,7 +248,11 @@ export function TransactionForm({ onSave }: TransactionFormProps) {
                     </label>
                     <select
                       value={category}
-                      onChange={(e) => setCategory(e.target.value as TransactionCategory)}
+                      onChange={(e) => {
+                        userPickedCategory.current = true
+                        setAutoSuggested(false)
+                        setCategory(e.target.value as TransactionCategory)
+                      }}
                       className="flex h-12 w-full rounded-lg border border-border bg-surface-1 px-4 text-sm text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
                       <option value="" disabled>
@@ -240,6 +264,11 @@ export function TransactionForm({ onSave }: TransactionFormProps) {
                         </option>
                       ))}
                     </select>
+                    {autoSuggested && (
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {locale === 'ar' ? 'تم اقتراح التصنيف تلقائيا' : 'Auto-suggested category'}
+                      </p>
+                    )}
                   </div>
 
                   {/* Description */}

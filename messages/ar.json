@@ -241,6 +241,20 @@
       "success": "نجح",
       "pending": "في الانتظار",
       "analyzing": "جارٍ التحليل..."
+    },
+    "share": {
+      "title": "مشاركة المستند",
+      "subtitle": "إنشاء رابط محدد المدة لمشاركة هذا المستند",
+      "expiry": "صلاحية الرابط",
+      "oneHour": "ساعة واحدة",
+      "twentyFourHours": "24 ساعة",
+      "sevenDays": "7 أيام",
+      "generate": "إنشاء الرابط",
+      "generating": "جارٍ الإنشاء...",
+      "copyLink": "نسخ الرابط",
+      "copied": "تم النسخ!",
+      "linkReady": "تم إنشاء رابط المشاركة",
+      "error": "فشل في إنشاء الرابط"
     }
   },
   "calendar": {
@@ -442,6 +456,38 @@
       "expenses": "المصروفات",
       "noData": "لا توجد بيانات عمليات لهذه الفترة",
       "disclaimer": "هذا التقرير لأغراض تقديرية فقط. استشر محاسبك للإقرارات الرسمية."
+    },
+    "reconciliation": {
+      "title": "مطابقة الحسابات البنكية",
+      "subtitle": "مقارنة قيود كشف الحساب البنكي بالعمليات المدخلة يدوياً",
+      "reconcile": "مطابقة",
+      "matched": "متطابقة",
+      "unmatchedBank": "غير متطابقة (بنكية)",
+      "unmatchedManual": "غير متطابقة (يدوية)",
+      "noData": "أضف عمليات بنكية ويدوية للمطابقة",
+      "bankEntry": "القيد البنكي",
+      "manualEntry": "القيد اليدوي",
+      "dateDiff": "فرق التاريخ",
+      "amountDiff": "فرق المبلغ",
+      "day": "يوم",
+      "days": "أيام",
+      "verified": "تم التحقق",
+      "markVerified": "تحقق",
+      "matchedCount": "{count} زوج متطابق",
+      "unmatchedBankCount": "{count} قيد بنكي غير متطابق",
+      "unmatchedManualCount": "{count} قيد يدوي غير متطابق"
+    },
+    "forecast": {
+      "title": "توقعات التدفق النقدي",
+      "subtitle": "الإيرادات المتوقعة مقابل المصروفات للأشهر الـ 3 القادمة",
+      "projectedBalance": "الرصيد المتوقع",
+      "currentBalance": "الرصيد الحالي",
+      "income": "الإيرادات",
+      "expenses": "المصروفات",
+      "net": "الصافي",
+      "warningNegative": "الرصيد متوقع أن يصبح سالباً",
+      "noData": "لا تتوفر بيانات كافية للتوقع",
+      "month": "الشهر"
     }
   },
   "common": {
@@ -540,7 +586,21 @@
     "weeklyActionItems": "مهام الأسبوع",
     "weeklyOverdueAction": "{count} التزامات متأخرة تحتاج اهتمامك فوراً",
     "weeklyDueSoonAction": "{count} التزامات تستحق قريباً",
-    "weeklyNextAction": "{name} مستحق في {date}"
+    "weeklyNextAction": "{name} مستحق في {date}",
+    "tourSkip": "تخطي الجولة",
+    "tourDone": "تم",
+    "tourWelcomeTitle": "مرحباً بك في مُقدِم!",
+    "tourWelcomeDesc": "هذه لوحة التحكم الخاصة بك — مركزك لإدارة منشأتك الصغيرة السعودية. دعنا نريك جولة سريعة.",
+    "tourComplianceTitle": "نظرة على الالتزامات",
+    "tourComplianceDesc": "تابع جميع مواعيدك التنظيمية هنا — التأمينات، هيئة الزكاة والضريبة، تجديد السجل التجاري، والمزيد.",
+    "tourDocumentsTitle": "حالة المستندات",
+    "tourDocumentsDesc": "اطّلع على صحة مستنداتك بنظرة واحدة. صالحة، تنتهي قريباً، أو منتهية — كلها مُتتبعة تلقائياً.",
+    "tourFinancialsTitle": "الملخص المالي",
+    "tourFinancialsDesc": "الدخل والمصروفات الشهرية مع صافي المركز المالي. اضغط للانتقال إلى المحاسب الذكي.",
+    "tourQuickActionsTitle": "إجراءات سريعة",
+    "tourQuickActionsDesc": "ارفع مستندات، سجّل معاملات، راجع التقويم، أو اطّلع على ملفك — كلها بضغطة واحدة.",
+    "tourChatTitle": "المساعد الذكي",
+    "tourChatDesc": "مساعدك المدعوم بالذكاء الاصطناعي. اسأل أي شيء عن نشاطك — حالة الالتزامات، المصروفات، المستندات، والمزيد."
   },
   "landing": {
     "hero": {
@@ -630,7 +690,17 @@
     "changePassword": "تغيير كلمة المرور",
     "deleteAccount": "حذف الحساب",
     "deleteAccountWarning": "هذا الإجراء نهائي ولا يمكن التراجع عنه.",
-    "settingsSaved": "تم حفظ الإعدادات"
+    "settingsSaved": "تم حفظ الإعدادات",
+    "dataManagement": "إدارة البيانات",
+    "exportAllData": "تصدير جميع البيانات",
+    "exportAllDataDesc": "تحميل جميع بيانات نشاطك التجاري كملف JSON",
+    "auditLog": "سجل النشاط",
+    "showAuditLog": "عرض النشاط الأخير",
+    "hideAuditLog": "إخفاء سجل النشاط",
+    "noAuditLogs": "لم يتم تسجيل أي نشاط بعد",
+    "deleteAccountConfirm": "سيتم حذف حسابك وجميع البيانات المرتبطة به نهائياً. لا يمكن التراجع عن هذا الإجراء.",
+    "cancelDelete": "إلغاء",
+    "confirmDelete": "حذف حسابي"
   },
   "team": {
     "title": "الفريق",
@@ -674,7 +744,23 @@
     "increase": "الزيادة",
     "gosiSaudiTotal": "تأمينات الموظفين السعوديين",
     "gosiNonSaudiTotal": "تأمينات الموظفين غير السعوديين",
-    "yearsMonths": "{years} سنة {months} شهر"
+    "yearsMonths": "{years} سنة {months} شهر",
+    "documents": "المستندات",
+    "attachDocument": "إرفاق مستند",
+    "noDocuments": "لا توجد مستندات مرفقة",
+    "docType": {
+      "iqama": "نسخة الإقامة",
+      "contract": "عقد",
+      "certificate": "شهادة",
+      "other": "أخرى"
+    },
+    "salaryHistory": "سجل الرواتب",
+    "leaveBalance": "رصيد الإجازات",
+    "recordLeave": "تسجيل إجازة",
+    "annualLeave": "إجازة سنوية",
+    "sickLeave": "إجازة مرضية",
+    "daysRemaining": "يوم متبقي",
+    "daysTaken": "يوم مأخوذ"
   },
   "chat": {
     "title": "المساعد الذكي",

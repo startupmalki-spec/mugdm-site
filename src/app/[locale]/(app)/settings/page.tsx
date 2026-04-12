@@ -4,7 +4,8 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import { useRouter } from '@/i18n/routing'
-import { Globe, Bell, Shield, Moon, Sun, ChevronRight, Check } from 'lucide-react'
+import { Globe, Bell, Shield, Moon, Sun, ChevronRight, Check, Download, Trash2, ScrollText, AlertTriangle } from 'lucide-react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createClient } from '@/lib/supabase/client'
 
@@ -98,6 +99,19 @@ function SettingSection({
   )
 }
 
+interface AuditLogEntry {
+  action: string
+  timestamp: string
+}
+
+function getAuditLogs(): AuditLogEntry[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const raw = localStorage.getItem('mugdm-audit-log')
+    return raw ? JSON.parse(raw) : []
+  } catch { return [] }
+}
+
 export default function SettingsPage() {
   const t = useTranslations('settings')
   const locale = useLocale()
@@ -109,6 +123,11 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [showSaved, setShowSaved] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([])
+  const [showAuditLog, setShowAuditLog] = useState(false)
 
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -215,6 +234,90 @@ export default function SettingsPage() {
     }
   }, [])
 
+  // Load audit logs
+  useEffect(() => {
+    setAuditLogs(getAuditLogs())
+  }, [showAuditLog])
+
+  // Data export handler
+  const handleExportData = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: business } = await supabase
+        .from('businesses')
+        .select('*')
+        .eq('user_id', user.id)
+        .single() as unknown as { data: Record<string, unknown> | null }
+
+      const businessId = (business as { id?: string })?.id
+
+      let documents: unknown[] = []
+      let obligations: unknown[] = []
+      let transactions: unknown[] = []
+      let teamMembers: unknown[] = []
+
+      if (businessId) {
+        const [docsRes, oblRes, txRes, teamRes] = await Promise.all([
+          supabase.from('documents').select('*').eq('business_id', businessId) as unknown as Promise<{ data: unknown[] | null }>,
+          supabase.from('obligations').select('*').eq('business_id', businessId) as unknown as Promise<{ data: unknown[] | null }>,
+          supabase.from('transactions').select('*').eq('business_id', businessId) as unknown as Promise<{ data: unknown[] | null }>,
+          supabase.from('team_members').select('*').eq('business_id', businessId) as unknown as Promise<{ data: unknown[] | null }>,
+        ])
+        documents = docsRes.data ?? []
+        obligations = oblRes.data ?? []
+        transactions = txRes.data ?? []
+        teamMembers = teamRes.data ?? []
+      }
+
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        user: { id: user.id, email: user.email },
+        business,
+        documents,
+        obligations,
+        transactions,
+        teamMembers,
+      }
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `mugdm-export-${new Date().toISOString().split('T')[0]}.json`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      // Add audit log
+      const logs = getAuditLogs()
+      logs.unshift({ action: 'Exported all data', timestamp: new Date().toISOString() })
+      localStorage.setItem('mugdm-audit-log', JSON.stringify(logs.slice(0, 100)))
+    } finally {
+      setIsExporting(false)
+    }
+  }, [])
+
+  // Account deletion handler
+  const handleDeleteAccount = useCallback(async () => {
+    setIsDeleting(true)
+    try {
+      const supabase = createClient()
+      // Sign the user out — actual deletion needs server-side admin API
+      // For now we sign out and clear local data
+      localStorage.clear()
+      await supabase.auth.signOut()
+      router.replace('/')
+    } finally {
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
+    }
+  }, [router])
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -313,6 +416,76 @@ export default function SettingsPage() {
         </SettingRow>
       </SettingSection>
 
+      {/* Data Management */}
+      <SettingSection icon={Download} title={t('dataManagement')}>
+        <SettingRow
+          label={t('exportAllData')}
+          description={t('exportAllDataDesc')}
+        >
+          <button
+            type="button"
+            onClick={handleExportData}
+            disabled={isExporting}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-surface-2 px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-3 disabled:opacity-50"
+          >
+            {isExporting ? (
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border border-foreground border-t-transparent" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {t('exportAllData')}
+          </button>
+        </SettingRow>
+      </SettingSection>
+
+      {/* Audit Log */}
+      <SettingSection icon={ScrollText} title={t('auditLog')}>
+        <div className="py-3">
+          <button
+            type="button"
+            onClick={() => setShowAuditLog((p) => !p)}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary/80"
+          >
+            <ScrollText className="h-3.5 w-3.5" />
+            {showAuditLog ? t('hideAuditLog') : t('showAuditLog')}
+          </button>
+
+          <AnimatePresence>
+            {showAuditLog && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-3 max-h-64 overflow-y-auto space-y-1.5">
+                  {auditLogs.length > 0 ? (
+                    auditLogs.map((log, i) => (
+                      <div
+                        key={i}
+                        className="flex items-start justify-between gap-4 rounded-lg bg-surface-2/50 px-3 py-2"
+                      >
+                        <span className="text-xs text-foreground">{log.action}</span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {new Date(log.timestamp).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-SA', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-xs text-muted-foreground">{t('noAuditLogs')}</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </SettingSection>
+
       {/* Security */}
       <SettingSection icon={Shield} title={t('security')}>
         <SettingRow
@@ -321,13 +494,71 @@ export default function SettingsPage() {
         >
           <button
             type="button"
-            disabled
-            className="rounded-lg px-3 py-1.5 text-sm font-medium text-red-400/50 cursor-not-allowed"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
           >
+            <Trash2 className="h-3.5 w-3.5" />
             {t('deleteAccount')}
           </button>
         </SettingRow>
       </SettingSection>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog.Root open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <Dialog.Portal>
+          <Dialog.Overlay asChild>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+          </Dialog.Overlay>
+          <Dialog.Content asChild>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed left-1/2 top-1/2 z-50 w-full max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl"
+            >
+              <div className="flex flex-col items-center gap-4 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-red-500/10">
+                  <AlertTriangle className="h-6 w-6 text-red-400" />
+                </div>
+                <Dialog.Title className="text-lg font-semibold text-foreground">
+                  {t('deleteAccount')}
+                </Dialog.Title>
+                <p className="text-sm text-muted-foreground">
+                  {t('deleteAccountConfirm')}
+                </p>
+              </div>
+
+              <div className="mt-6 flex justify-center gap-3">
+                <Dialog.Close asChild>
+                  <button
+                    type="button"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                  >
+                    {t('cancelDelete')}
+                  </button>
+                </Dialog.Close>
+                <button
+                  type="button"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting}
+                  className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+                >
+                  {isDeleting && (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border border-white border-t-transparent" />
+                  )}
+                  {t('confirmDelete')}
+                </button>
+              </div>
+            </motion.div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   )
 }

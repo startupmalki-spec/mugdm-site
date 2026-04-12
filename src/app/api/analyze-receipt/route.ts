@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
+import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { TransactionCategory } from '@/lib/supabase/types'
 
@@ -45,6 +46,9 @@ interface ReceiptExtractionResult {
   date: string | null
   category: TransactionCategory
   vat_amount: number | null
+  vat_registration_number: string | null
+  invoice_number: string | null
+  payment_terms: string | null
   line_items: LineItem[]
   ai_confidence: number
 }
@@ -59,8 +63,13 @@ Required fields:
 - date: the transaction or invoice date as ISO string (YYYY-MM-DD), or null. For invoices, prefer the invoice date over the due date.
 - category: best matching expense category from this list: ${TRANSACTION_CATEGORIES.join(', ')}
 - vat_amount: the VAT (ضريبة القيمة المضافة) amount as a number, or null
+- vat_registration_number: the VAT registration number (الرقم الضريبي) of the vendor, or null
+- invoice_number: the invoice or receipt number, or null
+- payment_terms: payment terms if present (e.g. "Net 30", "Due on receipt"), or null
 - line_items: array of items or services, each with description, quantity, unit_price, total (use null for missing values). For multi-page documents, include items from all pages.
 - ai_confidence: a number between 0 and 1 representing your confidence in the extraction accuracy
+
+If the receipt appears handwritten, do your best to extract amounts and vendor. Flag low confidence by setting ai_confidence below 0.5. Handwritten receipts are common in Saudi markets and small shops.
 
 Category guidance:
 - REVENUE / OTHER_INCOME: for income receipts
@@ -77,9 +86,9 @@ Category guidance:
 - OTHER_EXPENSE: any other expense
 
 Additional guidance:
-- If an invoice number is visible, include it in the first line_item description prefixed with "Invoice #"
-- For invoices with payment terms (e.g. Net 30), note them in the last line_item description
 - Always extract the total amount even if individual line items are unclear
+- Look for VAT registration numbers (الرقم الضريبي) — they are typically 15-digit numbers starting with 3 in Saudi Arabia
+- Extract invoice numbers from headers or footers
 
 Return exactly this JSON structure:
 {
@@ -88,6 +97,9 @@ Return exactly this JSON structure:
   "date": "2025-01-15",
   "category": "SUPPLIES",
   "vat_amount": 15.00,
+  "vat_registration_number": "300012345600003",
+  "invoice_number": "INV-2025-001",
+  "payment_terms": "Net 30",
   "line_items": [
     { "description": "Item name", "quantity": 1, "unit_price": 100.00, "total": 100.00 }
   ],
@@ -101,6 +113,9 @@ function buildFallbackResponse(): ReceiptExtractionResult {
     date: null,
     category: 'OTHER_EXPENSE',
     vat_amount: null,
+    vat_registration_number: null,
+    invoice_number: null,
+    payment_terms: null,
     line_items: [],
     ai_confidence: 0,
   }
@@ -134,6 +149,9 @@ function parseClaudeResponse(text: string): ReceiptExtractionResult {
     date: parsed.date ?? null,
     category,
     vat_amount: typeof parsed.vat_amount === 'number' ? parsed.vat_amount : null,
+    vat_registration_number: parsed.vat_registration_number ?? null,
+    invoice_number: parsed.invoice_number ?? null,
+    payment_terms: parsed.payment_terms ?? null,
     line_items: Array.isArray(parsed.line_items) ? parsed.line_items : [],
     ai_confidence: Math.round(confidence * 100) / 100,
   }
@@ -189,14 +207,12 @@ export async function POST(request: Request) {
       )
     }
 
-    {
-      const rateCheck = await checkRateLimit(body.businessId)
-      if (!rateCheck.allowed) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded', remaining: 0, resetAt: rateCheck.resetAt },
-          { status: 429 }
-        )
-      }
+    const rateCheck = await checkRateLimit(body.businessId)
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', remaining: 0, limit: rateCheck.limit, resetAt: rateCheck.resetAt, tier: rateCheck.tier },
+        { status: 429, headers: buildRateLimitHeaders(rateCheck) }
+      )
     }
 
     const anthropic = new Anthropic()
@@ -227,7 +243,7 @@ export async function POST(request: Request) {
 
     const response = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [
         {
           role: 'user',
@@ -253,7 +269,7 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })
   } catch (error) {
     console.error('[API] analyze-receipt failed:', {
       userId,

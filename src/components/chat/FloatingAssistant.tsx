@@ -457,6 +457,7 @@ export default function FloatingAssistant() {
       <button
         type="button"
         onClick={handleToggle}
+        data-tour="chat"
         className={cn(
           'fixed z-50 flex h-12 w-12 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:bg-primary/90 hover:shadow-xl',
           'bottom-6 ltr:right-6 rtl:left-6 rtl:right-auto'

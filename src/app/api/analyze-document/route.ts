@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
+import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { DocumentType } from '@/lib/supabase/types'
 
@@ -54,6 +55,8 @@ interface ExtractedDocumentData {
 }
 
 const ANALYSIS_PROMPT = `You are an expert at reading Saudi Arabian government and business documents, including Arabic text.
+
+This may be a multi-page document. Extract data from ALL pages. For multi-page contracts or financial reports, summarize key terms from each section. Do not stop after the first page — process every page thoroughly.
 
 Extract EVERY piece of text and data visible in the document. Saudi government documents often contain critical information in both Arabic and English — extract both versions.
 
@@ -213,8 +216,8 @@ export async function POST(request: Request) {
     const rateCheck = await checkRateLimit(body.businessId)
     if (!rateCheck.allowed) {
       return NextResponse.json(
-        { error: 'Rate limit exceeded', remaining: 0, resetAt: rateCheck.resetAt },
-        { status: 429 }
+        { error: 'Rate limit exceeded', remaining: 0, limit: rateCheck.limit, resetAt: rateCheck.resetAt, tier: rateCheck.tier },
+        { status: 429, headers: buildRateLimitHeaders(rateCheck) }
       )
     }
 
@@ -278,7 +281,7 @@ export async function POST(request: Request) {
 
     const response = await anthropic.messages.create({
       model: CLAUDE_MODEL,
-      max_tokens: 2048,
+      max_tokens: 4096,
       messages: [
         {
           role: 'user',
@@ -297,7 +300,7 @@ export async function POST(request: Request) {
 
     const result = parseClaudeResponse(responseText)
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })
   } catch (error) {
     console.error('[API] analyze-document failed:', {
       userId,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
+import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import type { TransactionCategory, TransactionType } from '@/lib/supabase/types'
 
@@ -211,14 +212,12 @@ export async function POST(request: Request) {
       )
     }
 
-    {
-      const rateCheck = await checkRateLimit(body.businessId)
-      if (!rateCheck.allowed) {
-        return NextResponse.json(
-          { error: 'Rate limit exceeded', remaining: 0, resetAt: rateCheck.resetAt },
-          { status: 429 }
-        )
-      }
+    const rateCheck = await checkRateLimit(body.businessId)
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded', remaining: 0, limit: rateCheck.limit, resetAt: rateCheck.resetAt, tier: rateCheck.tier },
+        { status: 429, headers: buildRateLimitHeaders(rateCheck) }
+      )
     }
 
     const truncatedCsv = body.csvContent.length > MAX_CSV_CHARS
@@ -245,7 +244,7 @@ export async function POST(request: Request) {
 
     const result = parseClaudeResponse(responseText)
 
-    return NextResponse.json(result)
+    return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })
   } catch (error) {
     console.error('[API] parse-statement failed:', {
       userId,

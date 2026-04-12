@@ -19,6 +19,7 @@ import { SAUDI_BANKS } from '@/lib/bookkeeper/demo-data'
 import { ReviewQueue } from '@/components/bookkeeper/ReviewQueue'
 import { createClient } from '@/lib/supabase/client'
 import { checkDuplicateTransactions } from '@/lib/bookkeeper/duplicate-detection'
+import { recordCategoryCorrection } from '@/lib/bookkeeper/category-learning'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
 
 type UploadStep = 'select' | 'processing' | 'review'
@@ -270,9 +271,13 @@ export default function UploadStatementPage() {
   }, [])
 
   const handleChangeCategory = useCallback((id: string, category: TransactionCategory) => {
-    setTransactions((prev) =>
-      prev.map((tx) => (tx.id === id ? { ...tx, category } : tx))
-    )
+    setTransactions((prev) => {
+      const tx = prev.find((t) => t.id === id)
+      if (tx && tx.vendor_or_client && tx.category && tx.category !== category) {
+        recordCategoryCorrection(tx.vendor_or_client, tx.category, category)
+      }
+      return prev.map((t) => (t.id === id ? { ...t, category } : t))
+    })
   }, [])
 
   const handleSaveAll = useCallback(async () => {

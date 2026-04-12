@@ -241,6 +241,20 @@
       "success": "Success",
       "pending": "Pending",
       "analyzing": "Analyzing..."
+    },
+    "share": {
+      "title": "Share Document",
+      "subtitle": "Generate a time-limited link to share this document",
+      "expiry": "Link Expiry",
+      "oneHour": "1 hour",
+      "twentyFourHours": "24 hours",
+      "sevenDays": "7 days",
+      "generate": "Generate Link",
+      "generating": "Generating...",
+      "copyLink": "Copy Link",
+      "copied": "Copied!",
+      "linkReady": "Shareable link generated",
+      "error": "Failed to generate link"
     }
   },
   "calendar": {
@@ -442,6 +456,38 @@
       "expenses": "Expenses",
       "noData": "No transaction data for this period",
       "disclaimer": "This report is for estimation purposes only. Consult your accountant for official filings."
+    },
+    "reconciliation": {
+      "title": "Bank Reconciliation",
+      "subtitle": "Compare bank statement entries against manual transactions",
+      "reconcile": "Reconcile",
+      "matched": "Matched",
+      "unmatchedBank": "Unmatched (Bank)",
+      "unmatchedManual": "Unmatched (Manual)",
+      "noData": "Add both bank statement and manual transactions to reconcile",
+      "bankEntry": "Bank Entry",
+      "manualEntry": "Manual Entry",
+      "dateDiff": "Date diff",
+      "amountDiff": "Amount diff",
+      "day": "day",
+      "days": "days",
+      "verified": "Verified",
+      "markVerified": "Mark Verified",
+      "matchedCount": "{count} matched pairs",
+      "unmatchedBankCount": "{count} unmatched bank entries",
+      "unmatchedManualCount": "{count} unmatched manual entries"
+    },
+    "forecast": {
+      "title": "Cash Flow Forecast",
+      "subtitle": "Projected income vs expenses for the next 3 months",
+      "projectedBalance": "Projected Balance",
+      "currentBalance": "Current Balance",
+      "income": "Income",
+      "expenses": "Expenses",
+      "net": "Net",
+      "warningNegative": "Balance projected to go negative",
+      "noData": "Not enough transaction history to forecast",
+      "month": "Month"
     }
   },
   "common": {
@@ -540,7 +586,21 @@
     "weeklyActionItems": "Weekly Action Items",
     "weeklyOverdueAction": "{count} overdue obligations need immediate attention",
     "weeklyDueSoonAction": "{count} obligations are due soon",
-    "weeklyNextAction": "{name} is due on {date}"
+    "weeklyNextAction": "{name} is due on {date}",
+    "tourSkip": "Skip Tour",
+    "tourDone": "Done",
+    "tourWelcomeTitle": "Welcome to Mugdm!",
+    "tourWelcomeDesc": "This is your dashboard — your central hub for managing your Saudi micro-business. Let us show you around.",
+    "tourComplianceTitle": "Compliance Overview",
+    "tourComplianceDesc": "Track all your regulatory deadlines here — GOSI, ZATCA, CR renewals, and more. Never miss a filing date.",
+    "tourDocumentsTitle": "Document Status",
+    "tourDocumentsDesc": "See your document health at a glance. Valid, expiring soon, or expired — all tracked automatically.",
+    "tourFinancialsTitle": "Financial Summary",
+    "tourFinancialsDesc": "Your monthly money in and money out, with net position. Click to dive into your bookkeeper.",
+    "tourQuickActionsTitle": "Quick Actions",
+    "tourQuickActionsDesc": "Upload documents, log transactions, check your calendar, or view your profile — all one click away.",
+    "tourChatTitle": "AI Assistant",
+    "tourChatDesc": "Your AI-powered assistant. Ask anything about your business — compliance status, expenses, documents, and more."
   },
   "landing": {
     "hero": {
@@ -630,7 +690,17 @@
     "changePassword": "Change Password",
     "deleteAccount": "Delete Account",
     "deleteAccountWarning": "This action is permanent and cannot be undone.",
-    "settingsSaved": "Settings saved"
+    "settingsSaved": "Settings saved",
+    "dataManagement": "Data Management",
+    "exportAllData": "Export All Data",
+    "exportAllDataDesc": "Download all your business data as a JSON file",
+    "auditLog": "Activity Log",
+    "showAuditLog": "Show recent activity",
+    "hideAuditLog": "Hide activity log",
+    "noAuditLogs": "No activity recorded yet",
+    "deleteAccountConfirm": "This will permanently delete your account and all associated data. This action cannot be undone.",
+    "cancelDelete": "Cancel",
+    "confirmDelete": "Delete My Account"
   },
   "team": {
     "title": "Team",
@@ -674,7 +744,23 @@
     "increase": "Increase",
     "gosiSaudiTotal": "Saudi employees GOSI",
     "gosiNonSaudiTotal": "Non-Saudi employees GOSI",
-    "yearsMonths": "{years}y {months}m"
+    "yearsMonths": "{years}y {months}m",
+    "documents": "Documents",
+    "attachDocument": "Attach Document",
+    "noDocuments": "No documents attached",
+    "docType": {
+      "iqama": "Iqama Copy",
+      "contract": "Contract",
+      "certificate": "Certificate",
+      "other": "Other"
+    },
+    "salaryHistory": "Salary History",
+    "leaveBalance": "Leave Balance",
+    "recordLeave": "Record Leave",
+    "annualLeave": "Annual Leave",
+    "sickLeave": "Sick Leave",
+    "daysRemaining": "days remaining",
+    "daysTaken": "days taken"
   },
   "chat": {
     "title": "AI Assistant",

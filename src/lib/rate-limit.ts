@@ -2,12 +2,21 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 import type { Database } from '@/lib/supabase/types'
 
-const DAILY_LIMIT = 100
+export type SubscriptionTier = 'free' | 'pro' | 'business'
+
+/** Daily AI call limits per subscription tier */
+const TIER_LIMITS: Record<SubscriptionTier, number | null> = {
+  free: 50,
+  pro: 500,
+  business: null, // unlimited
+}
 
 export interface RateLimitResult {
   allowed: boolean
   remaining: number
+  limit: number | null
   resetAt: string
+  tier: SubscriptionTier
 }
 
 function getServiceRoleClient() {
@@ -26,6 +35,19 @@ function getResetAt(): string {
   tomorrow.setUTCDate(tomorrow.getUTCDate() + 1)
   tomorrow.setUTCHours(0, 0, 0, 0)
   return tomorrow.toISOString()
+}
+
+async function getSubscriptionTier(businessId: string): Promise<SubscriptionTier> {
+  const supabase = getServiceRoleClient()
+  const { data } = await supabase
+    .from('businesses')
+    .select('subscription_tier')
+    .eq('id', businessId)
+    .maybeSingle<{ subscription_tier: string | null }>()
+
+  const tier = data?.subscription_tier as SubscriptionTier | null
+  if (tier && tier in TIER_LIMITS) return tier
+  return 'free'
 }
 
 async function countTodayAICalls(businessId: string): Promise<number> {
@@ -52,13 +74,32 @@ async function countTodayAICalls(businessId: string): Promise<number> {
 }
 
 export async function checkRateLimit(businessId: string): Promise<RateLimitResult> {
-  const used = await countTodayAICalls(businessId)
-  const remaining = Math.max(0, DAILY_LIMIT - used)
+  const [tier, used] = await Promise.all([
+    getSubscriptionTier(businessId),
+    countTodayAICalls(businessId),
+  ])
+
+  const dailyLimit = TIER_LIMITS[tier]
   const resetAt = getResetAt()
 
+  // Business tier has unlimited calls
+  if (dailyLimit === null) {
+    return {
+      allowed: true,
+      remaining: Infinity,
+      limit: null,
+      resetAt,
+      tier,
+    }
+  }
+
+  const remaining = Math.max(0, dailyLimit - used)
+
   return {
-    allowed: used < DAILY_LIMIT,
+    allowed: used < dailyLimit,
     remaining,
+    limit: dailyLimit,
     resetAt,
+    tier,
   }
 }

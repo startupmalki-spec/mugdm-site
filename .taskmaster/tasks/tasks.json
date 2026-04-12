@@ -534,8 +534,9 @@
         "dependencies": [
           "4"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:33:57.532Z"
       },
       {
         "id": "6",
@@ -559,8 +560,9 @@
         "dependencies": [
           "6"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:34:15.719Z"
       },
       {
         "id": "8",
@@ -604,8 +606,9 @@
           "7",
           "9"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:34:32.914Z"
       },
       {
         "id": "11",
@@ -894,8 +897,9 @@
         "testStrategy": "1. Extraction testing: Upload various CR formats (PDF, image) and verify accurate extraction\n2. Animation testing: Confirm field population animations trigger smoothly without flicker\n3. Real-time testing: Verify extraction progress updates in real-time during processing\n4. Skip flow testing: Test \"Skip to Dashboard\" functionality and ensure user lands on dashboard correctly\n5. Error handling: Test partial extraction scenarios and manual override capability\n6. Performance testing: Measure extraction time and ensure UI remains responsive",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:34:54.379Z"
       },
       {
         "id": "35",
@@ -918,8 +922,9 @@
         "testStrategy": "1. Empty state display: Verify enhanced empty states render correctly on all pages\n2. Demo data testing: Test \"Try Demo Data\" button populates realistic sample data\n3. Clear demo testing: Verify \"Clear Demo Data\" removes all demo content without affecting real data\n4. Screenshot testing: Confirm example screenshots load and display properly\n5. Translation testing: Verify all empty state content is properly translated\n6. State management: Test that demo data flag persists and is respected across sessions\n7. Edge case: Test behavior when user has mix of real and demo data",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:35:20.164Z"
       },
       {
         "id": "37",
@@ -1117,9 +1122,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-12T12:18:34.622Z",
+      "lastModified": "2026-04-12T12:35:20.168Z",
       "taskCount": 50,
-      "completedCount": 15,
+      "completedCount": 20,
       "tags": [
         "master"
       ]

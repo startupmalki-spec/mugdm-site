@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useCallback, useEffect, useRef, type ChangeEvent } from 'react'
+import dynamic from 'next/dynamic'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { motion } from 'framer-motion'
@@ -30,22 +31,35 @@ import {
   BarChart3,
   FileSpreadsheet,
   ChevronDown,
+  GitCompareArrows,
+  AlertTriangle,
+  TrendingUpDown,
+  CheckCircle2,
+  ShieldCheck,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  AreaChart,
-  Area,
   Tooltip as RechartsTooltip,
 } from 'recharts'
+
+const BookkeeperCharts = dynamic(
+  () => import('@/components/bookkeeper/BookkeeperCharts'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="h-72 animate-pulse rounded-xl bg-muted" />
+        <div className="h-72 animate-pulse rounded-xl bg-muted" />
+      </div>
+    ),
+  }
+)
 import { startOfMonth, subMonths, startOfYear, endOfDay } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
@@ -64,6 +78,14 @@ import {
   calculateMonthlyRecurringCost,
   type RecurringPattern,
 } from '@/lib/bookkeeper/recurring-detection'
+import {
+  reconcileTransactions,
+  type ReconciliationResult,
+} from '@/lib/bookkeeper/reconciliation'
+import {
+  forecastCashFlow,
+  type CashFlowForecast,
+} from '@/lib/bookkeeper/forecast'
 import {
   exportTransactionsToExcel,
   downloadBlob,
@@ -189,6 +211,10 @@ export default function BookkeeperPage() {
   const [plPeriod, setPlPeriod] = useState<PeriodKey>('this_year')
   const [plReport, setPlReport] = useState<ProfitLossData | null>(null)
   const [activeReportTab, setActiveReportTab] = useState<'vat' | 'pl'>('vat')
+
+  // Reconciliation state
+  const [reconciliationResult, setReconciliationResult] = useState<ReconciliationResult | null>(null)
+  const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set())
 
   const { toasts, showToast, dismissToast } = useToast()
 
@@ -541,6 +567,31 @@ export default function BookkeeperPage() {
     window.print()
   }, [])
 
+  // --- Reconciliation ---
+  const handleReconcile = useCallback(() => {
+    const bankTx = transactions.filter(
+      (tx) => tx.source === 'BANK_STATEMENT_CSV' || tx.source === 'BANK_STATEMENT_PDF'
+    )
+    const manualTx = transactions.filter((tx) => tx.source === 'MANUAL')
+    const result = reconcileTransactions(bankTx, manualTx)
+    setReconciliationResult(result)
+    setVerifiedIds(new Set())
+  }, [transactions])
+
+  const handleMarkVerified = useCallback((id: string) => {
+    setVerifiedIds((prev) => {
+      const next = new Set(prev)
+      next.add(id)
+      return next
+    })
+  }, [])
+
+  // --- Cash Flow Forecast ---
+  const cashFlowForecast = useMemo<CashFlowForecast | null>(() => {
+    if (transactions.length === 0) return null
+    return forecastCashFlow(transactions, 3)
+  }, [transactions])
+
   const sarLabel = tCommon('sar')
 
   if (isLoading) {
@@ -738,108 +789,69 @@ export default function BookkeeperPage() {
           </motion.div>
         </div>
 
-        {/* Charts Section */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Category Breakdown - Donut Chart */}
+        {/* Charts Section - lazy loaded to reduce initial bundle size */}
+        <BookkeeperCharts
+          locale={locale}
+          sarLabel={sarLabel}
+          categoryBreakdown={categoryBreakdown}
+          totalExpenses={totalExpenses}
+          monthlyTrend={monthlyTrend}
+          cashFlow={cashFlow}
+        />
+
+        {/* Cash Flow Forecast Card */}
+        {cashFlowForecast && cashFlowForecast.projections.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.55 }}
             className="rounded-xl border border-border bg-card p-5"
           >
-            <h3 className="mb-4 text-sm font-semibold text-foreground">
-              {locale === 'ar' ? 'توزيع المصروفات' : 'Expense Breakdown'}
-            </h3>
-            {categoryBreakdown.length === 0 ? (
-              <div className="flex h-52 items-center justify-center text-sm text-muted-foreground">
-                {locale === 'ar' ? 'لا توجد بيانات للفترة المحددة' : 'No data for selected period'}
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUpDown className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">{t('forecast.title')}</h3>
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4 sm:flex-row">
-                <div className="relative h-52 w-52 shrink-0">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryBreakdown}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={80}
-                        paddingAngle={3}
-                        dataKey="amount"
-                        strokeWidth={0}
-                      >
-                        {categoryBreakdown.map((entry) => (
-                          <Cell key={entry.category} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.[0]) return null
-                          const data = payload[0].payload as { category: TransactionCategory; amount: number }
-                          return (
-                            <div className="rounded-lg border border-border bg-surface-1 px-3 py-2 text-xs shadow-xl">
-                              <p className="font-medium text-foreground">
-                                {CATEGORY_LABEL_MAP[data.category][locale === 'ar' ? 'ar' : 'en']}
-                              </p>
-                              <p className="text-muted-foreground" dir="ltr">
-                                {formatSAR(data.amount)} {sarLabel}
-                              </p>
-                            </div>
-                          )
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  {/* Center Label */}
-                  <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                    <p className="text-xs text-muted-foreground">
-                      {locale === 'ar' ? 'الإجمالي' : 'Total'}
-                    </p>
-                    <p className="text-base font-bold tabular-nums text-foreground" dir="ltr">
-                      {formatSAR(totalExpenses)}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="rounded-lg bg-surface-1 px-3 py-1">
+                  <span className="text-xs text-muted-foreground">
+                    {t('forecast.currentBalance')}:{' '}
+                    <span className={cn('font-medium tabular-nums', cashFlowForecast.currentBalance >= 0 ? 'text-foreground' : 'text-red-400')} dir="ltr">
+                      {formatSAR(cashFlowForecast.currentBalance, locale)}
+                    </span>{' '}
+                    {sarLabel}
+                  </span>
                 </div>
+                <div className={cn(
+                  'rounded-lg px-3 py-1',
+                  cashFlowForecast.projectedBalance >= 0 ? 'bg-primary/10' : 'bg-red-500/10'
+                )}>
+                  <span className="text-xs font-medium">
+                    <span className={cashFlowForecast.projectedBalance >= 0 ? 'text-primary' : 'text-red-400'}>
+                      {t('forecast.projectedBalance')}:{' '}
+                      <span className="tabular-nums" dir="ltr">{formatSAR(cashFlowForecast.projectedBalance, locale)}</span>{' '}
+                      {sarLabel}
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                {/* Legend */}
-                <div className="flex flex-wrap gap-x-4 gap-y-2">
-                  {categoryBreakdown.slice(0, 8).map((item) => (
-                    <div key={item.category} className="flex items-center gap-1.5">
-                      <div
-                        className="h-2.5 w-2.5 rounded-full"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {CATEGORY_LABEL_MAP[item.category][locale === 'ar' ? 'ar' : 'en']}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {cashFlowForecast.goesNegative && (
+              <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
+                <span className="text-xs font-medium text-red-400">{t('forecast.warningNegative')}</span>
               </div>
             )}
-          </motion.div>
 
-          {/* Monthly Trend - Bar Chart */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="rounded-xl border border-border bg-card p-5"
-          >
-            <h3 className="mb-4 text-sm font-semibold text-foreground">
-              {locale === 'ar' ? 'الاتجاه الشهري' : 'Monthly Trend'}
-            </h3>
+            <p className="mb-4 text-xs text-muted-foreground">{t('forecast.subtitle')}</p>
+
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={monthlyTrend} barGap={4}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke={CHART_THEME.gridColor}
-                    vertical={false}
-                  />
+                <BarChart data={cashFlowForecast.projections} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CHART_THEME.gridColor} vertical={false} />
                   <XAxis
-                    dataKey="month"
+                    dataKey="label"
                     tick={{ fill: CHART_THEME.textColor, fontSize: 11 }}
                     axisLine={false}
                     tickLine={false}
@@ -861,101 +873,28 @@ export default function BookkeeperPage() {
                     labelStyle={{ color: '#e8e8f0' }}
                     formatter={(value, name) => [
                       `${formatSAR(Number(value))} ${sarLabel}`,
-                      name === 'income'
-                        ? (locale === 'ar' ? 'الإيرادات' : 'Income')
-                        : (locale === 'ar' ? 'المصروفات' : 'Expenses'),
+                      name === 'projectedIncome'
+                        ? t('forecast.income')
+                        : t('forecast.expenses'),
                     ]}
                   />
-                  <Bar dataKey="income" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={32} />
-                  <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                  <Bar dataKey="projectedIncome" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={32} name="projectedIncome" />
+                  <Bar dataKey="projectedExpenses" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} name="projectedExpenses" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            {/* Inline Legend */}
             <div className="mt-3 flex items-center justify-center gap-6">
               <div className="flex items-center gap-1.5">
                 <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                <span className="text-xs text-muted-foreground">
-                  {locale === 'ar' ? 'الإيرادات' : 'Income'}
-                </span>
+                <span className="text-xs text-muted-foreground">{t('forecast.income')}</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
-                <span className="text-xs text-muted-foreground">
-                  {locale === 'ar' ? 'المصروفات' : 'Expenses'}
-                </span>
+                <span className="text-xs text-muted-foreground">{t('forecast.expenses')}</span>
               </div>
             </div>
           </motion.div>
-        </div>
-
-        {/* Cash Flow Chart - Full Width */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="rounded-xl border border-border bg-card p-5"
-        >
-          <h3 className="mb-4 text-sm font-semibold text-foreground">
-            {locale === 'ar' ? 'التدفق النقدي' : 'Cash Flow'}
-          </h3>
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={cashFlow}>
-                <defs>
-                  <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#5b5bff" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#5b5bff" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke={CHART_THEME.gridColor}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fill: CHART_THEME.textColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: string) => {
-                    const d = new Date(v)
-                    return `${d.getMonth() + 1}/${d.getDate()}`
-                  }}
-                  interval="preserveStartEnd"
-                  minTickGap={40}
-                />
-                <YAxis
-                  tick={{ fill: CHART_THEME.textColor, fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
-                  width={45}
-                />
-                <RechartsTooltip
-                  contentStyle={{
-                    backgroundColor: CHART_THEME.tooltipBg,
-                    border: `1px solid ${CHART_THEME.tooltipBorder}`,
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                  labelStyle={{ color: '#e8e8f0' }}
-                  formatter={(value) => [
-                    `${formatSAR(Number(value))} ${sarLabel}`,
-                    locale === 'ar' ? 'الرصيد' : 'Balance',
-                  ]}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="balance"
-                  stroke="#5b5bff"
-                  strokeWidth={2}
-                  fill="url(#balanceGradient)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+        )}
 
         {/* VAT Estimation Card */}
         <motion.div
@@ -1135,6 +1074,156 @@ export default function BookkeeperPage() {
                   </button>
                 </motion.div>
               ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Bank Reconciliation Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.67 }}
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GitCompareArrows className="h-4 w-4 text-primary" />
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{t('reconciliation.title')}</h3>
+                <p className="text-xs text-muted-foreground">{t('reconciliation.subtitle')}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleReconcile}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              {t('reconciliation.reconcile')}
+            </button>
+          </div>
+
+          {!reconciliationResult ? (
+            <div className="py-8 text-center">
+              <GitCompareArrows className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-3 text-sm text-muted-foreground">{t('reconciliation.noData')}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Summary badges */}
+              <div className="flex flex-wrap gap-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-1 text-xs font-medium text-green-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {t('reconciliation.matchedCount', { count: reconciliationResult.matched.length })}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-400">
+                  {t('reconciliation.unmatchedBankCount', { count: reconciliationResult.unmatchedBank.filter((tx) => !verifiedIds.has(tx.id)).length })}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-400">
+                  {t('reconciliation.unmatchedManualCount', { count: reconciliationResult.unmatchedManual.filter((tx) => !verifiedIds.has(tx.id)).length })}
+                </span>
+              </div>
+
+              {/* Matched pairs */}
+              {reconciliationResult.matched.length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold text-green-400">{t('reconciliation.matched')}</h4>
+                  <div className="space-y-2">
+                    {reconciliationResult.matched.map((match) => (
+                      <div
+                        key={`${match.bankTransaction.id}-${match.manualTransaction.id}`}
+                        className="flex flex-col gap-2 rounded-lg border border-green-500/20 bg-green-500/5 p-3 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="font-medium text-foreground">{t('reconciliation.bankEntry')}:</span>
+                            <span className="text-muted-foreground" dir="ltr">{match.bankTransaction.date}</span>
+                            <span className="font-medium tabular-nums text-foreground" dir="ltr">{formatSAR(match.bankTransaction.amount)}</span>
+                            <span className="truncate text-muted-foreground">{match.bankTransaction.description}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="font-medium text-foreground">{t('reconciliation.manualEntry')}:</span>
+                            <span className="text-muted-foreground" dir="ltr">{match.manualTransaction.date}</span>
+                            <span className="font-medium tabular-nums text-foreground" dir="ltr">{formatSAR(match.manualTransaction.amount)}</span>
+                            <span className="truncate text-muted-foreground">{match.manualTransaction.description}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                          <span>{t('reconciliation.dateDiff')}: {match.dateDiffDays.toFixed(1)} {match.dateDiffDays <= 1 ? t('reconciliation.day') : t('reconciliation.days')}</span>
+                          <span>{t('reconciliation.amountDiff')}: {match.amountDiffPercent.toFixed(1)}%</span>
+                          <Check className="h-4 w-4 text-green-400" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unmatched bank entries */}
+              {reconciliationResult.unmatchedBank.filter((tx) => !verifiedIds.has(tx.id)).length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold text-amber-400">{t('reconciliation.unmatchedBank')}</h4>
+                  <div className="space-y-2">
+                    {reconciliationResult.unmatchedBank
+                      .filter((tx) => !verifiedIds.has(tx.id))
+                      .map((tx) => (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 p-3"
+                        >
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="text-muted-foreground" dir="ltr">{tx.date}</span>
+                            <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                              {tx.type === 'INCOME' ? '+' : '-'}{formatSAR(tx.amount)}
+                            </span>
+                            <span className="truncate text-muted-foreground">{tx.description}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleMarkVerified(tx.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20"
+                          >
+                            <ShieldCheck className="h-3 w-3" />
+                            {t('reconciliation.markVerified')}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Unmatched manual entries */}
+              {reconciliationResult.unmatchedManual.filter((tx) => !verifiedIds.has(tx.id)).length > 0 && (
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold text-red-400">{t('reconciliation.unmatchedManual')}</h4>
+                  <div className="space-y-2">
+                    {reconciliationResult.unmatchedManual
+                      .filter((tx) => !verifiedIds.has(tx.id))
+                      .map((tx) => (
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between rounded-lg border border-red-500/20 bg-red-500/5 p-3"
+                        >
+                          <div className="flex items-center gap-3 text-xs">
+                            <span className="text-muted-foreground" dir="ltr">{tx.date}</span>
+                            <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                              {tx.type === 'INCOME' ? '+' : '-'}{formatSAR(tx.amount)}
+                            </span>
+                            <span className="truncate text-muted-foreground">{tx.description}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleMarkVerified(tx.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-[10px] font-medium text-red-400 transition-colors hover:bg-red-500/20"
+                          >
+                            <ShieldCheck className="h-3 w-3" />
+                            {t('reconciliation.markVerified')}
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </motion.div>
