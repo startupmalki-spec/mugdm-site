@@ -22,7 +22,7 @@
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
     "fullName": "Full name",
-    "fullNamePlaceholder": "Mohammed Al-Otaibi",
+    "fullNamePlaceholder": "Enter your full name",
     "sendMagicLink": "Send Magic Link",
     "magicLinkSent": "Magic link sent! Check your email.",
     "magicLinkDescription": "We sent a sign-in link to your email. Click it to access your account.",

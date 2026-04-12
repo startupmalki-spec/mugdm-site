@@ -45,10 +45,10 @@ export function Contact() {
             Contact
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            Ready to <span className="text-gradient">build</span>?
+            Ready to run your business <span className="text-gradient">smarter</span>?
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Tell us about your project. We&apos;ll get back to you within 24 hours.
+            Questions, feedback, or just want to say hello — we&apos;ll get back to you within 24 hours.
           </p>
         </Reveal>
 
@@ -103,7 +103,7 @@ export function Contact() {
                 />
               </div>
               <textarea
-                placeholder="Tell us about your project..."
+                placeholder="Tell us about your business..."
                 required
                 rows={5}
                 value={formData.message}

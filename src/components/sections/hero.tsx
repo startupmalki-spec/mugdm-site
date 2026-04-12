@@ -192,12 +192,12 @@ export function Hero() {
             className="w-1.5 h-1.5 rounded-full bg-primary"
             style={{ animation: "pulse 2s infinite" }}
           />
-          AI-Powered Compliance Platform
+          Your Business&apos;s Second Brain
         </div>
 
         {/* Headline */}
         <h1 className="text-[clamp(40px,6vw,76px)] font-extrabold tracking-[-0.04em] leading-[1.08] mb-6">
-          <AnimatedText text="Your business compliance." delay={0.2} as="span" className="block" />
+          <AnimatedText text="Everything Your Business Needs." delay={0.2} as="span" className="block" />
           <span
             className="text-gradient block"
             style={{
@@ -205,7 +205,7 @@ export function Hero() {
               animation: "gradient-shift 4s ease infinite",
             }}
           >
-            <AnimatedText text="On autopilot." delay={0.6} as="span" />
+            <AnimatedText text="One Place." delay={0.6} as="span" />
           </span>
         </h1>
 
@@ -214,8 +214,7 @@ export function Hero() {
           className="text-[clamp(16px,2vw,20px)] text-muted-foreground max-w-[640px] mx-auto mb-10 leading-relaxed opacity-0"
           style={{ animation: "fade-up 0.8s ease-out 0.3s forwards" }}
         >
-          Mugdm manages your CR renewals, GOSI payments, VAT filings, document tracking, and
-          bookkeeping — so you can focus on growing your business.
+          Mugdm handles your documents, deadlines, bookkeeping, and team — so you can focus on what matters: growing your business. Think of it as an AI-powered COO that never sleeps.
         </p>
 
         {/* CTAs */}

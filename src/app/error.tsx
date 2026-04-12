@@ -36,9 +36,9 @@ export default function Error({
             <Image
               src="/brand/2-transparent.png"
               alt="Mugdm"
-              width={160}
-              height={48}
-              className="h-10 w-auto"
+              width={200}
+              height={56}
+              className="h-14 w-auto"
               priority
             />
           </Link>

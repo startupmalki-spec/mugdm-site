@@ -5,9 +5,18 @@ import { Reveal, StaggerContainer, StaggerItem, TiltCard, Counter, FloatingEleme
 
 const differentiators = [
   {
+    icon: Zap,
+    title: "Affordable, Not Cheap",
+    description: "A fraction of the cost of hiring a COO or accountant. Mugdm gives you enterprise-grade operations at a price that makes sense for small businesses.",
+    counterTarget: 90,
+    counterPrefix: "",
+    counterSuffix: "%",
+    statLabel: "Cheaper",
+  },
+  {
     icon: Brain,
-    title: "AI-Powered Analysis",
-    description: "Claude AI reads your documents, parses bank statements, and categorizes transactions. No manual data entry.",
+    title: "AI That Actually Works",
+    description: "Not a chatbot. Mugdm's AI reads your documents, categorizes transactions, and flags what needs attention — no manual data entry, no prompts to write.",
     counterTarget: 100,
     counterPrefix: "",
     counterSuffix: "%",
@@ -15,22 +24,15 @@ const differentiators = [
   },
   {
     icon: Shield,
-    title: "Built for Saudi Arabia",
-    description: "GOSI, ZATCA, Balady, Chamber of Commerce — we know every Saudi compliance requirement inside and out.",
-    stat: "🇸🇦",
+    title: "Knows Saudi Regulations",
+    description: "GOSI, ZATCA, Balady, Chamber of Commerce, CR renewals — built with deep knowledge of every Saudi compliance requirement. No generic templates.",
+    stat: "\uD83C\uDDF8\uD83C\uDDE6",
     statLabel: "Saudi",
   },
   {
     icon: Globe,
-    title: "Fully Bilingual",
-    description: "Complete Arabic and English support with RTL layout. Hijri and Gregorian dates side by side.",
-    stat: "عربي",
-    statLabel: "& EN",
-  },
-  {
-    icon: Zap,
-    title: "All-in-One Platform",
-    description: "Documents, compliance, bookkeeping, and team management. Replace 5 tools with one simple dashboard.",
+    title: "Replaces 5+ Tools",
+    description: "Document storage, compliance tracking, bookkeeping, team management, reminders — all in one bilingual dashboard with Arabic, English, Hijri, and Gregorian dates.",
     counterTarget: 5,
     counterPrefix: "",
     counterSuffix: "+",
@@ -50,10 +52,10 @@ export function Why() {
             Why Mugdm
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            Built for <span className="text-gradient">Saudi businesses</span>
+            Built by a Saudi founder, for <span className="text-gradient">Saudi businesses</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Every feature designed for the reality of running a micro-enterprise in Saudi Arabia.
+            The smartest investment you&apos;ll make for your business. Here&apos;s why.
           </p>
         </Reveal>
 

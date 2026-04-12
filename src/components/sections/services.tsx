@@ -7,22 +7,22 @@ const features = [
   {
     icon: FileText,
     title: "Document Vault",
-    description: "Upload and track all your government documents — CR, GOSI certificates, Zakat clearance, insurance. AI auto-detects type and expiry dates.",
+    description: "Never lose a document again. Upload your CR, GOSI certificates, Zakat clearance, and insurance once — access anywhere, and get reminded before anything expires.",
   },
   {
     icon: CalendarCheck,
     title: "Compliance Calendar",
-    description: "Auto-generated deadlines for GOSI, ZATCA VAT, CR renewal, Zakat filing. Never miss a government deadline again.",
+    description: "GOSI, ZATCA VAT, CR renewal, Zakat filing — every deadline tracked and every reminder sent automatically. Sleep easy knowing nothing slips through the cracks.",
   },
   {
     icon: Receipt,
     title: "AI Bookkeeper",
-    description: "Upload bank statements or snap receipt photos. Claude AI parses transactions, detects government payments, and estimates your VAT.",
+    description: "Snap a receipt, upload a bank statement — done. AI categorizes every transaction, flags government payments, and keeps your VAT numbers ready before ZATCA asks.",
   },
   {
     icon: Users,
     title: "Team Management",
-    description: "Track employees, Iqama numbers, and your Saudization ratio. Stay compliant with Ministry of Labor requirements.",
+    description: "Track employees, Iqama renewals, and your Saudization ratio in one place. Stay ahead of Ministry of Labor requirements without the spreadsheet chaos.",
   },
 ];
 
@@ -39,10 +39,10 @@ export function Services() {
             Features
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            Everything your business <span className="text-gradient">needs</span>
+            Stop juggling. <span className="text-gradient">Start growing.</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            One platform to manage compliance, documents, finances, and team — built for Saudi micro-enterprises.
+            Documents, deadlines, bookkeeping, and team — handled by one AI-powered platform so you can focus on what actually makes you money.
           </p>
         </Reveal>
 

@@ -22,7 +22,7 @@
     "password": "كلمة المرور",
     "passwordPlaceholder": "أدخل كلمة المرور",
     "fullName": "الاسم الكامل",
-    "fullNamePlaceholder": "محمد العتيبي",
+    "fullNamePlaceholder": "أدخل اسمك الكامل",
     "sendMagicLink": "إرسال رابط الدخول",
     "magicLinkSent": "تم إرسال الرابط! تحقق من بريدك الإلكتروني.",
     "magicLinkDescription": "أرسلنا رابط دخول إلى بريدك الإلكتروني. اضغط عليه للدخول إلى حسابك.",

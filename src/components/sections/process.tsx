@@ -8,25 +8,25 @@ const steps = [
     icon: UserPlus,
     step: "01",
     title: "Sign Up",
-    description: "Create your account with just an email. Magic link login — no passwords to remember.",
+    description: "One email, one click. No passwords, no friction — you're in.",
   },
   {
     icon: Upload,
     step: "02",
     title: "Upload Your CR",
-    description: "Upload your Commercial Registration. Our AI reads it and sets up your business profile automatically.",
+    description: "Drop in your Commercial Registration. AI reads it, extracts your details, and builds your business profile instantly.",
   },
   {
     icon: CalendarCheck,
     step: "03",
     title: "Auto-Generate Obligations",
-    description: "Mugdm creates your compliance calendar — GOSI, ZATCA, Chamber renewal — all with the right deadlines.",
+    description: "Mugdm maps out every obligation — GOSI, ZATCA, Chamber renewal — and sets the exact deadlines. You didn't have to look up a single one.",
   },
   {
     icon: Shield,
     step: "04",
-    title: "Stay Compliant",
-    description: "Get reminders before deadlines. Upload statements for bookkeeping. Focus on your business, not paperwork.",
+    title: "Run Your Business",
+    description: "Reminders before every deadline. Bookkeeping on autopilot. You run the business — Mugdm runs the back office.",
   },
 ];
 
@@ -39,10 +39,10 @@ export function Process() {
             How It Works
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            Up and running in <span className="text-gradient">minutes</span>
+            From zero to <span className="text-gradient">smarter</span> in 3 minutes
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            From signup to full compliance dashboard in under 5 minutes.
+            No training. No onboarding calls. Just sign up and let Mugdm do the heavy lifting.
           </p>
         </Reveal>
 

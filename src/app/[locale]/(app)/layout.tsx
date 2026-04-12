@@ -82,22 +82,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         className="fixed inset-y-0 z-30 hidden w-[280px] flex-col border-border bg-surface-1 lg:flex ltr:left-0 ltr:border-r rtl:right-0 rtl:border-l"
       >
         {/* Logo */}
-        <div className="flex h-16 items-center border-b border-border px-5">
-          <Link href="/dashboard" className="flex items-center">
+        <div className="flex h-20 items-center border-b border-border px-5">
+          <Link href="/" className="flex items-center">
             <Image
               src="/brand/1-transparent.png"
               alt="Mugdm"
-              width={120}
-              height={36}
-              className="hidden h-8 w-auto dark:block"
+              width={160}
+              height={48}
+              className="hidden h-12 w-auto dark:block"
               priority
             />
             <Image
               src="/brand/2-transparent.png"
               alt="Mugdm"
-              width={120}
-              height={36}
-              className="h-8 w-auto dark:hidden"
+              width={160}
+              height={48}
+              className="h-12 w-auto dark:hidden"
               priority
             />
           </Link>
@@ -171,21 +171,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         }`}
       >
         {/* Mobile Logo + Close */}
-        <div className="flex h-16 items-center justify-between border-b border-border px-5">
-          <Link href="/dashboard" className="flex items-center">
+        <div className="flex h-20 items-center justify-between border-b border-border px-5">
+          <Link href="/" className="flex items-center">
             <Image
               src="/brand/1-transparent.png"
               alt="Mugdm"
-              width={100}
-              height={30}
-              className="hidden h-7 w-auto dark:block"
+              width={140}
+              height={40}
+              className="hidden h-10 w-auto dark:block"
             />
             <Image
               src="/brand/2-transparent.png"
               alt="Mugdm"
-              width={100}
-              height={30}
-              className="h-7 w-auto dark:hidden"
+              width={140}
+              height={40}
+              className="h-10 w-auto dark:hidden"
             />
           </Link>
           <button

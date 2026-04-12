@@ -23,10 +23,10 @@ export function About() {
             <span className="text-gradient font-medium">مقدم</span> (Mugdm) means &ldquo;the one who provides and delivers&rdquo; in Arabic.
           </p>
           <p className="text-base text-muted-foreground leading-relaxed mb-4">
-            Mugdm is a compliance platform built specifically for Saudi micro-enterprises — the 700,000+ small businesses that struggle with compliance paperwork, government portals, and financial record-keeping every day.
+            Mugdm is the AI-powered second brain for Saudi entrepreneurs — built for the 700,000+ small businesses drowning in government portals, scattered documents, missed deadlines, and manual bookkeeping.
           </p>
           <p className="text-base text-muted-foreground leading-relaxed mb-8">
-            Founded by <span className="text-foreground font-medium">Mohammed Malki</span>, Mugdm brings together AI-powered document analysis, bilingual support, and deep knowledge of Saudi regulations into one simple dashboard.
+            Founded by <span className="text-foreground font-medium">Mohammed Malki</span>, Mugdm brings together a document vault, compliance calendar, AI bookkeeper, and team management into one bilingual dashboard — so you can stop juggling and start growing.
           </p>
 
           <a

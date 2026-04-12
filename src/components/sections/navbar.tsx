@@ -35,17 +35,17 @@ export function Navbar() {
           <Image
             src="/brand/1-transparent.png"
             alt="Mugdm"
-            width={130}
-            height={40}
-            className="hidden h-9 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
+            width={200}
+            height={56}
+            className="hidden h-14 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
             priority
           />
           <Image
             src="/brand/2-transparent.png"
             alt="Mugdm"
-            width={130}
-            height={40}
-            className="h-9 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
+            width={200}
+            height={56}
+            className="h-14 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
             priority
           />
         </a>
