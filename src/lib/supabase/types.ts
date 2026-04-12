@@ -216,7 +216,6 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<Business, 'id'>>
-
       }
       team_members: {
         Row: TeamMember
@@ -226,7 +225,6 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<TeamMember, 'id'>>
-
       }
       documents: {
         Row: Document
@@ -237,7 +235,6 @@ export interface Database {
           previous_version_id?: string | null
         }
         Update: Partial<Omit<Document, 'id'>>
-
       }
       obligations: {
         Row: Obligation
@@ -247,7 +244,6 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<Obligation, 'id'>>
-
       }
       transactions: {
         Row: Transaction
@@ -256,7 +252,6 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<Transaction, 'id'>>
-
       }
       bank_statement_uploads: {
         Row: BankStatementUpload
@@ -265,7 +260,6 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<BankStatementUpload, 'id'>>
-
       }
       generated_documents: {
         Row: GeneratedDocument
@@ -274,7 +268,6 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<GeneratedDocument, 'id'>>
-
       }
       chat_conversations: {
         Row: ChatConversation
@@ -284,7 +277,6 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Omit<ChatConversation, 'id'>>
-
       }
       chat_messages: {
         Row: ChatMessage
@@ -293,7 +285,6 @@ export interface Database {
           created_at?: string
         }
         Update: Partial<Omit<ChatMessage, 'id'>>
-
       }
     }
   }

@@ -6,6 +6,7 @@
     "vault": "خزينة المستندات",
     "calendar": "تقويم الالتزامات",
     "bookkeeper": "المحاسب الذكي",
+    "chat": "المحادثة",
     "settings": "الإعدادات",
     "logout": "تسجيل الخروج",
     "help": "المساعدة والدعم"
@@ -520,6 +521,21 @@
     "memberRemoved": "تم إزالة العضو",
     "noMembers": "لا يوجد أعضاء في الفريق بعد",
     "noMembersDescription": "ادعُ محاسبك أو شريكك أو مُعقّبك للتعاون"
+  },
+  "chat": {
+    "title": "المساعد الذكي",
+    "conversations": "المحادثات",
+    "newConversation": "محادثة جديدة",
+    "noConversations": "لا توجد محادثات بعد",
+    "toggleSidebar": "إظهار/إخفاء القائمة",
+    "startConversation": "كيف يمكنني مساعدتك؟",
+    "startDescription": "اسألني عن بيانات نشاطك التجاري أو المستندات أو الالتزامات أو الشؤون المالية.",
+    "suggestedCompliance": "ما حالة التزاماتي؟",
+    "suggestedExpenses": "أظهر مصروفاتي هذا الشهر",
+    "suggestedUpload": "رفع ملف إكسل",
+    "inputPlaceholder": "اكتب رسالتك...",
+    "uploadFile": "رفع ملف",
+    "errorOccurred": "حدث خطأ. يرجى المحاولة مرة أخرى."
   },
   "emptyStates": {
     "noDocuments": "لا توجد مستندات بعد",

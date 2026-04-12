@@ -13,6 +13,7 @@ import {
   FolderArchive,
   CalendarDays,
   Calculator,
+  MessageSquare,
   Settings,
   Menu,
   X,
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/vault', labelKey: 'vault', icon: FolderArchive },
   { href: '/calendar', labelKey: 'calendar', icon: CalendarDays },
   { href: '/bookkeeper', labelKey: 'bookkeeper', icon: Calculator },
+  { href: '/chat', labelKey: 'chat', icon: MessageSquare },
   { href: '/settings', labelKey: 'settings', icon: Settings },
 ]
 

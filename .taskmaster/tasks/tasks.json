@@ -478,9 +478,9 @@
         "testStrategy": "1. Upload initial CR document, verify it shows as v1\n2. Upload renewed CR with new expiry date, verify:\n   - System auto-detects renewal\n   - Links to previous version\n   - Shows as v2\n   - Version history displays both documents\n3. Test folder organization:\n   - Upload documents of different types\n   - Verify auto-grouping by type\n   - Test folder collapse/expand\n4. Verify previous versions are accessible but marked as not current",
         "priority": "high",
         "dependencies": [],
-        "status": "in-progress",
+        "status": "done",
         "subtasks": [],
-        "updatedAt": "2026-04-12T11:18:41.736Z"
+        "updatedAt": "2026-04-12T11:37:22.401Z"
       },
       {
         "id": "2",
@@ -971,8 +971,9 @@
         "testStrategy": "Write integration tests:\n1. Create conversation and verify business_id isolation\n2. Insert messages in sequence and query chronologically\n3. Upload file reference and link to message\n4. Test RLS policies by attempting cross-business access (should fail)\n5. Verify indexes improve query performance on large datasets\n6. Test cascade deletes when conversation is removed",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:37:31.986Z"
       },
       {
         "id": "42",
@@ -1103,9 +1104,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-12T11:18:41.743Z",
+      "lastModified": "2026-04-12T11:37:31.988Z",
       "taskCount": 50,
-      "completedCount": 0,
+      "completedCount": 2,
       "tags": [
         "master"
       ]

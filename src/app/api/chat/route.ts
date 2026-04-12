@@ -187,7 +187,13 @@ Guidelines:
 - For dates, use clear formats. If the user writes in Arabic, use Hijri dates when relevant.
 - If you don't have enough data to answer, say so clearly and suggest what the user might need to add.
 - Never make up data. If a query returns empty results, tell the user.
-- Keep responses focused on business management topics.`
+- Keep responses focused on business management topics.
+
+When the user uploads a spreadsheet, you will receive the parsed data. Analyze it and:
+1. Summarize what the spreadsheet contains (number of rows, columns, and what the data appears to represent).
+2. Identify if the data maps to Mugdm's data model (transactions, team members, documents, obligations).
+3. Suggest importing the data — for example: "I found 145 transactions — want me to import them into your bookkeeper?"
+4. If you identify patterns (monthly rent, recurring salaries), suggest setting up automatic tracking.`
 }
 
 export async function POST(request: Request) {

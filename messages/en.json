@@ -6,6 +6,7 @@
     "vault": "Document Vault",
     "calendar": "Compliance Calendar",
     "bookkeeper": "Bookkeeper",
+    "chat": "Chat",
     "settings": "Settings",
     "logout": "Log Out",
     "help": "Help & Support"
@@ -520,6 +521,21 @@
     "memberRemoved": "Member removed",
     "noMembers": "No team members yet",
     "noMembersDescription": "Invite your accountant, partner, or PRO to collaborate"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "conversations": "Conversations",
+    "newConversation": "New Conversation",
+    "noConversations": "No conversations yet",
+    "toggleSidebar": "Toggle sidebar",
+    "startConversation": "How can I help you?",
+    "startDescription": "Ask me anything about your business data, documents, compliance, or finances.",
+    "suggestedCompliance": "What's my compliance status?",
+    "suggestedExpenses": "Show my expenses this month",
+    "suggestedUpload": "Upload an Excel file",
+    "inputPlaceholder": "Type your message...",
+    "uploadFile": "Upload file",
+    "errorOccurred": "Something went wrong. Please try again."
   },
   "emptyStates": {
     "noDocuments": "No documents yet",

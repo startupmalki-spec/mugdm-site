@@ -3,6 +3,7 @@ import { Hero } from "@/components/sections/hero";
 import { Services } from "@/components/sections/services";
 import { Process } from "@/components/sections/process";
 import { Why } from "@/components/sections/why";
+import { Pricing } from "@/components/sections/pricing";
 import { Contact } from "@/components/sections/contact";
 import { Footer } from "@/components/sections/footer";
 import { GlowDivider } from "@/lib/animations";
@@ -19,6 +20,8 @@ export default function Home() {
         <Process />
         <GlowDivider className="my-0" />
         <Why />
+        <GlowDivider className="my-0" />
+        <Pricing />
         <GlowDivider className="my-0" />
         <Contact />
       </main>
