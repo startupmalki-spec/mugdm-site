@@ -23,9 +23,9 @@ export default function NotFound() {
             <Image
               src="/brand/2-transparent.png"
               alt="Mugdm"
-              width={200}
-              height={56}
-              className="h-14 w-auto"
+              width={140}
+              height={40}
+              className="h-10 w-auto"
               priority
             />
           </Link>

@@ -87,8 +87,8 @@ export default function SignupPage() {
         {/* Brand logo */}
         <div className="text-center">
           <Link href="/" className="inline-flex items-center justify-center gap-3 mb-6">
-            <Image src="/brand/1-transparent.png" alt="Mugdm" width={220} height={64} className="hidden h-16 w-auto dark:block" />
-            <Image src="/brand/2-transparent.png" alt="Mugdm" width={220} height={64} className="h-16 w-auto dark:hidden" />
+            <Image src="/brand/1-transparent.png" alt="Mugdm" width={160} height={48} className="hidden h-12 w-auto dark:block" />
+            <Image src="/brand/2-transparent.png" alt="Mugdm" width={160} height={48} className="h-12 w-auto dark:hidden" />
           </Link>
           <h1 className="text-2xl font-bold text-foreground">
             {t('signUpTitle')}
@@ -239,8 +239,8 @@ function SentConfirmation({ t }: { t: ReturnType<typeof useTranslations<'auth'>>
 
       <div className="relative z-[1] w-full max-w-md space-y-8 text-center">
         <Link href="/" className="inline-flex items-center justify-center gap-3">
-          <Image src="/brand/1-transparent.png" alt="Mugdm" width={220} height={64} className="hidden h-16 w-auto dark:block" />
-          <Image src="/brand/2-transparent.png" alt="Mugdm" width={220} height={64} className="h-16 w-auto dark:hidden" />
+          <Image src="/brand/1-transparent.png" alt="Mugdm" width={160} height={48} className="hidden h-12 w-auto dark:block" />
+          <Image src="/brand/2-transparent.png" alt="Mugdm" width={160} height={48} className="h-12 w-auto dark:hidden" />
         </Link>
 
         {/* Onboarding progress steps */}

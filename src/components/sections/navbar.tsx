@@ -30,22 +30,22 @@ export function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
+      <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center group">
           <Image
             src="/brand/1-transparent.png"
             alt="Mugdm"
-            width={240}
-            height={72}
-            className="hidden h-[72px] w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
+            width={140}
+            height={40}
+            className="hidden h-10 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
             priority
           />
           <Image
             src="/brand/2-transparent.png"
             alt="Mugdm"
-            width={240}
-            height={72}
-            className="h-[72px] w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
+            width={140}
+            height={40}
+            className="h-10 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
             priority
           />
         </Link>
