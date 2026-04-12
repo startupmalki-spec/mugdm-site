@@ -29,16 +29,16 @@ export function Footer() {
             <Image
               src="/brand/1-transparent.png"
               alt="Mugdm"
-              width={160}
-              height={48}
-              className="hidden h-12 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
+              width={200}
+              height={60}
+              className="hidden h-[60px] w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
             />
             <Image
               src="/brand/2-transparent.png"
               alt="Mugdm"
-              width={160}
-              height={48}
-              className="h-12 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
+              width={200}
+              height={60}
+              className="h-[60px] w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
             />
           </a>
 

@@ -1,13 +1,23 @@
 {
   "name": "Mugdm - Data Wallet",
   "short_name": "Mugdm",
-  "description": "AI-powered compliance and bookkeeping for Saudi businesses",
+  "description": "Your business's second brain — AI-powered COO for Saudi entrepreneurs",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1e1e2e",
   "theme_color": "#1E40AF",
+  "orientation": "portrait",
   "icons": [
-    { "src": "/favicon.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/brand/7-transparent.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/brand/7-transparent.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

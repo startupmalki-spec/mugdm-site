@@ -30,25 +30,25 @@ export function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="flex items-center group">
+      <nav className="max-w-[1280px] mx-auto px-6 h-20 flex items-center justify-between">
+        <Link href="/" className="flex items-center group">
           <Image
             src="/brand/1-transparent.png"
             alt="Mugdm"
-            width={200}
-            height={56}
-            className="hidden h-14 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
+            width={240}
+            height={72}
+            className="hidden h-[72px] w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
             priority
           />
           <Image
             src="/brand/2-transparent.png"
             alt="Mugdm"
-            width={200}
-            height={56}
-            className="h-14 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
+            width={240}
+            height={72}
+            className="h-[72px] w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
             priority
           />
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
