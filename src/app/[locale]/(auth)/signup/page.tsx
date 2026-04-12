@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Link } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics/posthog'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FolderArchive, CalendarDays, Calculator, Shield, CalendarCheck, CheckCircle2, Mail } from 'lucide-react'
 import { FloatingElements, AuroraBackground } from '@/lib/animations'
@@ -63,6 +64,7 @@ export default function SignupPage() {
       return
     }
 
+    trackEvent('signup_completed', { method: 'magic_link' })
     setIsSent(true)
   }, [name, email, t])
 

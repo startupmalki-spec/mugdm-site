@@ -12,17 +12,27 @@ import {
   Loader2,
   X,
   FileText,
+  Lightbulb,
 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics/posthog'
 
 // --- Types ---
 
+interface PendingAction {
+  toolName: string
+  toolInput: Record<string, unknown>
+  summary: string
+  isDestructive: boolean
+}
+
 interface Message {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'confirmation'
   content: string
+  pendingAction?: PendingAction
 }
 
 interface Conversation {
@@ -236,29 +246,102 @@ function ChatBubble({ message }: { message: Message }) {
   )
 }
 
+// --- Action Confirmation Bubble ---
+
+function ConfirmationBubble({
+  message,
+  onConfirm,
+  onCancel,
+  isLoading,
+}: {
+  message: Message
+  onConfirm: () => void
+  onCancel: () => void
+  isLoading: boolean
+}) {
+  const t = useTranslations('chat')
+  const action = message.pendingAction
+
+  if (!action) return null
+
+  return (
+    <div className="flex w-full justify-start">
+      <div className="max-w-[80%] rounded-2xl border-2 border-amber-500/30 bg-amber-50 px-4 py-3 text-sm leading-relaxed dark:bg-amber-950/20">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="h-2 w-2 rounded-full bg-amber-500" />
+          <span className="font-semibold text-amber-700 dark:text-amber-400">
+            {t('confirmActionTitle')}
+          </span>
+        </div>
+        <p className="text-foreground mb-3">{action.summary}</p>
+        {action.isDestructive && (
+          <p className="text-xs text-red-600 dark:text-red-400 mb-3">
+            {t('destructiveWarning')}
+          </p>
+        )}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : null}
+            {t('confirmButton')}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="inline-flex items-center rounded-lg border border-border bg-surface-1 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-2 disabled:opacity-50"
+          >
+            {t('cancelButton')}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // --- Suggested Prompts ---
 
 function SuggestedPrompts({
   onSelect,
   onFileUpload,
+  mode = 'chat',
 }: {
   onSelect: (prompt: string) => void
   onFileUpload?: () => void
+  mode?: 'chat' | 'advisory'
 }) {
   const t = useTranslations('chat')
 
-  const prompts = [
+  const chatPrompts = [
     t('suggestedCompliance'),
     t('suggestedExpenses'),
     t('suggestedUpload'),
   ]
 
+  const advisoryPrompts = [
+    t('advisorySuggestCosts'),
+    t('advisorySuggestSaudization'),
+    t('advisorySuggestCashFlow'),
+    t('advisorySuggestCompliance'),
+  ]
+
+  const prompts = mode === 'advisory' ? advisoryPrompts : chatPrompts
+  const Icon = mode === 'advisory' ? Lightbulb : MessageSquare
+  const title = mode === 'advisory' ? t('advisoryStartConversation') : t('startConversation')
+  const description = mode === 'advisory' ? t('advisoryStartDescription') : t('startDescription')
+
   return (
     <div className="flex flex-1 items-center justify-center px-4">
       <div className="w-full max-w-md space-y-4 text-center">
-        <MessageSquare className="mx-auto h-16 w-16 text-muted-foreground/50" />
-        <h2 className="text-lg font-semibold text-foreground">{t('startConversation')}</h2>
-        <p className="text-sm text-muted-foreground">{t('startDescription')}</p>
+        <Icon className="mx-auto h-16 w-16 text-muted-foreground/50" />
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <p className="text-sm text-muted-foreground">{description}</p>
         <div className="space-y-2 pt-2">
           {prompts.map((prompt) => (
             <button
@@ -270,7 +353,7 @@ function SuggestedPrompts({
               {prompt}
             </button>
           ))}
-          {onFileUpload && (
+          {mode === 'chat' && onFileUpload && (
             <button
               type="button"
               onClick={onFileUpload}
@@ -528,6 +611,8 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [attachedFile, setAttachedFile] = useState<{ name: string; parsedData?: string } | null>(null)
+  const [chatMode, setChatMode] = useState<'chat' | 'advisory'>('chat')
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -647,6 +732,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, userMsg])
       setAttachedFile(null)
       setIsLoading(true)
+      trackEvent('chat_message_sent', { hasAttachment: !!attachedFile })
 
       // Create assistant placeholder
       const assistantId = `assistant-${Date.now()}`
@@ -667,6 +753,7 @@ export default function ChatPage() {
             message: messageContent,
             conversationId: activeConversationId,
             businessId,
+            mode: chatMode,
           }),
           signal: abortControllerRef.current.signal,
         })
@@ -725,6 +812,21 @@ export default function ChatPage() {
                     ]
                   })
                 }
+              } else if (event.type === 'confirm_action') {
+                // Add a confirmation message bubble
+                const confirmMsg: Message = {
+                  id: `confirm-${Date.now()}`,
+                  role: 'confirmation',
+                  content: event.summary,
+                  pendingAction: {
+                    toolName: event.toolName,
+                    toolInput: event.toolInput,
+                    summary: event.summary,
+                    isDestructive: event.isDestructive ?? false,
+                  },
+                }
+                setPendingAction(confirmMsg.pendingAction!)
+                setMessages((prev) => [...prev, confirmMsg])
               } else if (event.type === 'error') {
                 setMessages((prev) =>
                   prev.map((m) =>
@@ -754,7 +856,91 @@ export default function ChatPage() {
         abortControllerRef.current = null
       }
     },
-    [businessId, activeConversationId, attachedFile, t]
+    [businessId, activeConversationId, attachedFile, chatMode, t]
+  )
+
+  // Handle action confirmation
+  const handleConfirmAction = useCallback(
+    async (confirmed: boolean) => {
+      if (!pendingAction || !businessId) return
+      setIsLoading(true)
+
+      // Remove confirmation bubble and add response placeholder
+      const responseId = `assistant-${Date.now()}`
+      setMessages((prev) => {
+        const filtered = prev.filter((m) => m.role !== 'confirmation')
+        return [...filtered, { id: responseId, role: 'assistant' as const, content: '' }]
+      })
+      setPendingAction(null)
+
+      try {
+        abortControllerRef.current = new AbortController()
+
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            businessId,
+            conversationId: activeConversationId,
+            confirmAction: {
+              toolName: pendingAction.toolName,
+              toolInput: pendingAction.toolInput,
+              confirmed,
+            },
+          }),
+          signal: abortControllerRef.current.signal,
+        })
+
+        if (!res.ok) throw new Error('Confirm request failed')
+
+        const reader = res.body?.getReader()
+        if (!reader) throw new Error('No response body')
+
+        const decoder = new TextDecoder()
+        let buffer = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() ?? ''
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue
+            try {
+              const event = JSON.parse(line.slice(6))
+              if (event.type === 'text') {
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === responseId
+                      ? { ...m, content: m.content + event.text }
+                      : m
+                  )
+                )
+              }
+            } catch {
+              // skip
+            }
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === responseId
+                ? { ...m, content: t('errorOccurred') }
+                : m
+            )
+          )
+        }
+      } finally {
+        setIsLoading(false)
+        abortControllerRef.current = null
+      }
+    },
+    [pendingAction, businessId, activeConversationId, t]
   )
 
   return (
@@ -785,7 +971,35 @@ export default function ChatPage() {
               <PanelLeftOpen className="h-5 w-5" />
             )}
           </button>
-          <h1 className="text-sm font-semibold text-foreground">{t('title')}</h1>
+          {/* Mode tabs */}
+          <div className="flex items-center gap-1 bg-surface-2 rounded-lg p-0.5">
+            <button
+              type="button"
+              onClick={() => setChatMode('chat')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all',
+                chatMode === 'chat'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              {t('title')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setChatMode('advisory')}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1 text-xs font-medium transition-all',
+                chatMode === 'advisory'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              <Lightbulb className="h-3.5 w-3.5" />
+              {t('advisoryTab')}
+            </button>
+          </div>
           <button
             type="button"
             onClick={handleNewConversation}
@@ -802,6 +1016,7 @@ export default function ChatPage() {
             <SuggestedPrompts
               onSelect={(prompt) => handleSend(prompt)}
               onFileUpload={() => suggestedFileRef.current?.click()}
+              mode={chatMode}
             />
             <input
               ref={suggestedFileRef}
@@ -820,9 +1035,19 @@ export default function ChatPage() {
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="mx-auto max-w-3xl space-y-4">
-              {messages.map((msg) => (
-                <ChatBubble key={msg.id} message={msg} />
-              ))}
+              {messages.map((msg) =>
+                msg.role === 'confirmation' ? (
+                  <ConfirmationBubble
+                    key={msg.id}
+                    message={msg}
+                    onConfirm={() => handleConfirmAction(true)}
+                    onCancel={() => handleConfirmAction(false)}
+                    isLoading={isLoading}
+                  />
+                ) : (
+                  <ChatBubble key={msg.id} message={msg} />
+                )
+              )}
               {isLoading && messages[messages.length - 1]?.role === 'assistant' && messages[messages.length - 1]?.content === '' && (
                 <div className="flex justify-start">
                   <div className="rounded-2xl bg-card border border-border">

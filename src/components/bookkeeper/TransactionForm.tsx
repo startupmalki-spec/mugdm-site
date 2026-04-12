@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { categorizeTransaction } from '@/lib/bookkeeper/smart-categorizer'
+import { trackEvent } from '@/lib/analytics/posthog'
 import type { TransactionType, TransactionCategory } from '@/lib/supabase/types'
 
 const INCOME_CATEGORIES: TransactionCategory[] = ['REVENUE', 'OTHER_INCOME']
@@ -117,6 +118,7 @@ export function TransactionForm({ onSave }: TransactionFormProps) {
       vendor_or_client: vendor,
     })
 
+    trackEvent('transaction_added', { source: 'manual', type, category })
     handleReset()
     setIsOpen(false)
   }, [amount, date, category, type, description, vendor, onSave, handleReset])

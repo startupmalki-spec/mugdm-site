@@ -10,7 +10,8 @@
     "settings": "الإعدادات",
     "billing": "الفوترة",
     "logout": "تسجيل الخروج",
-    "help": "المساعدة والدعم"
+    "help": "المساعدة والدعم",
+    "selectBusiness": "اختر النشاط التجاري"
   },
   "auth": {
     "signIn": "تسجيل الدخول",
@@ -159,6 +160,7 @@
     "uploadDocument": "رفع مستند",
     "uploadDescription": "اسحب وأفلت الملفات، أو اضغط للاختيار",
     "searchDocuments": "البحث في المستندات...",
+    "searchInsideDocuments": "البحث داخل محتوى المستندات (OCR)",
     "filterByType": "تصفية حسب النوع",
     "filterByStatus": "تصفية حسب الحالة",
     "sortBy": "ترتيب حسب",
@@ -242,6 +244,7 @@
       "pending": "في الانتظار",
       "analyzing": "جارٍ التحليل..."
     },
+    "complianceDetected": "اقتراح التزام: {message}",
     "share": {
       "title": "مشاركة المستند",
       "subtitle": "إنشاء رابط محدد المدة لمشاركة هذا المستند",
@@ -488,6 +491,19 @@
       "warningNegative": "الرصيد متوقع أن يصبح سالباً",
       "noData": "لا تتوفر بيانات كافية للتوقع",
       "month": "الشهر"
+    },
+    "duplicates": {
+      "title": "عمليات مكررة محتملة",
+      "subtitle": "تم اكتشاف {count} زوج من العمليات المكررة المحتملة",
+      "noDescription": "بدون وصف",
+      "transactionA": "العملية الأولى",
+      "transactionB": "العملية الثانية",
+      "keepBoth": "الاحتفاظ بكليهما",
+      "merge": "دمج",
+      "deleteFirst": "حذف الأولى",
+      "deleteSecond": "حذف الثانية",
+      "deleted": "تم حذف العملية المكررة",
+      "merged": "تم دمج العمليات"
     }
   },
   "common": {
@@ -599,6 +615,11 @@
     "tourFinancialsDesc": "الدخل والمصروفات الشهرية مع صافي المركز المالي. اضغط للانتقال إلى المحاسب الذكي.",
     "tourQuickActionsTitle": "إجراءات سريعة",
     "tourQuickActionsDesc": "ارفع مستندات، سجّل معاملات، راجع التقويم، أو اطّلع على ملفك — كلها بضغطة واحدة.",
+    "complianceHealth": "صحة الامتثال",
+    "healthGood": "ممتاز!",
+    "healthFair": "يحتاج انتباه",
+    "healthPoor": "يتطلب إجراء",
+    "healthDescription": "بناءً على الالتزامات وصلاحية المستندات والوثائق المرتبطة.",
     "tourChatTitle": "المساعد الذكي",
     "tourChatDesc": "مساعدك المدعوم بالذكاء الاصطناعي. اسأل أي شيء عن نشاطك — حالة الالتزامات، المصروفات، المستندات، والمزيد."
   },
@@ -776,6 +797,10 @@
     "suggestedUpload": "رفع ملف إكسل",
     "inputPlaceholder": "اكتب رسالتك...",
     "uploadFile": "رفع ملف",
+    "confirmActionTitle": "الإجراء يتطلب تأكيد",
+    "confirmButton": "تأكيد",
+    "cancelButton": "إلغاء",
+    "destructiveWarning": "هذا إجراء لا يمكن التراجع عنه. يرجى التأكيد بعناية.",
     "errorOccurred": "حدث خطأ. يرجى المحاولة مرة أخرى.",
     "miniTitle": "المساعد الذكي",
     "openFull": "فتح المحادثة الكاملة",
@@ -785,7 +810,14 @@
     "suggestCalendar": "ما المستحق هذا الأسبوع؟",
     "suggestBookkeeper": "لخّص مصروفاتي هذا الشهر",
     "suggestTeam": "ما نسبة السعودة لدي؟",
-    "suggestDefault": "كيف يمكنني مساعدتك؟"
+    "suggestDefault": "كيف يمكنني مساعدتك؟",
+    "advisoryTab": "استشارات",
+    "advisoryStartConversation": "وضع الاستشارات",
+    "advisoryStartDescription": "احصل على نصائح استراتيجية مدعومة بالذكاء الاصطناعي حول التكاليف والامتثال والسعودة والتدفق النقدي.",
+    "advisorySuggestCosts": "كيف أقلل مصاريفي الشهرية؟",
+    "advisorySuggestSaudization": "ما خطة السعودة لدي؟",
+    "advisorySuggestCashFlow": "حلّل مخاطر التدفق النقدي",
+    "advisorySuggestCompliance": "قيّم مخاطر الامتثال لدي"
   },
   "billing": {
     "title": "الفوترة",
@@ -801,7 +833,17 @@
     "aiCalls": "مكالمات الذكاء الاصطناعي",
     "aiCallsLimit": "استخدام اليوم",
     "documents": "المستندات",
-    "documentsLimit": "المخزنة في الخزينة"
+    "documentsLimit": "المخزنة في الخزينة",
+    "teamMembers": "أعضاء الفريق",
+    "teamMembersLimit": "الأعضاء النشطون",
+    "storage": "التخزين",
+    "storageLimit": "الاستخدام التقديري",
+    "tierComparison": "مقارنة حدود الخطط",
+    "feature": "الميزة",
+    "day": "يوم",
+    "unlimited": "غير محدود",
+    "confirmAction": "تأكيد الإجراء",
+    "cancelAction": "إلغاء"
   },
   "emptyStates": {
     "noDocuments": "خزينة المستندات فارغة",

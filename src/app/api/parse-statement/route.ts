@@ -22,7 +22,9 @@ const SAUDI_BANKS = [
 ]
 
 interface ParseStatementRequest {
-  csvContent: string
+  csvContent?: string
+  pdfBase64?: string
+  pdfMediaType?: string
   bankName?: string
   businessId?: string
 }
@@ -105,6 +107,62 @@ ${csvContent}
 \`\`\``
 }
 
+function buildPdfParsingPrompt(bankName: string | undefined): string {
+  const bankHint = bankName ? `The bank is: ${bankName}.` : `The bank may be one of: ${SAUDI_BANKS.join(', ')}.`
+
+  return `You are an expert at parsing Saudi Arabian bank statement PDF files, including Arabic text.
+
+${bankHint}
+
+This is a PDF bank statement. Extract all transactions from the tables in this document.
+
+For each transaction row, extract:
+- date: ISO date string (YYYY-MM-DD)
+- amount: absolute numeric amount (always positive)
+- type: "INCOME" if money came in (credit/deposit/واردات), "EXPENSE" if money went out (debit/withdrawal/مدين)
+- description: the raw transaction description
+- vendor_or_client: extracted business/person name from description if identifiable, or null
+- category: best matching category from: REVENUE, OTHER_INCOME, GOVERNMENT, SALARY, RENT, UTILITIES, SUPPLIES, TRANSPORT, MARKETING, PROFESSIONAL, INSURANCE, BANK_FEES, OTHER_EXPENSE
+- ai_confidence: 0 to 1, your confidence this row was parsed correctly
+
+Category hints:
+- GOVERNMENT: GOSI, ZATCA, Balady, ministry fees, government charges
+- SALARY: payroll, wages, مرتب, راتب
+- RENT: rent, إيجار, lease
+- UTILITIES: SEC, SWCC, STC, Mobily, Zain, electricity, water, internet
+- TRANSPORT: fuel, petrol, Aramco, شحن, courier, Uber, Careem
+- BANK_FEES: bank charges, commission, رسوم, ATM fees, transfer fees
+- SUPPLIES: office supplies, materials, equipment purchases
+- MARKETING: advertising, Google, Meta, printing, promotions
+- PROFESSIONAL: consulting, legal, accounting, advisory
+- INSURANCE: insurance premiums, tamin, تأمين
+
+Also return:
+- period_start: earliest date found as ISO string, or null
+- period_end: latest date found as ISO string, or null
+- total_rows_parsed: number of transaction rows processed
+
+Skip header rows, summary rows, and non-transaction rows.
+
+Return ONLY valid JSON in this exact structure:
+{
+  "transactions": [
+    {
+      "date": "2025-01-15",
+      "amount": 5000.00,
+      "type": "INCOME",
+      "description": "Transfer from client ABC",
+      "vendor_or_client": "ABC Company",
+      "category": "REVENUE",
+      "ai_confidence": 0.9
+    }
+  ],
+  "period_start": "2025-01-01",
+  "period_end": "2025-01-31",
+  "total_rows_parsed": 25
+}`
+}
+
 function buildFallbackResponse(): ParseStatementResponse {
   return {
     transactions: [],
@@ -184,9 +242,12 @@ export async function POST(request: Request) {
     const body = (await request.json()) as ParseStatementRequest
     businessId = body.businessId
 
-    if (!body.csvContent || typeof body.csvContent !== 'string') {
+    const hasCsv = body.csvContent && typeof body.csvContent === 'string'
+    const hasPdf = body.pdfBase64 && typeof body.pdfBase64 === 'string'
+
+    if (!hasCsv && !hasPdf) {
       return NextResponse.json(
-        { error: 'csvContent is required' },
+        { error: 'csvContent or pdfBase64 is required' },
         { status: 400 }
       )
     }
@@ -220,22 +281,55 @@ export async function POST(request: Request) {
       )
     }
 
-    const truncatedCsv = body.csvContent.length > MAX_CSV_CHARS
-      ? body.csvContent.slice(0, MAX_CSV_CHARS)
-      : body.csvContent
-
     const anthropic = new Anthropic()
 
-    const response = await anthropic.messages.create({
-      model: CLAUDE_MODEL,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: 'user',
-          content: buildParsingPrompt(truncatedCsv, body.bankName),
-        },
-      ],
-    })
+    let response: Anthropic.Message
+
+    if (hasPdf && body.pdfBase64) {
+      // PDF path: send as document block
+      const mediaType = (body.pdfMediaType as 'application/pdf') || 'application/pdf'
+
+      response = await anthropic.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'document',
+                source: {
+                  type: 'base64',
+                  media_type: mediaType,
+                  data: body.pdfBase64,
+                },
+              },
+              {
+                type: 'text',
+                text: buildPdfParsingPrompt(body.bankName),
+              },
+            ],
+          },
+        ],
+      })
+    } else {
+      // CSV text path
+      const csvContent = body.csvContent!
+      const truncatedCsv = csvContent.length > MAX_CSV_CHARS
+        ? csvContent.slice(0, MAX_CSV_CHARS)
+        : csvContent
+
+      response = await anthropic.messages.create({
+        model: CLAUDE_MODEL,
+        max_tokens: 4096,
+        messages: [
+          {
+            role: 'user',
+            content: buildParsingPrompt(truncatedCsv, body.bankName),
+          },
+        ],
+      })
+    }
 
     const responseText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')

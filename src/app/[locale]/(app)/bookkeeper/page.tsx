@@ -83,6 +83,11 @@ import {
   type ReconciliationResult,
 } from '@/lib/bookkeeper/reconciliation'
 import {
+  detectFuzzyDuplicates,
+  type FuzzyDuplicatePair,
+  type DuplicateResolution,
+} from '@/lib/bookkeeper/duplicate-detection'
+import {
   forecastCashFlow,
   type CashFlowForecast,
 } from '@/lib/bookkeeper/forecast'
@@ -97,6 +102,7 @@ import { generateProfitLoss, type ProfitLossData } from '@/lib/bookkeeper/profit
 import { exportVATReportToExcel, exportProfitLossToExcel } from '@/lib/bookkeeper/report-export'
 import { TransactionForm } from '@/components/bookkeeper/TransactionForm'
 import { ReceiptCapture } from '@/components/bookkeeper/ReceiptCapture'
+import { PossibleDuplicates } from '@/components/bookkeeper/PossibleDuplicates'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToastContainer, useToast } from '@/components/ui/toast'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
@@ -215,6 +221,12 @@ export default function BookkeeperPage() {
   // Reconciliation state
   const [reconciliationResult, setReconciliationResult] = useState<ReconciliationResult | null>(null)
   const [verifiedIds, setVerifiedIds] = useState<Set<string>>(new Set())
+
+  // Fuzzy duplicate detection
+  const fuzzyDuplicatePairs = useMemo(
+    () => detectFuzzyDuplicates(transactions),
+    [transactions]
+  )
 
   const { toasts, showToast, dismissToast } = useToast()
 
@@ -377,6 +389,35 @@ export default function BookkeeperPage() {
       if (rows.length === 0) {
         showToast(t('importNoData'), 'error')
       } else {
+        // Run fuzzy duplicate detection against existing transactions
+        const candidateTxs: Transaction[] = rows.map((row, i) => ({
+          id: `import-preview-${i}`,
+          business_id: businessId,
+          date: row.date,
+          amount: row.amount,
+          type: row.type,
+          category: (row.category || 'OTHER_EXPENSE') as TransactionCategory,
+          description: row.description,
+          vendor_or_client: row.vendor_or_client || null,
+          source: 'BANK_STATEMENT_CSV' as const,
+          source_file_id: null,
+          receipt_url: null,
+          linked_obligation_id: null,
+          vat_amount: null,
+          ai_confidence: null,
+          is_reviewed: false,
+          created_at: new Date().toISOString(),
+        }))
+        const combined = [...transactions, ...candidateTxs]
+        const dupes = detectFuzzyDuplicates(combined)
+        if (dupes.length > 0) {
+          showToast(
+            locale === 'ar'
+              ? `تم اكتشاف ${dupes.length} عملية مكررة محتملة`
+              : `${dupes.length} possible duplicate${dupes.length !== 1 ? 's' : ''} detected`,
+            'info'
+          )
+        }
         setImportPreview(rows)
       }
     } catch {
@@ -385,7 +426,7 @@ export default function BookkeeperPage() {
       setIsParsing(false)
       if (importFileRef.current) importFileRef.current.value = ''
     }
-  }, [locale, showToast, t])
+  }, [locale, businessId, transactions, showToast, t])
 
   const handleConfirmImport = useCallback(async () => {
     if (!importPreview || !businessId) return
@@ -427,6 +468,33 @@ export default function BookkeeperPage() {
       setIsImporting(false)
     }
   }, [importPreview, businessId, locale, showToast, t])
+
+  const handleResolveDuplicate = useCallback(async (pairIndex: number, resolution: DuplicateResolution) => {
+    const pair = fuzzyDuplicatePairs[pairIndex]
+    if (!pair || !businessId) return
+
+    if (resolution === 'keep_both') {
+      // Nothing to do, just dismiss
+      return
+    }
+
+    const supabase = createClient()
+
+    if (resolution === 'delete_a') {
+      await supabase.from('transactions').delete().eq('id', pair.transactionA.id)
+      setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionA.id))
+      showToast(t('duplicates.deleted'), 'success')
+    } else if (resolution === 'delete_b') {
+      await supabase.from('transactions').delete().eq('id', pair.transactionB.id)
+      setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionB.id))
+      showToast(t('duplicates.deleted'), 'success')
+    } else if (resolution === 'merge') {
+      // Keep the first one, delete the second
+      await supabase.from('transactions').delete().eq('id', pair.transactionB.id)
+      setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionB.id))
+      showToast(t('duplicates.merged'), 'success')
+    }
+  }, [fuzzyDuplicatePairs, businessId, showToast, t])
 
   const handleSetReminder = useCallback(async (pattern: RecurringPattern) => {
     if (!businessId) return
@@ -1077,6 +1145,21 @@ export default function BookkeeperPage() {
             </div>
           )}
         </motion.div>
+
+        {/* Possible Duplicates Section */}
+        {fuzzyDuplicatePairs.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.64 }}
+            className="rounded-xl border border-border bg-card p-5"
+          >
+            <PossibleDuplicates
+              pairs={fuzzyDuplicatePairs}
+              onResolve={handleResolveDuplicate}
+            />
+          </motion.div>
+        )}
 
         {/* Bank Reconciliation Section */}
         <motion.div

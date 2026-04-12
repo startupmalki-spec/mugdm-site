@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { trackEvent } from '@/lib/analytics/posthog'
 
 type UploadState = 'idle' | 'dragging' | 'uploading' | 'complete' | 'error'
 
@@ -146,6 +147,7 @@ export function FileUpload({
 
         setProgress(100)
         setUploadState('complete')
+        trackEvent('document_uploaded', { type: file.type, size: file.size, bucket })
         onUpload(signedUrl, file)
       } catch {
         clearInterval(progressInterval)

@@ -57,6 +57,7 @@ import {
 } from '@/lib/documents'
 
 import { linkDocumentToObligation } from '@/lib/documents/link-to-obligations'
+import { detectComplianceImplications } from '@/lib/compliance/auto-detect'
 
 import type { Document, DocumentType } from '@/lib/supabase/types'
 import type { ExpiryStatus } from '@/lib/documents'
@@ -71,6 +72,7 @@ interface AnalysisResult {
   confidence: number
   expiryDate: string | null
   registrationNumber: string | null
+  fullExtractedData: Record<string, unknown> | null
 }
 
 // --- Constants ---
@@ -940,6 +942,7 @@ function UploadDialog({
   onDocumentAdded,
   onObligationLinked,
   onRenewalDetected,
+  onComplianceSuggestion,
 }: {
   isOpen: boolean
   onOpenChange: (open: boolean) => void
@@ -948,6 +951,7 @@ function UploadDialog({
   onDocumentAdded: (doc: Document) => void
   onObligationLinked: () => void
   onRenewalDetected: (previousDocId: string) => void
+  onComplianceSuggestion: (message: string) => void
 }) {
   const t = useTranslations('vault')
   const tCommon = useTranslations('common')
@@ -1038,6 +1042,12 @@ function UploadDialog({
               confidence: raw.ai_confidence ?? 0,
               expiryDate: raw.expiry_date ?? null,
               registrationNumber: raw.registration_number ?? null,
+              fullExtractedData: {
+                ...(raw.additional_data ?? {}),
+                holder_name: raw.holder_name ?? null,
+                issuing_authority: raw.issuing_authority ?? null,
+                registration_number: raw.registration_number ?? null,
+              },
             }
           }
         } catch {
@@ -1081,8 +1091,9 @@ function UploadDialog({
           }
         }
 
-        if (analysis?.registrationNumber) {
+        if (analysis?.fullExtractedData || analysis?.registrationNumber) {
           updatePayload.extracted_data = {
+            ...(analysis.fullExtractedData ?? {}),
             registration_number: analysis.registrationNumber,
           }
         }
@@ -1104,6 +1115,20 @@ function UploadDialog({
           const obligationId = await linkDocumentToObligation(supabase, businessId, updatedDoc)
           if (obligationId) onObligationLinked()
 
+          // Compliance auto-detection
+          const complianceSuggestions = detectComplianceImplications(
+            updatedDoc.type as DocumentType,
+            {
+              expiryDate: updatedDoc.expiry_date,
+              registrationNumber: analysis?.registrationNumber ?? null,
+            }
+          )
+          for (const suggestion of complianceSuggestions) {
+            onComplianceSuggestion(
+              locale === 'ar' ? suggestion.suggestionAr : suggestion.suggestion
+            )
+          }
+
           entry.resultDoc = updatedDoc
         }
 
@@ -1123,7 +1148,7 @@ function UploadDialog({
         return entry
       }
     },
-    [businessId, locale, onDocumentAdded, onObligationLinked, onRenewalDetected]
+    [businessId, locale, onDocumentAdded, onObligationLinked, onRenewalDetected, onComplianceSuggestion]
   )
 
   const handleDrop = useCallback(
@@ -1405,6 +1430,7 @@ export default function VaultPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
   const [isUploadOpen, setIsUploadOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [searchInsideDocuments, setSearchInsideDocuments] = useState(false)
   const [typeFilter, setTypeFilter] = useState<DocumentType | 'ALL'>('ALL')
   const [statusFilter, setStatusFilter] = useState<ExpiryStatus | 'ALL'>('ALL')
   const [sortField, setSortField] = useState<SortField>('uploaded_at')
@@ -1494,6 +1520,10 @@ export default function VaultPage() {
     )
   }, [locale, showToast])
 
+  const handleComplianceSuggestion = useCallback((message: string) => {
+    showToast(message, 'info')
+  }, [showToast])
+
   // Counts for status summary
   const statusCounts = useMemo(() => {
     const current = documents.filter((d) => d.archived_at === null)
@@ -1519,11 +1549,17 @@ export default function VaultPage() {
 
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
-      result = result.filter(
-        (d) =>
+      result = result.filter((d) => {
+        const nameMatch =
           d.name.toLowerCase().includes(q) ||
           getDocumentTypeLabel(d.type, locale).toLowerCase().includes(q)
-      )
+        if (nameMatch) return true
+        if (searchInsideDocuments && d.extracted_data) {
+          const dataStr = JSON.stringify(d.extracted_data).toLowerCase()
+          return dataStr.includes(q)
+        }
+        return false
+      })
     }
 
     if (typeFilter !== 'ALL') {
@@ -1550,7 +1586,7 @@ export default function VaultPage() {
     })
 
     return result
-  }, [documents, searchQuery, typeFilter, statusFilter, sortField, isShowingArchived, locale])
+  }, [documents, searchQuery, searchInsideDocuments, typeFilter, statusFilter, sortField, isShowingArchived, locale])
 
   if (isLoading) {
     return (
@@ -1659,14 +1695,25 @@ export default function VaultPage() {
 
       {/* Search and Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder={t('searchDocuments')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-10 ps-9"
-          />
+        <div className="flex flex-1 flex-col gap-1.5">
+          <div className="relative">
+            <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t('searchDocuments')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 ps-9"
+            />
+          </div>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={searchInsideDocuments}
+              onChange={(e) => setSearchInsideDocuments(e.target.checked)}
+              className="h-3.5 w-3.5 rounded border-border accent-primary"
+            />
+            <span className="text-xs text-muted-foreground">{t('searchInsideDocuments')}</span>
+          </label>
         </div>
 
         <div className="flex gap-2">
@@ -1927,6 +1974,7 @@ export default function VaultPage() {
         onDocumentAdded={handleDocumentAdded}
         onObligationLinked={handleObligationLinked}
         onRenewalDetected={handleRenewalDetected}
+        onComplianceSuggestion={handleComplianceSuggestion}
       />
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

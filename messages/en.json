@@ -10,7 +10,8 @@
     "settings": "Settings",
     "billing": "Billing",
     "logout": "Log Out",
-    "help": "Help & Support"
+    "help": "Help & Support",
+    "selectBusiness": "Select Business"
   },
   "auth": {
     "signIn": "Sign In",
@@ -159,6 +160,7 @@
     "uploadDocument": "Upload Document",
     "uploadDescription": "Drag and drop files, or click to browse",
     "searchDocuments": "Search documents...",
+    "searchInsideDocuments": "Search inside document content (OCR)",
     "filterByType": "Filter by type",
     "filterByStatus": "Filter by status",
     "sortBy": "Sort by",
@@ -242,6 +244,7 @@
       "pending": "Pending",
       "analyzing": "Analyzing..."
     },
+    "complianceDetected": "Compliance suggestion: {message}",
     "share": {
       "title": "Share Document",
       "subtitle": "Generate a time-limited link to share this document",
@@ -488,6 +491,19 @@
       "warningNegative": "Balance projected to go negative",
       "noData": "Not enough transaction history to forecast",
       "month": "Month"
+    },
+    "duplicates": {
+      "title": "Possible Duplicates",
+      "subtitle": "{count} potential duplicate transaction pairs detected",
+      "noDescription": "No description",
+      "transactionA": "Transaction A",
+      "transactionB": "Transaction B",
+      "keepBoth": "Keep Both",
+      "merge": "Merge",
+      "deleteFirst": "Delete First",
+      "deleteSecond": "Delete Second",
+      "deleted": "Duplicate transaction deleted",
+      "merged": "Transactions merged"
     }
   },
   "common": {
@@ -599,6 +615,11 @@
     "tourFinancialsDesc": "Your monthly money in and money out, with net position. Click to dive into your bookkeeper.",
     "tourQuickActionsTitle": "Quick Actions",
     "tourQuickActionsDesc": "Upload documents, log transactions, check your calendar, or view your profile — all one click away.",
+    "complianceHealth": "Compliance Health",
+    "healthGood": "Looking great!",
+    "healthFair": "Needs attention",
+    "healthPoor": "Action required",
+    "healthDescription": "Based on obligations, document validity, and linked proof.",
     "tourChatTitle": "AI Assistant",
     "tourChatDesc": "Your AI-powered assistant. Ask anything about your business — compliance status, expenses, documents, and more."
   },
@@ -776,6 +797,10 @@
     "suggestedUpload": "Upload an Excel file",
     "inputPlaceholder": "Type your message...",
     "uploadFile": "Upload file",
+    "confirmActionTitle": "Action Requires Confirmation",
+    "confirmButton": "Confirm",
+    "cancelButton": "Cancel",
+    "destructiveWarning": "This is a destructive action that cannot be undone. Please confirm carefully.",
     "errorOccurred": "Something went wrong. Please try again.",
     "miniTitle": "Mugdm AI",
     "openFull": "Open full chat",
@@ -785,7 +810,14 @@
     "suggestCalendar": "What's due this week?",
     "suggestBookkeeper": "Summarize my expenses this month",
     "suggestTeam": "What's my Saudization ratio?",
-    "suggestDefault": "How can I help?"
+    "suggestDefault": "How can I help?",
+    "advisoryTab": "Advisory",
+    "advisoryStartConversation": "Business Advisory Mode",
+    "advisoryStartDescription": "Get AI-powered strategic advice on costs, compliance, Saudization, and cash flow.",
+    "advisorySuggestCosts": "How can I reduce my monthly costs?",
+    "advisorySuggestSaudization": "What's my Saudization plan?",
+    "advisorySuggestCashFlow": "Analyze my cash flow risks",
+    "advisorySuggestCompliance": "Assess my compliance risk"
   },
   "billing": {
     "title": "Billing",
@@ -801,7 +833,17 @@
     "aiCalls": "AI Calls",
     "aiCallsLimit": "Today's usage",
     "documents": "Documents",
-    "documentsLimit": "Stored in vault"
+    "documentsLimit": "Stored in vault",
+    "teamMembers": "Team Members",
+    "teamMembersLimit": "Active members",
+    "storage": "Storage",
+    "storageLimit": "Estimated usage",
+    "tierComparison": "Plan Limits Comparison",
+    "feature": "Feature",
+    "day": "day",
+    "unlimited": "Unlimited",
+    "confirmAction": "Confirm Action",
+    "cancelAction": "Cancel"
   },
   "emptyStates": {
     "noDocuments": "Your Document Vault is empty",

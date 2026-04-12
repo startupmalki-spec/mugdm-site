@@ -11,6 +11,7 @@ import {
   getDocumentSummary,
 } from '@/lib/chat/actions'
 import { importExcelData } from '@/lib/chat/excel-importer'
+import { enforceRateLimit } from '@/lib/rate-limit-middleware'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
@@ -18,6 +19,58 @@ interface ChatRequest {
   message: string
   conversationId?: string
   businessId: string
+  mode?: 'chat' | 'advisory'
+  /** When confirming a pending action */
+  confirmAction?: {
+    toolName: string
+    toolInput: Record<string, unknown>
+    confirmed: boolean
+  }
+}
+
+/** Tools that modify data and require user confirmation */
+const ACTION_TOOLS = new Set([
+  'add_transaction',
+  'add_team_member',
+  'update_team_member',
+  'mark_obligation_done',
+  'add_obligation',
+  'import_spreadsheet_data',
+])
+
+/** Tools that are destructive and require double confirmation */
+const DESTRUCTIVE_TOOLS = new Set([
+  'import_spreadsheet_data',
+])
+
+function formatActionSummary(
+  toolName: string,
+  toolInput: Record<string, unknown>
+): string {
+  switch (toolName) {
+    case 'add_transaction': {
+      const type = toolInput.type === 'INCOME' ? 'income' : 'expense'
+      const amount = Number(toolInput.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })
+      return `Add ${type} of SAR ${amount} for "${toolInput.description}" on ${toolInput.date}`
+    }
+    case 'add_team_member':
+      return `Add team member "${toolInput.name}" (${toolInput.nationality})${toolInput.role ? ` as ${toolInput.role}` : ''}`
+    case 'update_team_member': {
+      const parts: string[] = []
+      if (toolInput.role) parts.push(`role to ${toolInput.role}`)
+      if (toolInput.salary) parts.push(`salary to SAR ${Number(toolInput.salary).toLocaleString()}`)
+      if (toolInput.status) parts.push(`status to ${toolInput.status}`)
+      return `Update team member: ${parts.join(', ')}`
+    }
+    case 'mark_obligation_done':
+      return `Mark obligation as completed`
+    case 'add_obligation':
+      return `Add obligation "${toolInput.name}" (${toolInput.type}, ${toolInput.frequency}) due ${toolInput.next_due_date}`
+    case 'import_spreadsheet_data':
+      return `Import ${(toolInput.rows as unknown[])?.length ?? 0} rows as ${toolInput.dataType}`
+    default:
+      return `Execute ${toolName}`
+  }
 }
 
 const TOOL_DEFINITIONS: Anthropic.Tool[] = [
@@ -366,7 +419,31 @@ async function executeToolCall(
   }
 }
 
-function buildSystemPrompt(businessContext: string): string {
+function buildSystemPrompt(businessContext: string, mode: 'chat' | 'advisory' = 'chat'): string {
+  if (mode === 'advisory') {
+    return `You are Mugdm Business Advisor, an AI-powered strategic advisor for Saudi micro-enterprises. You provide actionable business intelligence and recommendations based on real data.
+
+You have access to the following business context:
+
+${businessContext}
+
+Your advisory focus areas:
+1. **Cost Optimization**: Identify unnecessary expenses, suggest ways to reduce overhead, flag duplicate payments or overcharges, and recommend more cost-effective alternatives for recurring expenses.
+2. **Saudization Planning**: Analyze the current Saudization ratio, recommend hiring strategies to meet or exceed Nitaqat requirements for the business's industry tier, estimate GOSI cost impact of new hires, and flag compliance risks.
+3. **Cash Flow Warnings**: Detect negative cash flow trends, project upcoming cash crunches based on recurring obligations and expense patterns, suggest timing adjustments for large payments, and recommend maintaining adequate cash reserves.
+4. **Compliance Risk Assessment**: Identify overdue or soon-to-expire documents and obligations, estimate penalty exposure for non-compliance, prioritize regulatory actions by urgency and financial impact, and recommend a compliance action plan.
+
+Guidelines:
+- Be proactive and specific. Don't just describe — recommend concrete actions with estimated impact.
+- Answer in the same language the user writes in (Arabic or English).
+- For financial analysis, always show amounts in SAR. Quantify savings and risks where possible.
+- Prioritize advice by impact: high-impact, low-effort actions first.
+- If data is insufficient for analysis, state what's needed and why.
+- Never make up data. Base all recommendations on actual business data.
+- Structure your responses with clear headers and action items.
+- When relevant, mention Saudi regulatory context (Nitaqat bands, VAT thresholds, GOSI rates).`
+  }
+
   return `You are Mugdm AI Assistant, a helpful business management assistant for Saudi micro-enterprises. You help users understand their business data, documents, compliance obligations, finances, and team information.
 
 You have access to the following business context:
@@ -406,19 +483,16 @@ export async function POST(request: Request) {
 
     const body = (await request.json()) as ChatRequest
 
-    if (!body.message?.trim()) {
-      return new Response(JSON.stringify({ error: 'message is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    }
-
     if (!body.businessId) {
       return new Response(JSON.stringify({ error: 'businessId is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
     }
+
+    // Rate limit check
+    const rateLimitResponse = await enforceRateLimit(body.businessId)
+    if (rateLimitResponse) return rateLimitResponse
 
     // Verify user owns this business
     const { data: business } = await supabase
@@ -431,6 +505,18 @@ export async function POST(request: Request) {
     if (!business) {
       return new Response(JSON.stringify({ error: 'Business not found or access denied' }), {
         status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Handle action confirmation flow
+    if (body.confirmAction) {
+      return handleActionConfirmation(body, supabase)
+    }
+
+    if (!body.message?.trim()) {
+      return new Response(JSON.stringify({ error: 'message is required' }), {
+        status: 400,
         headers: { 'Content-Type': 'application/json' },
       })
     }
@@ -493,8 +579,9 @@ export async function POST(request: Request) {
       .limit(20) as unknown as Promise<{ data: { role: string; content: string }[] | null }>)
 
     // Build context
+    const mode = body.mode === 'advisory' ? 'advisory' : 'chat'
     const businessContext = await buildBusinessContext(body.businessId, supabase)
-    const systemPrompt = buildSystemPrompt(businessContext)
+    const systemPrompt = buildSystemPrompt(businessContext, mode)
 
     // Build messages array from history
     const messages: Anthropic.MessageParam[] = (history ?? []).map((msg) => ({
@@ -569,9 +656,13 @@ export async function POST(request: Request) {
 
           // Handle tool use if needed (single round)
           if (toolUseBlocks.length > 0) {
-            // Execute all tool calls
-            const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
-              toolUseBlocks.map(async (tool) => {
+            // Separate action tools (need confirmation) from query tools (execute immediately)
+            const actionTools = toolUseBlocks.filter((t) => ACTION_TOOLS.has(t.name))
+            const queryTools = toolUseBlocks.filter((t) => !ACTION_TOOLS.has(t.name))
+
+            // Execute query tools immediately
+            const queryResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
+              queryTools.map(async (tool) => {
                 const result = await executeToolCall(
                   tool.name,
                   tool.input,
@@ -585,6 +676,88 @@ export async function POST(request: Request) {
                 }
               })
             )
+
+            // For action tools, send confirmation request instead of executing
+            if (actionTools.length > 0) {
+              const actionTool = actionTools[0] // Handle one action at a time
+              const summary = formatActionSummary(actionTool.name, actionTool.input)
+              const isDestructive = DESTRUCTIVE_TOOLS.has(actionTool.name)
+
+              // Send the confirmation event to the client
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({
+                    type: 'confirm_action',
+                    toolName: actionTool.name,
+                    toolInput: actionTool.input,
+                    summary,
+                    isDestructive,
+                  })}\n\n`
+                )
+              )
+
+              // Save a placeholder assistant message about the pending action
+              if (fullResponse) {
+                await supabase.from('chat_messages').insert({
+                  conversation_id: conversationId!,
+                  role: 'assistant' as const,
+                  content: fullResponse + '\n\n' + summary,
+                  metadata: {},
+                } as never)
+              }
+
+              // If there were also query results, handle them in a follow-up
+              if (queryResults.length > 0) {
+                const assistantContent: Anthropic.ContentBlockParam[] = []
+                if (fullResponse) {
+                  assistantContent.push({ type: 'text', text: fullResponse })
+                }
+                for (const tool of queryTools) {
+                  assistantContent.push({
+                    type: 'tool_use',
+                    id: tool.id,
+                    name: tool.name,
+                    input: tool.input,
+                  })
+                }
+
+                const followUp = await anthropic.messages.create({
+                  model: CLAUDE_MODEL,
+                  max_tokens: 4096,
+                  system: systemPrompt,
+                  messages: [
+                    ...messages,
+                    { role: 'assistant', content: assistantContent },
+                    { role: 'user', content: queryResults },
+                  ],
+                  stream: true,
+                })
+
+                for await (const event of followUp) {
+                  if (
+                    event.type === 'content_block_delta' &&
+                    event.delta.type === 'text_delta'
+                  ) {
+                    controller.enqueue(
+                      encoder.encode(
+                        `data: ${JSON.stringify({ type: 'text', text: event.delta.text })}\n\n`
+                      )
+                    )
+                  }
+                }
+              }
+
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: 'done', conversationId })}\n\n`
+                )
+              )
+              controller.close()
+              return
+            }
+
+            // No action tools, just query tools -- handle normally
+            const toolResults = queryResults
 
             // Build assistant message content for the follow-up
             const assistantContent: Anthropic.ContentBlockParam[] = []
@@ -677,4 +850,106 @@ export async function POST(request: Request) {
       headers: { 'Content-Type': 'application/json' },
     })
   }
+}
+
+/**
+ * Handle a confirmed or cancelled action from the chat UI.
+ * When a user clicks "Confirm" or "Cancel" on a pending action,
+ * this processes the result.
+ */
+async function handleActionConfirmation(
+  body: ChatRequest,
+  supabase: Awaited<ReturnType<typeof createClient>>
+) {
+  const { confirmAction, businessId, conversationId } = body
+
+  if (!confirmAction) {
+    return new Response(JSON.stringify({ error: 'Missing confirmAction' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        if (!confirmAction.confirmed) {
+          // User cancelled
+          const cancelText = 'Action cancelled.'
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'text', text: cancelText })}\n\n`
+            )
+          )
+
+          if (conversationId) {
+            await supabase.from('chat_messages').insert({
+              conversation_id: conversationId,
+              role: 'assistant' as const,
+              content: cancelText,
+              metadata: {},
+            } as never)
+          }
+        } else {
+          // User confirmed -- execute the action
+          const result = await executeToolCall(
+            confirmAction.toolName,
+            confirmAction.toolInput,
+            businessId,
+            supabase
+          )
+
+          let parsed: { success?: boolean; message?: string }
+          try {
+            parsed = JSON.parse(result)
+          } catch {
+            parsed = { message: result }
+          }
+
+          const responseText = parsed.success
+            ? parsed.message ?? 'Action completed successfully.'
+            : parsed.message ?? 'Action failed.'
+
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ type: 'text', text: responseText })}\n\n`
+            )
+          )
+
+          if (conversationId) {
+            await supabase.from('chat_messages').insert({
+              conversation_id: conversationId,
+              role: 'assistant' as const,
+              content: responseText,
+              metadata: {},
+            } as never)
+          }
+        }
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: 'done', conversationId })}\n\n`
+          )
+        )
+        controller.close()
+      } catch (err) {
+        console.error('[API] chat action confirmation error:', err)
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ type: 'error', error: 'Action execution failed' })}\n\n`
+          )
+        )
+        controller.close()
+      }
+    },
+  })
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+    },
+  })
 }

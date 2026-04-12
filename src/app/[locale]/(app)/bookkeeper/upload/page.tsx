@@ -120,6 +120,7 @@ export default function UploadStatementPage() {
     try {
       const supabase = createClient()
       let csvContent = ''
+      let pdfBase64 = ''
       let fileUrl = ''
 
       if (format === 'pdf') {
@@ -140,10 +141,14 @@ export default function UploadStatementPage() {
 
         fileUrl = signedUrlData.signedUrl
 
-        // Read PDF bytes as latin1 text so Claude can attempt to extract text rows
+        // Read PDF as base64 to send to Claude as a document block
         const buffer = await file.arrayBuffer()
         const bytes = new Uint8Array(buffer)
-        csvContent = String.fromCharCode(...bytes.slice(0, 60_000))
+        let binary = ''
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i])
+        }
+        pdfBase64 = btoa(binary)
       } else {
         csvContent = await file.text()
         fileUrl = ''
@@ -178,10 +183,24 @@ export default function UploadStatementPage() {
       }
 
       // Call real Claude AI API
+      const requestBody: Record<string, unknown> = {
+        businessId,
+        bankName: detectedBank
+          ? (SAUDI_BANKS.find((b) => b.id === detectedBank)?.nameEn ?? undefined)
+          : undefined,
+      }
+
+      if (format === 'pdf' && pdfBase64) {
+        requestBody.pdfBase64 = pdfBase64
+        requestBody.pdfMediaType = 'application/pdf'
+      } else {
+        requestBody.csvContent = csvContent
+      }
+
       const response = await fetch('/api/parse-statement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ csvContent, bankName: undefined }),
+        body: JSON.stringify(requestBody),
       })
 
       const result = (await response.json()) as ParseStatementResponse

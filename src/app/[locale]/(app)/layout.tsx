@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
@@ -20,8 +20,13 @@ import {
   X,
   Globe,
   LogOut,
+  ChevronDown,
+  Check,
 } from 'lucide-react'
 import FloatingAssistant from '@/components/chat/FloatingAssistant'
+import { BusinessProvider, useBusiness } from '@/lib/business-context'
+import { initPostHog, identifyUser } from '@/lib/analytics/posthog'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 
 interface NavItem {
   href: string
@@ -52,6 +57,102 @@ function isActiveRoute(pathname: string, href: string, locale: string): boolean 
   return normalizedPathname === href || normalizedPathname.startsWith(href + '/')
 }
 
+function HeaderBusinessName() {
+  const locale = useLocale()
+  const { currentBusiness } = useBusiness()
+
+  const displayName = currentBusiness
+    ? (locale === 'ar' ? currentBusiness.name_ar : (currentBusiness.name_en || currentBusiness.name_ar))
+    : null
+
+  return (
+    <div className="hidden items-center gap-2 lg:flex">
+      <div className="h-8 w-8 rounded-full bg-surface-3 flex items-center justify-center text-xs font-bold text-primary">
+        {displayName ? displayName.charAt(0) : ''}
+      </div>
+      <span className="text-sm font-medium text-muted-foreground">
+        {displayName ?? '--'}
+      </span>
+    </div>
+  )
+}
+
+function BusinessSwitcher() {
+  const t = useTranslations('nav')
+  const locale = useLocale()
+  const { businesses, currentBusiness, switchBusiness } = useBusiness()
+  const [isOpen, setIsOpen] = useState(false)
+
+  if (businesses.length <= 1) {
+    // Show current business name (no dropdown)
+    const displayName = currentBusiness
+      ? (locale === 'ar' ? currentBusiness.name_ar : (currentBusiness.name_en || currentBusiness.name_ar))
+      : null
+
+    if (!displayName) return null
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-2">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+          {displayName.charAt(0)}
+        </div>
+        <span className="truncate text-sm font-medium text-foreground">{displayName}</span>
+      </div>
+    )
+  }
+
+  const displayName = currentBusiness
+    ? (locale === 'ar' ? currentBusiness.name_ar : (currentBusiness.name_en || currentBusiness.name_ar))
+    : t('selectBusiness')
+
+  return (
+    <div className="relative px-3 py-2">
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className="flex w-full items-center gap-2 rounded-lg bg-surface-2 px-3 py-2 text-start transition-colors hover:bg-surface-3"
+      >
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+          {displayName.charAt(0)}
+        </div>
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+          {displayName}
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+          <div className="absolute start-3 end-3 z-50 mt-1 rounded-xl border border-border bg-card p-1 shadow-xl">
+            {businesses.map((biz) => {
+              const name = locale === 'ar' ? biz.name_ar : (biz.name_en || biz.name_ar)
+              const isSelected = biz.id === currentBusiness?.id
+              return (
+                <button
+                  key={biz.id}
+                  type="button"
+                  onClick={() => {
+                    switchBusiness(biz.id)
+                    setIsOpen(false)
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground transition-colors hover:bg-surface-2"
+                >
+                  <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-[10px] font-bold text-primary">
+                    {name.charAt(0)}
+                  </div>
+                  <span className="min-w-0 flex-1 truncate text-start">{name}</span>
+                  {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('nav')
   const locale = useLocale()
@@ -60,6 +161,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isRtl = locale === 'ar'
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Initialize PostHog analytics
+  useEffect(() => {
+    initPostHog()
+    // Identify logged-in user
+    const supabase = createSupabaseClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        identifyUser(user.id, { email: user.email })
+      }
+    })
+  }, [])
 
   const handleToggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev)
@@ -81,6 +194,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [router])
 
   return (
+    <BusinessProvider>
     <div className="flex min-h-screen bg-surface-0">
       {/* Desktop Sidebar */}
       <aside
@@ -106,6 +220,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               priority
             />
           </Link>
+        </div>
+
+        {/* Business Switcher */}
+        <div className="border-b border-border">
+          <BusinessSwitcher />
         </div>
 
         {/* Navigation */}
@@ -203,6 +322,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
+        {/* Mobile Business Switcher */}
+        <div className="border-b border-border">
+          <BusinessSwitcher />
+        </div>
+
         {/* Mobile Navigation */}
         <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Mobile navigation">
           <ul className="space-y-1">
@@ -266,13 +390,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Menu className="h-5 w-5" />
           </button>
 
-          {/* Business Name Placeholder */}
-          <div className="hidden items-center gap-2 lg:flex">
-            <div className="h-8 w-8 rounded-full bg-surface-3" />
-            <span className="text-sm font-medium text-muted-foreground">
-              --
-            </span>
-          </div>
+          {/* Business Name */}
+          <HeaderBusinessName />
 
           {/* Header Actions */}
           <div className="flex items-center gap-2">
@@ -312,5 +431,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       <FloatingAssistant />
     </div>
+    </BusinessProvider>
   )
 }

@@ -35,6 +35,8 @@ import { cn } from '@/lib/utils'
 import { toHijri, formatHijri } from '@/lib/hijri'
 import { getExpiryStatus } from '@/lib/documents'
 import { getObligationStatus } from '@/lib/compliance/rules-engine'
+import { calculateComplianceHealthScore, getHealthScoreColor } from '@/lib/compliance/cross-module'
+import type { ComplianceHealthScore } from '@/lib/compliance/cross-module'
 import { createClient } from '@/lib/supabase/client'
 import type { Obligation, Document, Transaction } from '@/lib/supabase/types'
 import { GettingStartedChecklist } from '@/components/ui/getting-started-checklist'
@@ -94,6 +96,7 @@ interface DashboardData {
   nextObligation: Obligation | null
   obligationCounts: ObligationCounts
   financials: Financials
+  healthScore: ComplianceHealthScore
 }
 
 // --- Data fetching ---
@@ -117,9 +120,8 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
   // Fetch documents, obligations, and transactions in parallel
   const [docsResult, obligationsResult, txResult] = await Promise.all([
     supabase.from('documents')
-      .select('expiry_date')
-      .eq('business_id', businessId)
-      .eq('is_current', true) as unknown as Promise<{ data: Pick<Document, 'expiry_date'>[] | null }>,
+      .select('id, type, expiry_date, is_current, archived_at')
+      .eq('business_id', businessId) as unknown as Promise<{ data: Pick<Document, 'id' | 'type' | 'expiry_date' | 'is_current' | 'archived_at'>[] | null }>,
 
     supabase.from('obligations')
       .select('*')
@@ -134,9 +136,11 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
       }>,
   ])
 
-  // Compute document counts
+  // Compute document counts (only current docs for the summary)
+  const allDocs = docsResult.data ?? []
+  const currentDocs = allDocs.filter((d) => d.is_current && !d.archived_at)
   const docCounts: DocCounts = { valid: 0, expiring: 0, expired: 0 }
-  for (const doc of docsResult.data ?? []) {
+  for (const doc of currentDocs) {
     const status = getExpiryStatus(doc.expiry_date)
     if (status === 'valid') docCounts.valid++
     else if (status === 'expiring') docCounts.expiring++
@@ -162,13 +166,81 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     else if (tx.type === 'EXPENSE') financials.moneyOut += tx.amount
   }
 
-  return { docCounts, nextObligation, obligationCounts, financials }
+  // Compute compliance health score
+  const healthScore = calculateComplianceHealthScore(
+    allDocs as Document[],
+    obligations
+  )
+
+  return { docCounts, nextObligation, obligationCounts, financials, healthScore }
 }
 
 // --- Components ---
 
 function StatDot({ className }: { className: string }) {
   return <span className={cn('h-2 w-2 rounded-full', className)} />
+}
+
+function ComplianceHealthCard({ healthScore }: { healthScore: ComplianceHealthScore }) {
+  const t = useTranslations('dashboard')
+  const { score } = healthScore
+  const colors = getHealthScoreColor(score)
+
+  const radius = 40
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference * (1 - score / 100)
+
+  return (
+    <motion.div variants={ITEM_VARIANTS}>
+      <div className={cn('rounded-xl border border-border bg-card p-5')}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            {t('complianceHealth')}
+          </h3>
+        </div>
+
+        <div className="mt-4 flex items-center gap-5">
+          {/* Circular progress ring */}
+          <div className="relative flex h-[96px] w-[96px] shrink-0 items-center justify-center">
+            <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
+              <circle
+                cx="48"
+                cy="48"
+                r={radius}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="7"
+                className="text-surface-3"
+              />
+              <circle
+                cx="48"
+                cy="48"
+                r={radius}
+                fill="none"
+                strokeWidth="7"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                className={colors.stroke}
+              />
+            </svg>
+            <span className={cn('absolute text-xl font-bold', colors.text)}>
+              {score}
+            </span>
+          </div>
+
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <p className={cn('text-sm font-semibold', colors.text)}>
+              {score > 80 ? t('healthGood') : score >= 50 ? t('healthFair') : t('healthPoor')}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t('healthDescription')}
+            </p>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  )
 }
 
 function ComplianceCard({
@@ -657,6 +729,7 @@ export default function DashboardPage() {
     nextObligation: null,
     obligationCounts: { upcoming: 0, dueSoon: 0, overdue: 0 },
     financials: { moneyIn: 0, moneyOut: 0 },
+    healthScore: { score: 0, breakdown: { obligationsUpToDate: 0, documentsValid: 0, obligationsWithProof: 0, noOverdueBonus: 0 } },
   }
 
   const displayData = data ?? emptyData
@@ -737,6 +810,9 @@ export default function DashboardPage() {
         </motion.div>
       ) : (
         <>
+          {/* Compliance Health Score */}
+          <ComplianceHealthCard healthScore={displayData.healthScore} />
+
           {/* Status Cards Grid */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <ComplianceCard

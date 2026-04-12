@@ -25,11 +25,23 @@ interface ObligationInfo {
 interface TxnInfo {
   amount: number
   type: string
+  date?: string
+  category?: string
+  description?: string
+  vendor_or_client?: string
 }
 
 interface TeamInfo {
+  name?: string
   nationality: string | null
+  role?: string | null
   status: string
+}
+
+interface RecurringPattern {
+  vendor_or_client: string
+  avg_amount: number
+  count: number
 }
 
 /**
@@ -45,7 +57,9 @@ export async function buildBusinessContext(
     documentStatsResult,
     obligationsResult,
     transactionsResult,
+    recentTransactionsResult,
     teamResult,
+    recurringResult,
   ] = await Promise.all([
     supabase
       .from('businesses')
@@ -74,11 +88,27 @@ export async function buildBusinessContext(
       .gte('date', getMonthStart())
       .lte('date', getMonthEnd()),
 
+    // Recent 5 transactions with details
+    supabase
+      .from('transactions')
+      .select('amount, type, date, category, description, vendor_or_client')
+      .eq('business_id', businessId)
+      .order('date', { ascending: false })
+      .limit(5),
+
     supabase
       .from('team_members')
-      .select('nationality, status')
+      .select('name, nationality, role, status')
       .eq('business_id', businessId)
       .eq('status', 'ACTIVE'),
+
+    // Recurring expense patterns: vendors with 3+ transactions
+    supabase
+      .from('transactions')
+      .select('vendor_or_client, amount, type')
+      .eq('business_id', businessId)
+      .eq('type', 'EXPENSE')
+      .not('vendor_or_client', 'is', null),
   ])
 
   const sections: string[] = []
@@ -159,7 +189,16 @@ export async function buildBusinessContext(
     sections.push('This month\'s finances: No transactions recorded')
   }
 
-  // Team
+  // Recent 5 transactions
+  const recentTxns = (recentTransactionsResult.data ?? []) as TxnInfo[]
+  if (recentTxns.length > 0) {
+    const list = recentTxns
+      .map((t) => `- ${t.date} | ${t.type} | ${formatSAR(t.amount)} | ${t.category ?? 'N/A'} | ${t.description ?? t.vendor_or_client ?? 'N/A'}`)
+      .join('\n')
+    sections.push(`Recent transactions:\n${list}`)
+  }
+
+  // Team with names and roles (no salaries for privacy)
   const team = (teamResult.data ?? []) as TeamInfo[]
   if (team.length > 0) {
     const saudiCount = team.filter((m) => m.nationality === 'Saudi').length
@@ -167,11 +206,120 @@ export async function buildBusinessContext(
     sections.push(
       `Team: ${team.length} active members, ${saudiCount} Saudi (${ratio}% Saudization)`
     )
+    const memberList = team
+      .map((m) => `- ${m.name ?? 'Unnamed'} (${m.role ?? 'No role'}, ${m.nationality ?? 'Unknown'})`)
+      .join('\n')
+    sections.push(`Team members:\n${memberList}`)
   } else {
     sections.push('Team: No members recorded')
   }
 
+  // Recurring expense patterns
+  const recurringRaw = (recurringResult.data ?? []) as { vendor_or_client: string; amount: number; type: string }[]
+  if (recurringRaw.length > 0) {
+    const vendorMap: Record<string, { total: number; count: number }> = {}
+    for (const r of recurringRaw) {
+      if (!r.vendor_or_client) continue
+      const key = r.vendor_or_client
+      if (!vendorMap[key]) vendorMap[key] = { total: 0, count: 0 }
+      vendorMap[key].total += r.amount
+      vendorMap[key].count++
+    }
+    const recurring: RecurringPattern[] = Object.entries(vendorMap)
+      .filter(([, v]) => v.count >= 3)
+      .map(([vendor, v]) => ({
+        vendor_or_client: vendor,
+        avg_amount: Math.round(v.total / v.count),
+        count: v.count,
+      }))
+      .sort((a, b) => b.avg_amount - a.avg_amount)
+      .slice(0, 5)
+
+    if (recurring.length > 0) {
+      const list = recurring
+        .map((r) => `- ${r.vendor_or_client}: avg ${formatSAR(r.avg_amount)}/occurrence (${r.count} times)`)
+        .join('\n')
+      sections.push(`Recurring expenses detected:\n${list}`)
+    }
+  }
+
   return sections.join('\n\n')
+}
+
+/**
+ * Builds a compact context string for the floating assistant (fewer tokens).
+ * Includes only essential business info, headline financials, and urgent obligations.
+ */
+export async function buildCompactContext(
+  businessId: string,
+  supabase: Awaited<ReturnType<typeof createClient>>
+): Promise<string> {
+  const [businessResult, obligationsResult, transactionsResult, teamResult] =
+    await Promise.all([
+      supabase
+        .from('businesses')
+        .select('name_ar, name_en, cr_number, activity_type')
+        .eq('id', businessId)
+        .single(),
+
+      supabase
+        .from('obligations')
+        .select('name, type, next_due_date')
+        .eq('business_id', businessId)
+        .gte('next_due_date', new Date().toISOString().split('T')[0])
+        .order('next_due_date', { ascending: true })
+        .limit(3),
+
+      supabase
+        .from('transactions')
+        .select('amount, type')
+        .eq('business_id', businessId)
+        .gte('date', getMonthStart())
+        .lte('date', getMonthEnd()),
+
+      supabase
+        .from('team_members')
+        .select('nationality, status')
+        .eq('business_id', businessId)
+        .eq('status', 'ACTIVE'),
+    ])
+
+  const parts: string[] = []
+
+  // Business name
+  const biz = businessResult.data as BusinessInfo | null
+  if (biz) {
+    parts.push(`Business: ${biz.name_en || biz.name_ar} (CR: ${biz.cr_number})`)
+  }
+
+  // Financial headline
+  const txns = (transactionsResult.data ?? []) as TxnInfo[]
+  if (txns.length > 0) {
+    let income = 0
+    let expenses = 0
+    for (const t of txns) {
+      if (t.type === 'INCOME') income += t.amount
+      else expenses += t.amount
+    }
+    parts.push(`Month: ${formatSAR(income)} in, ${formatSAR(expenses)} out`)
+  }
+
+  // Urgent obligations
+  const obligations = (obligationsResult.data ?? []) as ObligationInfo[]
+  if (obligations.length > 0) {
+    const list = obligations.map((o) => `${o.name} due ${o.next_due_date}`).join(', ')
+    parts.push(`Next deadlines: ${list}`)
+  }
+
+  // Saudization ratio
+  const team = (teamResult.data ?? []) as TeamInfo[]
+  if (team.length > 0) {
+    const saudiCount = team.filter((m) => m.nationality === 'Saudi').length
+    const ratio = Math.round((saudiCount / team.length) * 100)
+    parts.push(`Team: ${team.length} members, ${ratio}% Saudization`)
+  }
+
+  return parts.join(' | ')
 }
 
 function getMonthStart(): string {
