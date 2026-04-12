@@ -1032,7 +1032,11 @@ function UploadDialog({
           const analysisRes = await fetch('/api/analyze-document', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ fileUrl: signedUrl, businessId }),
+            body: JSON.stringify({
+              fileUrl: signedUrl,
+              mediaType: /\.pdf(\?|$)/i.test(signedUrl) ? 'application/pdf' : undefined,
+              businessId,
+            }),
           })
 
           if (analysisRes.ok) {

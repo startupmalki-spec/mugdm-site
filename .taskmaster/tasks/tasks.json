@@ -633,8 +633,9 @@
         "dependencies": [
           "11"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:27:50.459Z"
       },
       {
         "id": "13",
@@ -644,8 +645,9 @@
         "testStrategy": "1. Upload retail business CR, verify GOSI, ZATCA, Zakat, Chamber, Balady obligations created\n2. Upload service business CR, verify Balady NOT created\n3. Verify obligation due dates calculated correctly (GOSI 15th, VAT quarterly)\n4. Test penalty calculator for 30-day late GOSI payment\n5. Verify Arabic translations for all generated obligations\n6. Test with CR expiring in 6 months, verify renewal obligation created for 5 months out",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:28:03.220Z"
       },
       {
         "id": "14",
@@ -669,8 +671,9 @@
         "dependencies": [
           "14"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:28:32.355Z"
       },
       {
         "id": "16",
@@ -696,8 +699,9 @@
           "13",
           "14"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:28:53.743Z"
       },
       {
         "id": "18",
@@ -721,8 +725,9 @@
         "dependencies": [
           "14"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:29:17.730Z"
       },
       {
         "id": "20",
@@ -758,8 +763,9 @@
         "dependencies": [
           "21"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:29:56.897Z"
       },
       {
         "id": "23",
@@ -771,8 +777,9 @@
         "dependencies": [
           "21"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:30:05.623Z"
       },
       {
         "id": "24",
@@ -785,8 +792,9 @@
           "21",
           "23"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:30:16.807Z"
       },
       {
         "id": "25",
@@ -810,8 +818,9 @@
         "dependencies": [
           "21"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:30:33.141Z"
       },
       {
         "id": "27",
@@ -836,8 +845,9 @@
           "26",
           "27"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:30:45.355Z"
       },
       {
         "id": "29",
@@ -850,8 +860,9 @@
           "27",
           "28"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:30:52.356Z"
       },
       {
         "id": "30",
@@ -885,8 +896,9 @@
         "testStrategy": "1. Animation testing: Verify stat counters animate smoothly when scrolling into view\n2. Locale testing: Ensure Arabic numerals display in Arabic locale, Western numerals in English\n3. Responsive testing: Check testimonial card grid adapts properly to mobile/tablet/desktop\n4. Content testing: Verify placeholder testimonials display correctly in both languages\n5. Accessibility testing: Ensure testimonials have proper ARIA labels and are keyboard navigable",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:07.564Z"
       },
       {
         "id": "33",
@@ -896,8 +908,9 @@
         "testStrategy": "1. Video playback testing: Verify video loads and plays correctly in modal\n2. Lazy loading testing: Confirm video doesn't load until user scrolls to section or clicks play\n3. Mobile testing: Ensure video/tour is mobile-responsive and touch-friendly\n4. Accessibility testing: Verify keyboard navigation and screen reader support\n5. Fallback testing: Check placeholder screenshots display correctly when video unavailable\n6. Performance testing: Measure page load impact and ensure optimal loading strategy",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:14.346Z"
       },
       {
         "id": "34",
@@ -973,8 +986,9 @@
         "dependencies": [
           "38"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:29.299Z"
       },
       {
         "id": "40",
@@ -984,8 +998,9 @@
         "testStrategy": "1. Event tracking: Verify all key events are tracked correctly in PostHog dashboard\n2. Funnel testing: Complete each funnel flow and verify steps appear in PostHog\n3. User identification: Confirm users are identified with correct traits after signup\n4. Privacy testing: Verify opt-out setting stops event tracking\n5. Page view testing: Navigate app and confirm page views are tracked\n6. Property testing: Verify custom properties (tier, locale, etc.) are captured correctly\n7. Retention testing: Track test users over time and verify retention cohorts populate\n8. Performance testing: Ensure analytics doesn't impact page load times significantly",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:36.064Z"
       },
       {
         "id": "41",
@@ -1023,8 +1038,9 @@
         "dependencies": [
           "41"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:41.772Z"
       },
       {
         "id": "44",
@@ -1113,8 +1129,9 @@
           "43",
           "45"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:49.364Z"
       },
       {
         "id": "50",
@@ -1127,15 +1144,16 @@
           "44",
           "45"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T13:31:59.542Z"
       }
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-12T13:02:03.373Z",
+      "lastModified": "2026-04-12T13:31:59.543Z",
       "taskCount": 50,
-      "completedCount": 31,
+      "completedCount": 49,
       "tags": [
         "master"
       ]

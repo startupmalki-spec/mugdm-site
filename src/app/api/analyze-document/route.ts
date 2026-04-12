@@ -223,7 +223,9 @@ export async function POST(request: Request) {
 
     const anthropic = new Anthropic()
 
-    const isPdf = body.mediaType === 'application/pdf'
+    // Detect PDF from mediaType OR from file URL extension
+    const isPdf = body.mediaType === 'application/pdf' ||
+      (body.fileUrl && /\.pdf(\?|$)/i.test(body.fileUrl))
     let contentBlock: Anthropic.ImageBlockParam | Anthropic.DocumentBlockParam
 
     if (isPdf) {
@@ -246,28 +248,16 @@ export async function POST(request: Request) {
         }
       }
     } else if (body.base64Data) {
-      const isPdf = body.mediaType === 'application/pdf'
-      if (isPdf) {
-        contentBlock = {
-          type: 'document',
-          source: {
-            type: 'base64',
-            media_type: 'application/pdf',
-            data: body.base64Data,
-          },
-        } as Anthropic.DocumentBlockParam
-      } else {
-        const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
-          ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
-          : 'image/jpeg'
-        contentBlock = {
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: mediaType,
-            data: body.base64Data,
-          },
-        }
+      const mediaType = ALLOWED_MEDIA_TYPES.includes(body.mediaType as typeof ALLOWED_MEDIA_TYPES[number])
+        ? (body.mediaType as Anthropic.Base64ImageSource['media_type'])
+        : 'image/jpeg'
+      contentBlock = {
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: mediaType,
+          data: body.base64Data,
+        },
       }
     } else {
       contentBlock = {

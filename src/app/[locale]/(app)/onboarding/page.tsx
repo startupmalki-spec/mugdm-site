@@ -247,11 +247,18 @@ export default function OnboardingPage() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
 
+        // Detect media type from URL extension
+        const urlMediaType = /\.pdf(\?|$)/i.test(url) ? 'application/pdf'
+          : /\.png(\?|$)/i.test(url) ? 'image/png'
+          : /\.jpe?g(\?|$)/i.test(url) ? 'image/jpeg'
+          : 'image/jpeg'
+
         const res = await fetch('/api/analyze-document', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             fileUrl: url,
+            mediaType: urlMediaType,
             businessId: user?.id ?? 'onboarding',
           }),
         })
