@@ -1,23 +1,13 @@
 {
-  "name": "Mugdm - Data Wallet",
+  "name": "Mugdm — Small Business Management Platform",
   "short_name": "Mugdm",
-  "description": "Your business's second brain — AI-powered COO for Saudi entrepreneurs",
+  "description": "AI-powered compliance and business management platform for Saudi micro-enterprises",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1e1e2e",
-  "theme_color": "#1E40AF",
-  "orientation": "portrait",
+  "background_color": "#0F172A",
+  "theme_color": "#5B5BFF",
   "icons": [
-    {
-      "src": "/favicon.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "/brand/7-transparent.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "/brand/8.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/brand/8.png", "sizes": "512x512", "type": "image/png" }
   ]
 }

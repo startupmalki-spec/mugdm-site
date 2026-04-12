@@ -628,70 +628,121 @@
     "tourChatDesc": "Your AI-powered assistant. Ask anything about your business — compliance status, expenses, documents, and more."
   },
   "landing": {
+    "nav": {
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "whyMugdm": "Why Mugdm",
+      "contact": "Contact",
+      "getStarted": "Get Started",
+      "dashboard": "Dashboard"
+    },
     "hero": {
-      "title": "Your micro-enterprise, organized",
-      "subtitle": "The all-in-one platform Saudi micro-businesses use to manage documents, compliance, and finances.",
+      "badge": "Your Business's Second Brain",
+      "headline1": "Everything Your Business Needs.",
+      "headline2": "One Place.",
+      "description": "Mugdm handles your documents, deadlines, bookkeeping, and team — so you can focus on what matters: growing your business. Think of it as an AI-powered COO that never sleeps.",
       "cta": "Get Started Free",
       "secondaryCta": "See How It Works",
-      "trustedBy": "Trusted by Saudi entrepreneurs"
+      "scroll": "Scroll"
     },
     "features": {
-      "title": "Everything you need in one place",
-      "subtitle": "Stop juggling spreadsheets, WhatsApp groups, and paper folders.",
+      "badge": "Features",
+      "title": "Stop juggling. Start growing.",
+      "subtitle": "Documents, deadlines, bookkeeping, and team — handled by one AI-powered platform so you can focus on what actually makes you money.",
       "vault": {
         "title": "Document Vault",
-        "description": "Store, organize, and track expiry dates for all your business documents in one secure place."
+        "description": "Never lose a document again. Upload your CR, GOSI certificates, Zakat clearance, and insurance once — access anywhere, and get reminded before anything expires."
       },
       "calendar": {
         "title": "Compliance Calendar",
-        "description": "Never miss a renewal or filing deadline with smart reminders for CR, VAT, GOSI, and more."
+        "description": "GOSI, ZATCA VAT, CR renewal, Zakat filing — every deadline tracked and every reminder sent automatically. Sleep easy knowing nothing slips through the cracks."
       },
       "bookkeeper": {
-        "title": "Smart Bookkeeper",
-        "description": "Upload bank statements, snap receipts, and track money in and out without accounting expertise."
-      },
-      "ocr": {
-        "title": "AI Document Reader",
-        "description": "Upload your CR and we auto-fill your business profile. No manual data entry needed."
+        "title": "AI Bookkeeper",
+        "description": "Snap a receipt, upload a bank statement — done. AI categorizes every transaction, flags government payments, and keeps your VAT numbers ready before ZATCA asks."
       },
       "team": {
-        "title": "Team Access",
-        "description": "Invite your accountant, partner, or PRO with controlled access to what they need."
-      },
-      "bilingual": {
-        "title": "Arabic-First, Bilingual",
-        "description": "Built for the Saudi market with full Arabic and English support throughout."
+        "title": "Team Management",
+        "description": "Track employees, Iqama renewals, and your Saudization ratio in one place. Stay ahead of Ministry of Labor requirements without the spreadsheet chaos."
       }
     },
     "howItWorks": {
-      "title": "Up and running in 3 minutes",
-      "subtitle": "Getting started is simple.",
+      "badge": "How It Works",
+      "title": "From zero to smarter in 3 minutes",
+      "subtitle": "No training. No onboarding calls. Just sign up and let Mugdm do the heavy lifting.",
       "step1": {
-        "title": "Sign up and upload your CR",
-        "description": "Create your free account and upload your Commercial Registration."
+        "number": "01",
+        "title": "Sign Up",
+        "description": "One email, one click. No passwords, no friction — you're in."
       },
       "step2": {
-        "title": "We set up your profile",
-        "description": "Our AI extracts your business data and builds your profile automatically."
+        "number": "02",
+        "title": "Upload Your CR",
+        "description": "Drop in your Commercial Registration. AI reads it, extracts your details, and builds your business profile instantly."
       },
       "step3": {
-        "title": "Manage everything in one place",
-        "description": "Documents, compliance deadlines, and finances — all organized and tracked."
+        "number": "03",
+        "title": "Auto-Generate Obligations",
+        "description": "Mugdm maps out every obligation — GOSI, ZATCA, Chamber renewal — and sets the exact deadlines. You didn't have to look up a single one."
+      },
+      "step4": {
+        "number": "04",
+        "title": "Run Your Business",
+        "description": "Reminders before every deadline. Bookkeeping on autopilot. You run the business — Mugdm runs the back office."
       }
     },
-    "cta": {
-      "title": "Ready to simplify your business?",
-      "subtitle": "Join hundreds of Saudi micro-enterprises already using Mugdm.",
-      "button": "Start for Free",
-      "noCard": "No credit card required"
+    "why": {
+      "badge": "Why Mugdm",
+      "title": "Built by a Saudi founder, for Saudi businesses",
+      "subtitle": "The smartest investment you'll make for your business. Here's why.",
+      "affordable": {
+        "title": "Affordable, Not Cheap",
+        "description": "A fraction of the cost of hiring a COO or accountant. Mugdm gives you enterprise-grade operations at a price that makes sense for small businesses.",
+        "statLabel": "Cheaper"
+      },
+      "ai": {
+        "title": "AI That Actually Works",
+        "description": "Not a chatbot. Mugdm's AI reads your documents, categorizes transactions, and flags what needs attention — no manual data entry, no prompts to write.",
+        "statLabel": "Automated"
+      },
+      "saudi": {
+        "title": "Knows Saudi Regulations",
+        "description": "GOSI, ZATCA, Balady, Chamber of Commerce, CR renewals — built with deep knowledge of every Saudi compliance requirement. No generic templates.",
+        "statLabel": "Saudi"
+      },
+      "replaces": {
+        "title": "Replaces 5+ Tools",
+        "description": "Document storage, compliance tracking, bookkeeping, team management, reminders — all in one bilingual dashboard with Arabic, English, Hijri, and Gregorian dates.",
+        "statLabel": "Tools"
+      }
+    },
+    "contact": {
+      "badge": "Contact",
+      "title": "Ready to run your business smarter?",
+      "subtitle": "Questions, feedback, or just want to say hello — we'll get back to you within 24 hours.",
+      "namePlaceholder": "Your name",
+      "emailPlaceholder": "Your email",
+      "messagePlaceholder": "Tell us about your business...",
+      "sendButton": "Send Message",
+      "sending": "Sending...",
+      "successTitle": "Message sent!",
+      "successMessage": "We'll be in touch within 24 hours.",
+      "sendAnother": "Send another message",
+      "errorMessage": "Something went wrong. Please try again or email us directly.",
+      "emailLabel": "contact@mugdm.com",
+      "meetingLabel": "Book a call"
     },
     "footer": {
+      "features": "Features",
+      "howItWorks": "How It Works",
+      "whyMugdm": "Why Mugdm",
+      "contact": "Contact",
+      "copyright": "All rights reserved",
       "product": "Product",
       "company": "Company",
       "legal": "Legal",
       "about": "About",
       "blog": "Blog",
-      "contact": "Contact",
       "terms": "Terms of Service",
       "privacy": "Privacy Policy",
       "tagline": "The operating system for Saudi micro-enterprises"

@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { Send, Mail, Calendar, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { supabase } from "@/lib/supabase";
 import { Reveal } from "@/lib/animations";
 
 export function Contact() {
+  const t = useTranslations("landing.contact");
   const [formState, setFormState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
 
@@ -42,13 +44,13 @@ export function Contact() {
       <div className="relative max-w-[1280px] mx-auto px-6">
         <Reveal className="text-center mb-16">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-6">
-            Contact
+            {t("badge")}
           </span>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tighter mb-4">
-            Ready to run your business <span className="text-gradient">smarter</span>?
+            {t("title")}
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Questions, feedback, or just want to say hello — we&apos;ll get back to you within 24 hours.
+            {t("subtitle")}
           </p>
         </Reveal>
 
@@ -73,13 +75,13 @@ export function Contact() {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <Send size={28} className="text-primary" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">Message sent!</h3>
-              <p className="text-muted-foreground">We&apos;ll be in touch within 24 hours.</p>
+              <h3 className="text-xl font-semibold mb-2">{t("successTitle")}</h3>
+              <p className="text-muted-foreground">{t("successMessage")}</p>
               <button
                 onClick={() => setFormState("idle")}
                 className="mt-4 text-sm text-primary hover:text-primary/80 transition-colors"
               >
-                Send another message
+                {t("sendAnother")}
               </button>
             </div>
           ) : (
@@ -87,7 +89,7 @@ export function Contact() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
                 <input
                   type="text"
-                  placeholder="Your name"
+                  placeholder={t("namePlaceholder")}
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -95,7 +97,7 @@ export function Contact() {
                 />
                 <input
                   type="email"
-                  placeholder="Your email"
+                  placeholder={t("emailPlaceholder")}
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -103,7 +105,7 @@ export function Contact() {
                 />
               </div>
               <textarea
-                placeholder="Tell us about your business..."
+                placeholder={t("messagePlaceholder")}
                 required
                 rows={5}
                 value={formData.message}
@@ -126,18 +128,18 @@ export function Contact() {
                 {formState === "sending" ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    Sending...
+                    {t("sending")}
                   </>
                 ) : (
                   <>
                     <Send size={18} />
-                    Send Message
+                    {t("sendButton")}
                   </>
                 )}
               </button>
               {formState === "error" && (
                 <p className="text-sm text-red-400 text-center mt-4">
-                  Something went wrong. Please try again or email us directly.
+                  {t("errorMessage")}
                 </p>
               )}
             </form>
@@ -152,17 +154,15 @@ export function Contact() {
             className="inline-flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-lg transition-all duration-300 hover:text-foreground hover:bg-primary/[0.08]"
           >
             <Mail size={18} className="text-primary transition-transform duration-300 group-hover:scale-115" />
-            contact@mugdm.com
+            {t("emailCta")}
           </a>
           <span className="text-border">|</span>
           <a
-            href="https://cal.com/mugdm"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:contact@mugdm.com"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground px-4 py-2 rounded-lg transition-all duration-300 hover:text-foreground hover:bg-primary/[0.08]"
           >
             <Calendar size={18} className="text-primary transition-transform duration-300 group-hover:scale-115" />
-            Book a call
+            {t("bookCall")}
           </a>
         </div>
       </div>

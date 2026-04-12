@@ -3,18 +3,19 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 
-const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how-it-works" },
-  { label: "Why Mugdm", href: "#why" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Contact", href: "#contact" },
-];
+const NAV_KEYS = [
+  { key: "features", href: "#features" },
+  { key: "howItWorks", href: "#how-it-works" },
+  { key: "whyMugdm", href: "#why" },
+  { key: "contact", href: "#contact" },
+] as const;
 
 export function Navbar() {
+  const t = useTranslations("landing.nav");
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -62,20 +63,20 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
+          {NAV_KEYS.map((link) => (
             <a
               key={link.href}
               href={link.href}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors duration-200 relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-0 after:h-[2px] after:bg-primary after:transition-all after:duration-300 after:rounded-sm hover:after:w-full"
             >
-              {link.label}
+              {t(link.key)}
             </a>
           ))}
           <Link
             href={isLoggedIn ? "/dashboard" : "/signup"}
             className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-all duration-200 shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
           >
-            {isLoggedIn ? "Dashboard" : "Get Started"}
+            {isLoggedIn ? t("dashboard") : t("getStarted")}
           </Link>
         </div>
 
@@ -92,14 +93,14 @@ export function Navbar() {
       {mobileOpen && (
         <div className="md:hidden glass border-t border-border/50">
           <div className="px-6 py-4 flex flex-col gap-4">
-            {navLinks.map((link) => (
+            {NAV_KEYS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
-                {link.label}
+                {t(link.key)}
               </a>
             ))}
             <Link
@@ -107,7 +108,7 @@ export function Navbar() {
               className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium mt-2"
               onClick={() => setMobileOpen(false)}
             >
-              {isLoggedIn ? "Dashboard" : "Get Started"}
+              {isLoggedIn ? t("dashboard") : t("getStarted")}
             </Link>
           </div>
         </div>

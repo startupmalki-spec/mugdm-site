@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 
 export function Footer() {
+  const t = useTranslations("landing.footer");
   return (
     <footer className="relative border-t border-border bg-surface-1/30 overflow-hidden">
       {/* Animated gradient line at top */}
@@ -25,7 +28,7 @@ export function Footer() {
       <div className="relative z-[1] max-w-[1280px] mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           {/* Logo */}
-          <a href="#" className="flex items-center group">
+          <Link href="/" className="flex items-center group">
             <Image
               src="/brand/1-transparent.png"
               alt="Mugdm"
@@ -40,23 +43,23 @@ export function Footer() {
               height={36}
               className="h-9 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
             />
-          </a>
+          </Link>
 
           {/* Links */}
           <div className="flex items-center gap-6">
             {[
-              { label: "Features", href: "#features" },
-              { label: "How It Works", href: "#how-it-works" },
-              { label: "Why Mugdm", href: "#why" },
-              { label: "Pricing", href: "#pricing" },
-              { label: "Contact", href: "#contact" },
+              { key: "features", href: "#features" },
+              { key: "howItWorks", href: "#how-it-works" },
+              { key: "whyMugdm", href: "#why" },
+              { key: "pricing", href: "#pricing" },
+              { key: "contact", href: "#contact" },
             ].map((item) => (
               <a
-                key={item.label}
+                key={item.key}
                 href={item.href}
                 className="text-sm text-muted-foreground hover:text-foreground transition-all duration-300 relative pb-0.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-0 after:h-px after:bg-primary after:transition-all after:duration-300 hover:after:w-full"
               >
-                {item.label}
+                {t(item.key)}
               </a>
             ))}
           </div>
@@ -74,7 +77,7 @@ export function Footer() {
               </svg>
             </a>
             <a
-              href="https://linkedin.com/in/mohammed-malki"
+              href="https://www.linkedin.com/in/mohammed-malki"
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground border border-transparent transition-all duration-300 hover:text-primary hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.08] hover:shadow-[0_4px_15px_rgba(30,64,175,0.15)]"
@@ -87,7 +90,7 @@ export function Footer() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Mugdm. All rights reserved.
+          {t("copyright", { year: new Date().getFullYear() })}
         </div>
       </div>
     </footer>

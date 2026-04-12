@@ -2,10 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import { ArrowRight, Play } from "lucide-react";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/routing";
 import { AnimatedText, AuroraBackground, Magnetic, ReactiveShadda } from "@/lib/animations";
 
 export function Hero() {
+  const t = useTranslations("landing.hero");
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const particlesRef = useRef<{ x: number; y: number; vx: number; vy: number; r: number }[]>([]);
@@ -192,12 +194,12 @@ export function Hero() {
             className="w-1.5 h-1.5 rounded-full bg-primary"
             style={{ animation: "pulse 2s infinite" }}
           />
-          Your Business&apos;s Second Brain
+          {t("badge")}
         </div>
 
         {/* Headline */}
         <h1 className="text-[clamp(40px,6vw,76px)] font-extrabold tracking-[-0.04em] leading-[1.08] mb-6">
-          <AnimatedText text="Everything Your Business Needs." delay={0.2} as="span" className="block" />
+          <AnimatedText text={t("headline1")} delay={0.2} as="span" className="block" />
           <span
             className="text-gradient block"
             style={{
@@ -205,7 +207,7 @@ export function Hero() {
               animation: "gradient-shift 4s ease infinite",
             }}
           >
-            <AnimatedText text="One Place." delay={0.6} as="span" />
+            <AnimatedText text={t("headline2")} delay={0.6} as="span" />
           </span>
         </h1>
 
@@ -214,7 +216,7 @@ export function Hero() {
           className="text-[clamp(16px,2vw,20px)] text-muted-foreground max-w-[640px] mx-auto mb-10 leading-relaxed opacity-0"
           style={{ animation: "fade-up 0.8s ease-out 0.3s forwards" }}
         >
-          Mugdm handles your documents, deadlines, bookkeeping, and team — so you can focus on what matters: growing your business. Think of it as an AI-powered COO that never sleeps.
+          {t("description")}
         </p>
 
         {/* CTAs */}
@@ -228,7 +230,7 @@ export function Hero() {
               className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl bg-primary text-white text-lg font-medium transition-all duration-250 shadow-[0_8px_30px_rgba(30,64,175,0.3)] hover:shadow-[0_12px_40px_rgba(30,64,175,0.5)] hover:-translate-y-0.5 active:scale-[0.98]"
               style={{ animation: "glow 3s ease-in-out infinite" }}
             >
-              Get Started Free
+              {t("cta")}
               <ArrowRight size={20} />
             </Link>
           </Magnetic>
@@ -238,7 +240,7 @@ export function Hero() {
               className="inline-flex items-center gap-2.5 h-14 px-10 rounded-xl border border-border bg-transparent text-foreground text-lg font-medium transition-all duration-250 hover:bg-surface-2 hover:border-primary/40"
             >
               <Play size={20} />
-              See How It Works
+              {t("secondaryCta")}
             </a>
           </Magnetic>
         </div>
@@ -256,7 +258,7 @@ export function Hero() {
           />
         </div>
         <span className="text-xs text-muted-foreground tracking-widest uppercase">
-          Scroll
+          {t("scroll")}
         </span>
       </div>
     </section>
