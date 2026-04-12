@@ -746,6 +746,76 @@
       "terms": "Terms of Service",
       "privacy": "Privacy Policy",
       "tagline": "The operating system for Saudi micro-enterprises"
+    },
+    "demo": {
+      "badge": "Product Tour",
+      "title": "See Mugdm",
+      "titleGradient": "in action",
+      "subtitle": "One dashboard, one vault, one AI assistant — everything your business needs.",
+      "tabs": { "dashboard": "Dashboard", "vault": "Document Vault", "chat": "AI Chat" },
+      "dashboard": {
+        "documents": "Documents", "documentsValue": "24",
+        "dueSoon": "Due Soon", "dueSoonValue": "3",
+        "netPosition": "Net Position", "netPositionValue": "SAR 42K",
+        "complianceScore": "Compliance Score",
+        "recentActivity": "Recent Activity",
+        "activity1": "CR Renewal uploaded",
+        "activity2": "GOSI payment marked done",
+        "activity3": "VAT Return due in 5 days"
+      },
+      "vault": {
+        "cr": "Commercial Registration", "vat": "VAT Certificate",
+        "gosi": "GOSI Certificate", "chamber": "Chamber Membership",
+        "valid": "valid", "expiring": "expiring", "expired": "expired",
+        "documentsLabel": "Documents", "totalLabel": "total",
+        "expiresLabel": "Expires"
+      },
+      "chat": {
+        "userMessage1": "What's my compliance status?",
+        "assistantMessage1": "Your compliance score is 92%. You have 3 upcoming deadlines:\n\n- GOSI Payment due May 10\n- VAT Return due May 15\n- Chamber Renewal overdue since Mar 1\n\nI recommend renewing your Chamber membership ASAP to avoid penalties.",
+        "userMessage2": "What's the penalty for late Chamber renewal?",
+        "assistantMessage2": "Late Chamber of Commerce renewal typically incurs a fee of SAR 500-2,000 depending on your business type. I'd recommend scheduling it this week.",
+        "placeholder": "Type your message..."
+      }
+    },
+    "testimonials": {
+      "badge": "Social Proof",
+      "title": "Trusted by",
+      "titleGradient": "real businesses",
+      "subtitle": "See what Saudi entrepreneurs are saying about Mugdm.",
+      "ahmed": { "name": "Ahmed S.", "role": "Restaurant Owner", "quote": "Mugdm replaced my Excel spreadsheets and my accountant's monthly visits. I save 10+ hours a week." },
+      "sarah": { "name": "Sarah M.", "role": "Trading Company", "quote": "The AI bookkeeper caught a duplicate GOSI payment I would have missed. Paid for itself in the first month." },
+      "khalid": { "name": "Khalid R.", "role": "Construction", "quote": "Finally, one place for all my compliance documents. No more WhatsApp reminders to myself." },
+      "statBusinesses": "Businesses",
+      "statDocuments": "Documents Processed",
+      "statDeadlines": "In Deadlines Tracked"
+    },
+    "pricing": {
+      "badge": "Pricing",
+      "title": "Simple pricing.",
+      "titleGradient": "No surprises.",
+      "subtitle": "Start free and scale as you grow. Every plan includes AI-powered compliance, bookkeeping, and document management built for Saudi businesses.",
+      "monthly": "Monthly",
+      "annual": "Annual",
+      "annualSave": "2 months free",
+      "year": "year",
+      "mo": "mo",
+      "billedAnnually": "billed annually",
+      "free": "Free",
+      "freeName": "Free",
+      "freeDesc": "Get started with the essentials. No credit card required.",
+      "freeCta": "Start Free",
+      "freeF1": "1 business", "freeF2": "50 AI calls / day", "freeF3": "Document Vault (10 docs)", "freeF4": "Compliance Calendar", "freeF5": "Basic Bookkeeper",
+      "proName": "Pro",
+      "proBadge": "Most Popular",
+      "proDesc": "Everything you need to run your business like a pro.",
+      "proCta": "Start Pro Trial",
+      "proTrial": "14-day free trial",
+      "proF1": "3 businesses", "proF2": "Unlimited AI calls", "proF3": "Unlimited documents", "proF4": "Full Compliance Calendar with reminders", "proF5": "AI Bookkeeper with VAT reports", "proF6": "Team Management", "proF7": "Email notifications", "proF8": "Priority support",
+      "bizName": "Business",
+      "bizDesc": "For teams that need full power and dedicated support.",
+      "bizCta": "Contact Sales",
+      "bizF1": "Unlimited businesses", "bizF2": "Everything in Pro", "bizF3": "WhatsApp notifications", "bizF4": "API access", "bizF5": "Dedicated support", "bizF6": "Custom integrations"
     }
   },
   "settings": {

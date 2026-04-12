@@ -88,12 +88,14 @@ export async function POST(request: Request) {
           continue
         }
 
-        const businessName = business.name_en || business.name_ar
+        const locale = (user.user.user_metadata?.locale as 'ar' | 'en') || 'ar'
+        const businessName = locale === 'ar' ? business.name_ar : (business.name_en || business.name_ar)
         const { subject, html } = complianceReminderEmail(
           row.name,
           row.next_due_date,
           daysLeft,
-          businessName
+          businessName,
+          { locale }
         )
 
         const { error: sendErr } = await sendEmail({
@@ -152,12 +154,14 @@ export async function POST(request: Request) {
           continue
         }
 
-        const businessName = business.name_en || business.name_ar
+        const locale = (user.user.user_metadata?.locale as 'ar' | 'en') || 'ar'
+        const businessName = locale === 'ar' ? business.name_ar : (business.name_en || business.name_ar)
         const { subject, html } = documentExpiryEmail(
           row.name,
           row.expiry_date!,
           daysLeft,
-          businessName
+          businessName,
+          { locale }
         )
 
         const { error: sendErr } = await sendEmail({

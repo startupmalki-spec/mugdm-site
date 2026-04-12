@@ -1,17 +1,33 @@
+type Locale = 'en' | 'ar'
+
 interface TemplateOptions {
-  locale?: 'en' | 'ar'
+  locale?: Locale
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function baseLayout(content: string, _options?: TemplateOptions): string {
+const ARABIC_FONT = "'Segoe UI', Tahoma, 'Noto Sans Arabic', sans-serif"
+const ENGLISH_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
+function resolveLocale(options?: TemplateOptions): Locale {
+  return options?.locale ?? 'en'
+}
+
+function baseLayout(content: string, options?: TemplateOptions): string {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
+  const dir = isAr ? 'rtl' : 'ltr'
+  const font = isAr ? ARABIC_FONT : ENGLISH_FONT
+  const tagline = isAr ? 'العقل الثاني لأعمالك' : "Your Business's Second Brain"
+  const footerTagline = isAr ? 'مُقدِم &mdash; العقل الثاني لأعمالك' : "Mugdm &mdash; Your Business's Second Brain"
+  const unsubscribeLabel = isAr ? 'إلغاء الاشتراك' : 'Unsubscribe'
+
   return `<!DOCTYPE html>
-<html lang="en" dir="ltr">
+<html lang="${locale}" dir="${dir}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mugdm</title>
+  <title>${isAr ? 'مُقدِم' : 'Mugdm'}</title>
 </head>
-<body style="margin:0;padding:0;background-color:#0f172a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<body style="margin:0;padding:0;background-color:#0f172a;font-family:${font};direction:${dir};">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;">
     <tr>
       <td align="center" style="padding:32px 16px;">
@@ -19,8 +35,8 @@ function baseLayout(content: string, _options?: TemplateOptions): string {
           <!-- Header -->
           <tr>
             <td style="padding:24px 32px;text-align:center;border-bottom:2px solid #1E40AF;">
-              <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:1px;">MUGDM</h1>
-              <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;">Your Business's Second Brain</p>
+              <h1 style="margin:0;font-size:28px;font-weight:700;color:#ffffff;letter-spacing:1px;">${isAr ? 'مُقدِم' : 'MUGDM'}</h1>
+              <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;letter-spacing:${isAr ? '0' : '2px'};text-transform:uppercase;">${tagline}</p>
             </td>
           </tr>
           <!-- Body -->
@@ -32,9 +48,9 @@ function baseLayout(content: string, _options?: TemplateOptions): string {
           <!-- Footer -->
           <tr>
             <td style="padding:24px 32px;text-align:center;">
-              <p style="margin:0 0 8px;font-size:13px;color:#64748b;">Mugdm &mdash; Your Business's Second Brain</p>
+              <p style="margin:0 0 8px;font-size:13px;color:#64748b;">${footerTagline}</p>
               <p style="margin:0;font-size:12px;color:#475569;">
-                <a href="{{unsubscribe_url}}" style="color:#475569;text-decoration:underline;">Unsubscribe</a>
+                <a href="{{unsubscribe_url}}" style="color:#475569;text-decoration:underline;">${unsubscribeLabel}</a>
               </p>
             </td>
           </tr>
@@ -82,7 +98,22 @@ export function welcomeEmail(
   userName: string,
   options: TemplateOptions = {}
 ): { subject: string; html: string } {
-  const content = `
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
+
+  const content = isAr ? `
+    ${heading(`أهلاً بك في مُقدِم، ${userName}!`)}
+    ${paragraph('حسابك جاهز. مُقدِم يساعدك في متابعة التزامات نشاطك التجاري والمستندات والشؤون المالية &mdash; كل شيء في مكان واحد.')}
+    ${paragraph('إليك ما يمكنك فعله الآن:')}
+    <ul style="margin:0 0 16px;padding-right:20px;color:#cbd5e1;font-size:15px;line-height:1.8;">
+      <li>أضف بيانات السجل التجاري</li>
+      <li>ارفع مستندات الأعمال المهمة</li>
+      <li>فعّل تتبع الالتزامات التنظيمية</li>
+      <li>اربط كشوفات البنك للمحاسبة</li>
+    </ul>
+    ${ctaButton('انتقل إلى لوحة التحكم', 'https://mugdm.com/ar/dashboard')}
+    ${paragraph('إذا كان لديك أي استفسار، رد على هذا البريد مباشرة. نحن هنا لمساعدتك.')}
+  ` : `
     ${heading(`Welcome to Mugdm, ${userName}!`)}
     ${paragraph('Your account is set up and ready to go. Mugdm helps you stay on top of your business compliance, documents, and finances &mdash; all in one place.')}
     ${paragraph('Here\'s what you can do next:')}
@@ -92,11 +123,11 @@ export function welcomeEmail(
       <li>Set up compliance obligation tracking</li>
       <li>Connect your bank statements for bookkeeping</li>
     </ul>
-    ${ctaButton('Go to Dashboard', 'https://mugdm.com/dashboard')}
+    ${ctaButton('Go to Dashboard', 'https://mugdm.com/en/dashboard')}
     ${paragraph('If you have any questions, just reply to this email. We\'re here to help.')}
   `
   return {
-    subject: 'Welcome to Mugdm — Let\'s get your business organized',
+    subject: isAr ? 'أهلاً بك في مُقدِم — لننظّم أعمالك' : 'Welcome to Mugdm — Let\'s get your business organized',
     html: baseLayout(content, options),
   }
 }
@@ -108,28 +139,27 @@ export function complianceReminderEmail(
   businessName: string,
   options: TemplateOptions = {}
 ): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
   const urgency = daysLeft <= 1 ? 'red' : daysLeft <= 7 ? 'amber' : 'blue'
-  const urgencyLabel =
-    daysLeft <= 0
-      ? 'OVERDUE'
-      : daysLeft === 1
-        ? 'Due Tomorrow'
-        : `${daysLeft} days left`
+  const urgencyLabel = isAr
+    ? (daysLeft <= 0 ? 'متأخر' : daysLeft === 1 ? 'مستحق غداً' : `${daysLeft} يوم متبقي`)
+    : (daysLeft <= 0 ? 'OVERDUE' : daysLeft === 1 ? 'Due Tomorrow' : `${daysLeft} days left`)
 
   const content = `
-    ${heading('Compliance Reminder')}
-    ${paragraph(`Hi, this is a reminder for <strong>${businessName}</strong>:`)}
+    ${heading(isAr ? 'تذكير بالتزام' : 'Compliance Reminder')}
+    ${paragraph(isAr ? `تذكير لنشاط <strong>${businessName}</strong>:` : `Hi, this is a reminder for <strong>${businessName}</strong>:`)}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
       <tr>
         <td style="padding:20px;">
           <p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#f1f5f9;">${obligationName}</p>
-          <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;">Due date: <strong style="color:#e2e8f0;">${dueDate}</strong></p>
+          <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;">${isAr ? 'تاريخ الاستحقاق' : 'Due date'}: <strong style="color:#e2e8f0;">${dueDate}</strong></p>
           ${badge(urgencyLabel, urgency)}
         </td>
       </tr>
     </table>
-    ${paragraph('Make sure this obligation is completed before the deadline to avoid penalties.')}
-    ${ctaButton('View Obligations', 'https://mugdm.com/dashboard/compliance')}
+    ${paragraph(isAr ? 'تأكد من إنجاز هذا الالتزام قبل الموعد النهائي لتفادي الغرامات.' : 'Make sure this obligation is completed before the deadline to avoid penalties.')}
+    ${ctaButton(isAr ? 'عرض الالتزامات' : 'View Obligations', `https://mugdm.com/${locale}/calendar`)}
   `
   return {
     subject: `[${urgencyLabel}] ${obligationName} — ${businessName}`,
@@ -144,28 +174,27 @@ export function documentExpiryEmail(
   businessName: string,
   options: TemplateOptions = {}
 ): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
   const urgency = daysLeft <= 7 ? 'red' : daysLeft <= 15 ? 'amber' : 'blue'
-  const urgencyLabel =
-    daysLeft <= 0
-      ? 'EXPIRED'
-      : daysLeft === 1
-        ? 'Expires Tomorrow'
-        : `Expires in ${daysLeft} days`
+  const urgencyLabel = isAr
+    ? (daysLeft <= 0 ? 'منتهي' : daysLeft === 1 ? 'ينتهي غداً' : `ينتهي خلال ${daysLeft} يوم`)
+    : (daysLeft <= 0 ? 'EXPIRED' : daysLeft === 1 ? 'Expires Tomorrow' : `Expires in ${daysLeft} days`)
 
   const content = `
-    ${heading('Document Expiry Notice')}
-    ${paragraph(`A document for <strong>${businessName}</strong> needs your attention:`)}
+    ${heading(isAr ? 'إشعار انتهاء مستند' : 'Document Expiry Notice')}
+    ${paragraph(isAr ? `مستند لنشاط <strong>${businessName}</strong> يحتاج انتباهك:` : `A document for <strong>${businessName}</strong> needs your attention:`)}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
       <tr>
         <td style="padding:20px;">
           <p style="margin:0 0 8px;font-size:18px;font-weight:600;color:#f1f5f9;">${documentName}</p>
-          <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;">Expiry date: <strong style="color:#e2e8f0;">${expiryDate}</strong></p>
+          <p style="margin:0 0 12px;font-size:14px;color:#94a3b8;">${isAr ? 'تاريخ الانتهاء' : 'Expiry date'}: <strong style="color:#e2e8f0;">${expiryDate}</strong></p>
           ${badge(urgencyLabel, urgency)}
         </td>
       </tr>
     </table>
-    ${paragraph('Renew this document as soon as possible to maintain compliance and avoid business disruptions.')}
-    ${ctaButton('View Documents', 'https://mugdm.com/dashboard/documents')}
+    ${paragraph(isAr ? 'جدّد هذا المستند في أقرب وقت للحفاظ على الالتزام وتفادي تعطل الأعمال.' : 'Renew this document as soon as possible to maintain compliance and avoid business disruptions.')}
+    ${ctaButton(isAr ? 'عرض المستندات' : 'View Documents', `https://mugdm.com/${locale}/vault`)}
   `
   return {
     subject: `[${urgencyLabel}] ${documentName} — ${businessName}`,
@@ -183,62 +212,38 @@ export function weeklyDigestEmail(
   },
   options: TemplateOptions = {}
 ): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
   const formatSAR = (amount: number) =>
-    `SAR ${amount.toLocaleString('en-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    `${isAr ? '' : 'SAR '}${amount.toLocaleString('en-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${isAr ? ' ر.س' : ''}`
+
+  const statCell = (value: string, label: string, color = '#f1f5f9') => `
+    <td width="50%" style="padding:8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
+        <tr><td style="padding:16px;text-align:center;">
+          <p style="margin:0;font-size:28px;font-weight:700;color:${color};">${value}</p>
+          <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;">${label}</p>
+        </td></tr>
+      </table>
+    </td>`
 
   const content = `
-    ${heading(`Weekly Summary — ${businessName}`)}
-    ${paragraph('Here\'s your business overview for the past week:')}
+    ${heading(isAr ? `الملخص الأسبوعي — ${businessName}` : `Weekly Summary — ${businessName}`)}
+    ${paragraph(isAr ? 'إليك نظرة عامة على أعمالك هذا الأسبوع:' : 'Here\'s your business overview for the past week:')}
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
       <tr>
-        <td width="50%" style="padding:8px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
-            <tr>
-              <td style="padding:16px;text-align:center;">
-                <p style="margin:0;font-size:28px;font-weight:700;color:#f1f5f9;">${stats.upcomingObligations}</p>
-                <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;text-transform:uppercase;">Upcoming Obligations</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-        <td width="50%" style="padding:8px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
-            <tr>
-              <td style="padding:16px;text-align:center;">
-                <p style="margin:0;font-size:28px;font-weight:700;color:${stats.expiringDocs > 0 ? '#fbbf24' : '#f1f5f9'};">${stats.expiringDocs}</p>
-                <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;text-transform:uppercase;">Expiring Documents</p>
-              </td>
-            </tr>
-          </table>
-        </td>
+        ${statCell(String(stats.upcomingObligations), isAr ? 'التزامات قادمة' : 'Upcoming Obligations')}
+        ${statCell(String(stats.expiringDocs), isAr ? 'مستندات تنتهي' : 'Expiring Documents', stats.expiringDocs > 0 ? '#fbbf24' : '#f1f5f9')}
       </tr>
       <tr>
-        <td width="50%" style="padding:8px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
-            <tr>
-              <td style="padding:16px;text-align:center;">
-                <p style="margin:0;font-size:20px;font-weight:700;color:#4ade80;">${formatSAR(stats.totalIncome)}</p>
-                <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;text-transform:uppercase;">Income</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-        <td width="50%" style="padding:8px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#0f172a;border-radius:8px;border:1px solid #334155;">
-            <tr>
-              <td style="padding:16px;text-align:center;">
-                <p style="margin:0;font-size:20px;font-weight:700;color:#f87171;">${formatSAR(stats.totalExpenses)}</p>
-                <p style="margin:4px 0 0;font-size:12px;color:#94a3b8;text-transform:uppercase;">Expenses</p>
-              </td>
-            </tr>
-          </table>
-        </td>
+        ${statCell(formatSAR(stats.totalIncome), isAr ? 'الإيرادات' : 'Income', '#4ade80')}
+        ${statCell(formatSAR(stats.totalExpenses), isAr ? 'المصروفات' : 'Expenses', '#f87171')}
       </tr>
     </table>
-    ${ctaButton('View Full Dashboard', 'https://mugdm.com/dashboard')}
+    ${ctaButton(isAr ? 'عرض لوحة التحكم' : 'View Full Dashboard', `https://mugdm.com/${locale}/dashboard`)}
   `
   return {
-    subject: `Weekly Digest — ${businessName}`,
+    subject: isAr ? `الملخص الأسبوعي — ${businessName}` : `Weekly Digest — ${businessName}`,
     html: baseLayout(content, options),
   }
 }

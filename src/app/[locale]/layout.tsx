@@ -93,6 +93,15 @@ export default async function LocaleLayout({
           {`(function(){try{var t=localStorage.getItem('mugdm-theme');if(t==='light'){document.documentElement.classList.remove('dark')}else{document.documentElement.classList.add('dark')}}catch(e){}})()`}
         </Script>
         <JsonLd locale={locale} />
+        <meta name="theme-color" content="#0F172A" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/brand/8.png" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js')})}`,
+          }}
+        />
       </head>
       <body
         className={`${inter.variable} ${notoSansArabic.variable} min-h-screen bg-background text-foreground antialiased ${
