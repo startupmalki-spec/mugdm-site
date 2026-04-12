@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { motion } from 'framer-motion'
 import {
@@ -17,11 +17,17 @@ import {
   Clock,
   Sparkles,
   Building2,
+  Lightbulb,
+  AlertCircle,
+  ArrowRight,
+  RefreshCw,
+  Loader2,
 } from 'lucide-react'
 import { differenceInDays, format, startOfMonth } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 
 import { Link } from '@/i18n/routing'
+import type { Insight } from '@/app/api/insights/route'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToastContainer, useToast } from '@/components/ui/toast'
@@ -31,6 +37,7 @@ import { getExpiryStatus } from '@/lib/documents'
 import { getObligationStatus } from '@/lib/compliance/rules-engine'
 import { createClient } from '@/lib/supabase/client'
 import type { Obligation, Document, Transaction } from '@/lib/supabase/types'
+import { GettingStartedChecklist } from '@/components/ui/getting-started-checklist'
 
 // --- Constants ---
 
@@ -397,6 +404,225 @@ function AiWarningsCard() {
   )
 }
 
+// --- Insights cache helpers ---
+
+const INSIGHTS_CACHE_KEY = 'mugdm_insights_cache'
+const INSIGHTS_CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+function getCachedInsights(): Insight[] | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(INSIGHTS_CACHE_KEY)
+    if (!raw) return null
+    const { insights, timestamp } = JSON.parse(raw)
+    if (Date.now() - timestamp > INSIGHTS_CACHE_TTL) {
+      localStorage.removeItem(INSIGHTS_CACHE_KEY)
+      return null
+    }
+    return insights
+  } catch {
+    return null
+  }
+}
+
+function setCachedInsights(insights: Insight[]) {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(
+      INSIGHTS_CACHE_KEY,
+      JSON.stringify({ insights, timestamp: Date.now() })
+    )
+  } catch {
+    // localStorage may be full
+  }
+}
+
+const PRIORITY_CONFIG = {
+  high: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: AlertCircle },
+  medium: { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Lightbulb },
+  low: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Lightbulb },
+}
+
+function AiInsightsPanel() {
+  const t = useTranslations('dashboard')
+  const [insights, setInsights] = useState<Insight[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  const fetchInsights = useCallback(async (force = false) => {
+    if (!force) {
+      const cached = getCachedInsights()
+      if (cached) {
+        setInsights(cached)
+        setIsLoading(false)
+        return
+      }
+    }
+
+    setIsLoading(true)
+    setError(false)
+    try {
+      const res = await fetch('/api/insights')
+      if (!res.ok) throw new Error('Failed')
+      const data = await res.json()
+      const insightsList = data.insights ?? []
+      setInsights(insightsList)
+      setCachedInsights(insightsList)
+    } catch {
+      setError(true)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchInsights()
+  }, [fetchInsights])
+
+  return (
+    <motion.div variants={ITEM_VARIANTS}>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">{t('aiInsights')}</h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchInsights(true)}
+            disabled={isLoading}
+            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
+            title={t('refreshInsights')}
+          >
+            {isLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {isLoading && insights.length === 0 ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-16 animate-pulse rounded-lg bg-surface-2" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="flex items-center gap-3 rounded-lg bg-red-500/5 border border-red-500/10 p-3">
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
+              <p className="text-sm text-red-400">{t('insightsError')}</p>
+            </div>
+          ) : insights.length === 0 ? (
+            <div className="flex items-center gap-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3">
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
+              <div>
+                <p className="text-sm font-medium text-emerald-400">{t('allGood')}</p>
+                <p className="text-xs text-muted-foreground">{t('allGoodDescription')}</p>
+              </div>
+            </div>
+          ) : (
+            insights.map((insight, i) => {
+              const config = PRIORITY_CONFIG[insight.priority] || PRIORITY_CONFIG.low
+              const Icon = config.icon
+              return (
+                <Link
+                  key={i}
+                  href={insight.action_url as '/calendar' | '/vault' | '/bookkeeper' | '/team' | '/profile'}
+                  className={cn(
+                    'group flex items-start gap-3 rounded-lg border p-3 transition-all hover:bg-surface-2',
+                    config.border,
+                    config.bg
+                  )}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    <Icon className={cn('h-4 w-4', config.color)} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={cn('text-sm font-medium', config.color)}>{insight.title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{insight.description}</p>
+                  </div>
+                  <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+                </Link>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function WeeklyActionItems({ obligationCounts, nextObligation }: { obligationCounts: ObligationCounts; nextObligation: Obligation | null }) {
+  const t = useTranslations('dashboard')
+  const locale = useLocale()
+  const dateLocale = locale === 'ar' ? ar : enUS
+
+  const items: { label: string; href: string; urgent: boolean }[] = []
+
+  if (obligationCounts.overdue > 0) {
+    items.push({
+      label: t('weeklyOverdueAction', { count: obligationCounts.overdue }),
+      href: '/calendar',
+      urgent: true,
+    })
+  }
+  if (obligationCounts.dueSoon > 0) {
+    items.push({
+      label: t('weeklyDueSoonAction', { count: obligationCounts.dueSoon }),
+      href: '/calendar',
+      urgent: false,
+    })
+  }
+  if (nextObligation) {
+    const daysUntil = differenceInDays(new Date(nextObligation.next_due_date), new Date())
+    if (daysUntil >= 0 && daysUntil <= 7) {
+      items.push({
+        label: t('weeklyNextAction', {
+          name: nextObligation.name,
+          date: format(new Date(nextObligation.next_due_date), 'dd MMM', { locale: dateLocale }),
+        }),
+        href: '/calendar',
+        urgent: daysUntil <= 2,
+      })
+    }
+  }
+
+  if (items.length === 0) return null
+
+  return (
+    <motion.div variants={ITEM_VARIANTS}>
+      <div className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-amber-400" />
+          <h3 className="text-sm font-semibold text-foreground">{t('weeklyActionItems')}</h3>
+        </div>
+        <ul className="mt-3 space-y-2">
+          {items.map((item, i) => (
+            <li key={i}>
+              <Link
+                href={item.href as '/calendar'}
+                className={cn(
+                  'flex items-center gap-2 rounded-lg p-2 text-sm transition-colors hover:bg-surface-2',
+                  item.urgent ? 'text-red-400' : 'text-foreground'
+                )}
+              >
+                <span className={cn(
+                  'h-1.5 w-1.5 shrink-0 rounded-full',
+                  item.urgent ? 'bg-red-400' : 'bg-amber-400'
+                )} />
+                {item.label}
+                <ArrowRight className="ms-auto h-3.5 w-3.5 text-muted-foreground" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </motion.div>
+  )
+}
+
 // --- Page ---
 
 export default function DashboardPage() {
@@ -469,6 +695,11 @@ export default function DashboardPage() {
         </div>
       </motion.section>
 
+      {/* Getting Started Checklist */}
+      <motion.div variants={ITEM_VARIANTS}>
+        <GettingStartedChecklist />
+      </motion.div>
+
       {/* Loading state */}
       {isLoading ? (
         <motion.div variants={ITEM_VARIANTS} className="space-y-4">
@@ -501,7 +732,16 @@ export default function DashboardPage() {
             <FinancialSummaryCard financials={displayData.financials} />
           </div>
 
-          {/* AI Warnings */}
+          {/* AI Insights Panel */}
+          <AiInsightsPanel />
+
+          {/* Weekly Action Items */}
+          <WeeklyActionItems
+            obligationCounts={displayData.obligationCounts}
+            nextObligation={displayData.nextObligation}
+          />
+
+          {/* AI Warnings (legacy) */}
           <AiWarningsCard />
         </>
       )}

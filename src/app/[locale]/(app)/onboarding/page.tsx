@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -13,6 +13,10 @@ import {
   Plus,
   Trash2,
   Loader2,
+  Sparkles,
+  CalendarDays,
+  Clock,
+  CalendarCheck,
 } from 'lucide-react'
 import { useRouter } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
@@ -22,6 +26,11 @@ import { FileUpload } from '@/components/upload/FileUpload'
 import { isValidCRNumber } from '@/lib/validations'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import {
+  generateObligationsFromCR,
+  type GeneratedObligation,
+  type CRData,
+} from '@/lib/compliance/obligation-generator'
 
 /* ───────── Types ───────── */
 
@@ -51,9 +60,42 @@ interface WizardData {
 
 /* ───────── Constants ───────── */
 
-const TOTAL_STEPS = 3
+// Steps: 1=Upload CR, 2=Reveal Animation, 3=Confirm Profile, 4=Calendar Preview, 5=Contact Info
+const TOTAL_STEPS = 5
 
+// Visual step indicators only show the 3 main steps (upload, profile, contact)
+const VISUAL_STEPS = 3
 const STEP_ICONS = [Upload, Building2, Phone] as const
+
+function getVisualStep(step: number): number {
+  if (step <= 2) return 1 // Upload + Reveal
+  if (step <= 3) return 2 // Confirm profile
+  return 3 // Calendar preview + Contact
+}
+
+const OBLIGATION_ICONS: Record<string, typeof CalendarDays> = {
+  CR_CONFIRMATION: Building2,
+  GOSI: CalendarDays,
+  ZATCA_VAT: CalendarDays,
+  ZAKAT: CalendarDays,
+  CHAMBER: Building2,
+  BALADY: Building2,
+  FOOD_SAFETY: CalendarDays,
+  SAFETY_CERT: CalendarDays,
+  HEALTH_LICENSE: CalendarDays,
+}
+
+const OBLIGATION_COLORS: Record<string, string> = {
+  CR_CONFIRMATION: 'text-blue-400 bg-blue-500/10',
+  GOSI: 'text-emerald-400 bg-emerald-500/10',
+  ZATCA_VAT: 'text-amber-400 bg-amber-500/10',
+  ZAKAT: 'text-purple-400 bg-purple-500/10',
+  CHAMBER: 'text-cyan-400 bg-cyan-500/10',
+  BALADY: 'text-orange-400 bg-orange-500/10',
+  FOOD_SAFETY: 'text-red-400 bg-red-500/10',
+  SAFETY_CERT: 'text-yellow-400 bg-yellow-500/10',
+  HEALTH_LICENSE: 'text-pink-400 bg-pink-500/10',
+}
 
 const INITIAL_OWNER: Owner = { name: '', nationality: '', share: 100 }
 
@@ -101,11 +143,53 @@ export default function OnboardingPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [revealDone, setRevealDone] = useState(false)
+  const [generatedObligations, setGeneratedObligations] = useState<GeneratedObligation[]>([])
+
+  /* ─── Generate obligations when profile data changes ─── */
+  const obligations = useMemo(() => {
+    if (!data.crNumber) return []
+    const crData: CRData = {
+      crNumber: data.crNumber,
+      businessName: data.nameAr,
+      activityType: data.activityType || null,
+      expiryDate: data.crExpiryDate || null,
+      city: data.city || null,
+    }
+    return generateObligationsFromCR(crData)
+  }, [data.crNumber, data.nameAr, data.activityType, data.crExpiryDate, data.city])
+
+  useEffect(() => {
+    if (obligations.length > 0) {
+      setGeneratedObligations(obligations)
+    }
+  }, [obligations])
+
+  /* ─── Reveal auto-advance timers ─── */
+  useEffect(() => {
+    if (step !== 2) return
+    setRevealDone(false)
+    const timer = setTimeout(() => {
+      setRevealDone(true)
+    }, 2800)
+    return () => clearTimeout(timer)
+  }, [step])
+
+  useEffect(() => {
+    if (revealDone && step === 2) {
+      const timer = setTimeout(() => {
+        setDirection(1)
+        setStep(3)
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [revealDone, step])
 
   /* ─── Navigation ─── */
 
   const handleNext = useCallback(async () => {
-    if (step === 2) {
+    // Step 3 = Confirm Profile — validate before advancing
+    if (step === 3) {
       const newErrors: Record<string, string> = {}
       if (!data.nameAr.trim()) newErrors.nameAr = tCommon('required')
       if (!data.crNumber.trim()) newErrors.crNumber = tCommon('required')
@@ -143,7 +227,12 @@ export default function OnboardingPage() {
 
   const handleBack = useCallback(() => {
     setDirection(-1)
-    setStep((prev) => Math.max(prev - 1, 1))
+    // Skip reveal (step 2) and calendar preview (step 4) when going back
+    setStep((prev) => {
+      if (prev === 3) return 1 // From profile -> skip reveal -> upload
+      if (prev === 5) return 3 // From contact -> skip calendar -> profile
+      return Math.max(prev - 1, 1)
+    })
   }, [])
 
   /* ─── CR Upload Handler ─── */
@@ -269,6 +358,16 @@ export default function OnboardingPage() {
         throw new Error('Failed to create business')
       }
 
+      // Mark CR upload as done in the getting-started checklist
+      try {
+        const checklist = JSON.parse(localStorage.getItem('mugdm-getting-started') || '{}')
+        checklist.uploadCR = true
+        checklist.showChecklist = true
+        localStorage.setItem('mugdm-getting-started', JSON.stringify(checklist))
+      } catch {
+        // localStorage not available
+      }
+
       router.push('/dashboard')
     } catch {
       setErrors({ submit: tCommon('error') })
@@ -352,9 +451,78 @@ export default function OnboardingPage() {
     )
   }
 
-  /* ─── Step 2: Confirm Profile ─── */
+  /* ─── Step 2: Reveal Animation ─── */
 
-  function renderStep2() {
+  function renderRevealStep() {
+    const fields = [
+      { key: 'businessName', label: t('revealBusinessName'), value: data.nameAr },
+      { key: 'crNumber', label: t('revealCrNumber'), value: data.crNumber },
+      { key: 'expiryDate', label: t('revealExpiryDate'), value: data.crExpiryDate },
+      { key: 'activityType', label: t('revealActivityType'), value: data.activityType },
+    ].filter((f) => f.value)
+
+    const allFound = fields.length === 4
+
+    return (
+      <div className="flex flex-col items-center gap-6 py-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          className="text-center"
+        >
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <Sparkles className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">
+            {t('revealTitle')}
+          </h2>
+        </motion.div>
+
+        <div className="w-full max-w-sm space-y-3">
+          {fields.map((field, index) => (
+            <motion.div
+              key={field.key}
+              initial={{ opacity: 0, x: index % 2 === 0 ? -30 : 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 + index * 0.4, duration: 0.4, ease: 'easeOut' }}
+              className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3"
+            >
+              <span className="text-sm text-muted-foreground">{field.label}</span>
+              <span className="text-sm font-semibold text-foreground" dir="auto">
+                {field.value}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Checkmark animation */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 + fields.length * 0.4 + 0.2, duration: 0.4, type: 'spring' }}
+          className="flex flex-col items-center gap-2"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10">
+            <motion.div
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ delay: 0.5 + fields.length * 0.4 + 0.4, duration: 0.3 }}
+            >
+              <Check className="h-6 w-6 text-green-400" />
+            </motion.div>
+          </div>
+          <p className="text-sm font-medium text-green-400">
+            {allFound ? t('revealAllFound') : t('revealPartialFound')}
+          </p>
+        </motion.div>
+      </div>
+    )
+  }
+
+  /* ─── Step 3: Confirm Profile ─── */
+
+  function renderStep3() {
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -614,9 +782,81 @@ export default function OnboardingPage() {
     )
   }
 
-  /* ─── Step 3: Contact Info ─── */
+  /* ─── Step 4: Calendar Preview ─── */
 
-  function renderStep3() {
+  function renderCalendarPreview() {
+    return (
+      <div className="space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center"
+        >
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
+            <CalendarCheck className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold text-foreground">
+            {t('calendarPreviewTitle')}
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t('calendarPreviewSubtitle')}
+          </p>
+        </motion.div>
+
+        <div className="space-y-2">
+          {generatedObligations.map((ob, index) => {
+            const Icon = OBLIGATION_ICONS[ob.type] || CalendarDays
+            const colorClasses = OBLIGATION_COLORS[ob.type] || 'text-blue-400 bg-blue-500/10'
+            const [textColor, bgColor] = colorClasses.split(' ')
+
+            return (
+              <motion.div
+                key={ob.type}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1, duration: 0.3 }}
+                className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3"
+              >
+                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', bgColor)}>
+                  <Icon className={cn('h-4 w-4', textColor)} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    {t(`obligationNames.${ob.type}` as Parameters<typeof t>[0])}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t(`frequencyLabels.${ob.frequency}` as Parameters<typeof t>[0])}
+                    {' · '}
+                    {ob.next_due_date}
+                  </p>
+                </div>
+                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
+              </motion.div>
+            )
+          })}
+        </div>
+
+        {generatedObligations.length === 0 && (
+          <div className="rounded-lg border border-border bg-card p-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('calendarPreviewSubtitle')}
+            </p>
+          </div>
+        )}
+
+        <div className="flex justify-center pt-2">
+          <Button onClick={handleNext} size="lg" className="gap-2">
+            {t('calendarPreviewContinue')}
+            <ChevronRight className="h-4 w-4 rtl:rotate-180" />
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  /* ─── Step 5: Contact Info ─── */
+
+  function renderStep5() {
     return (
       <div className="space-y-6">
         <div className="text-center">
@@ -728,6 +968,8 @@ export default function OnboardingPage() {
 
   /* ─── Render ─── */
 
+  const visualStep = getVisualStep(step)
+
   return (
     <div className="mx-auto max-w-2xl space-y-8 pb-12">
       {/* Header */}
@@ -740,13 +982,13 @@ export default function OnboardingPage() {
         <p className="mt-2 text-muted-foreground">{t('subtitle')}</p>
       </motion.div>
 
-      {/* Step Indicator */}
+      {/* Step Indicator — shows 3 visual steps, not the internal 5 */}
       <div className="mx-auto max-w-md">
         <div className="flex items-center justify-between">
-          {Array.from({ length: TOTAL_STEPS }, (_, i) => {
+          {Array.from({ length: VISUAL_STEPS }, (_, i) => {
             const stepNum = i + 1
-            const isActive = stepNum === step
-            const isCompleted = stepNum < step
+            const isActive = stepNum === visualStep
+            const isCompleted = stepNum < visualStep
             const Icon = STEP_ICONS[i]
 
             return (
@@ -794,7 +1036,7 @@ export default function OnboardingPage() {
                   </span>
                 </div>
                 {/* Connector line */}
-                {stepNum < TOTAL_STEPS && (
+                {stepNum < VISUAL_STEPS && (
                   <div className="mx-2 h-0.5 flex-1 rounded-full bg-surface-3">
                     <motion.div
                       className="h-full rounded-full bg-primary"
@@ -813,7 +1055,7 @@ export default function OnboardingPage() {
 
         {/* Progress text */}
         <p className="mt-3 text-center text-xs text-muted-foreground">
-          {t('stepLabel', { current: step, total: TOTAL_STEPS })}
+          {t('stepLabel', { current: visualStep, total: VISUAL_STEPS })}
         </p>
       </div>
 
@@ -830,8 +1072,10 @@ export default function OnboardingPage() {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
             {step === 1 && renderStep1()}
-            {step === 2 && renderStep2()}
+            {step === 2 && renderRevealStep()}
             {step === 3 && renderStep3()}
+            {step === 4 && renderCalendarPreview()}
+            {step === 5 && renderStep5()}
           </motion.div>
         </AnimatePresence>
       </div>

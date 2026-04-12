@@ -26,6 +26,7 @@ import {
   ArrowUpDown,
   FolderOpen,
   FolderClosed,
+  FolderArchive,
   History,
   AlertCircle,
   CheckCircle2,
@@ -1612,13 +1613,42 @@ export default function VaultPage() {
                 <p className="mt-1 text-sm text-muted-foreground">{t('noResultsDescription')}</p>
               </motion.div>
             ) : (
-              <EmptyState
-                icon={<FileText className="h-8 w-8" />}
-                title={tEmpty('noDocuments')}
-                description={tEmpty('noDocumentsDesc')}
-                actionLabel={tEmpty('uploadFirst')}
-                onAction={() => setIsUploadOpen(true)}
-              />
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+                className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center"
+              >
+                <div className="relative">
+                  <motion.div
+                    animate={{ y: [0, -4, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <FolderArchive className="h-16 w-16 text-muted-foreground/50" />
+                  </motion.div>
+                </div>
+
+                <h3 className="mt-5 text-lg font-semibold text-foreground">{tEmpty('noDocuments')}</h3>
+                <p className="mt-2 max-w-md text-sm text-muted-foreground">{tEmpty('noDocumentsDesc')}</p>
+
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                  <Button onClick={() => setIsUploadOpen(true)}>{tEmpty('uploadFirst')}</Button>
+                </div>
+
+                {/* Example document cards preview */}
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                  {['CR', 'GOSI', 'Insurance'].map((label) => (
+                    <div
+                      key={label}
+                      className="flex items-center gap-2 rounded-lg border border-border bg-surface-1 px-3 py-2 text-xs text-muted-foreground"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span>{label}</span>
+                      <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600">Expiry tracked</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
             )
           ) : viewMode === 'grid' ? (
             <motion.div

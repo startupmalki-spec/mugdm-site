@@ -22,6 +22,9 @@ import {
   List,
   Calendar,
   Loader2,
+  ShieldAlert,
+  Paperclip,
+  UserCircle,
 } from 'lucide-react'
 import {
   format,
@@ -55,8 +58,34 @@ import {
 import { estimatePenalty } from '@/lib/compliance/penalties'
 import { createClient } from '@/lib/supabase/client'
 
-import type { Obligation, ObligationType, ObligationFrequency } from '@/lib/supabase/types'
+import type { Obligation, ObligationType, ObligationFrequency, TeamMember } from '@/lib/supabase/types'
 import type { ObligationStatus } from '@/lib/compliance/rules-engine'
+
+// --- Metadata helpers ---
+
+interface ObligationMeta {
+  assigned_to_id?: string
+  assigned_to_name?: string
+  proof_url?: string
+}
+
+function parseObligationMeta(notes: string | null): ObligationMeta {
+  if (!notes) return {}
+  try {
+    const parsed = JSON.parse(notes)
+    if (typeof parsed === 'object' && parsed !== null && (parsed.assigned_to_id || parsed.proof_url)) {
+      return parsed as ObligationMeta
+    }
+  } catch {
+    // Not JSON, that's fine
+  }
+  return {}
+}
+
+function serializeObligationMeta(existing: string | null, updates: Partial<ObligationMeta>): string {
+  const current = parseObligationMeta(existing)
+  return JSON.stringify({ ...current, ...updates })
+}
 
 // --- Constants ---
 
@@ -111,6 +140,45 @@ function getObligationTypeLabel(type: ObligationType, locale: string): string {
 
 // --- Components ---
 
+function TotalPenaltyRiskCard({ obligations, locale }: { obligations: Obligation[]; locale: string }) {
+  const t = useTranslations('calendar')
+  const tCommon = useTranslations('common')
+
+  const totalPenalty = useMemo(() => {
+    let total = 0
+    for (const ob of obligations) {
+      const status = getObligationStatus(ob.next_due_date, ob.last_completed_at)
+      if (status === 'overdue') {
+        const daysLate = Math.abs(differenceInDays(new Date(ob.next_due_date), new Date()))
+        const penalty = estimatePenalty(ob.type, daysLate)
+        total += penalty.amount
+      }
+    }
+    return total
+  }, [obligations])
+
+  if (totalPenalty <= 0) return null
+
+  return (
+    <motion.div variants={ITEM_VARIANTS}>
+      <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
+            <ShieldAlert className="h-5 w-5 text-red-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-red-400">{t('totalPenaltyRisk')}</p>
+            <p className="text-2xl font-bold text-red-400">
+              {totalPenalty.toLocaleString()} {tCommon('sar')}
+            </p>
+          </div>
+        </div>
+        <p className="mt-2 text-xs text-red-400/70">{t('totalPenaltyRiskDescription')}</p>
+      </div>
+    </motion.div>
+  )
+}
+
 function StatusBadge({ status, label }: { status: ObligationStatus; label: string }) {
   return (
     <span
@@ -130,13 +198,19 @@ function StatusBadge({ status, label }: { status: ObligationStatus; label: strin
 function ObligationListItem({
   obligation,
   locale,
+  teamMembers,
   onMarkDone,
   onUndo,
+  onAssign,
+  onProofUpload,
 }: {
   obligation: Obligation
   locale: string
+  teamMembers: TeamMember[]
   onMarkDone: (id: string) => void
   onUndo: (id: string) => void
+  onAssign: (id: string, memberId: string, memberName: string) => void
+  onProofUpload: (id: string, file: File) => void
 }) {
   const t = useTranslations('calendar')
   const [isExpanded, setIsExpanded] = useState(false)
@@ -198,7 +272,21 @@ function ObligationListItem({
             </div>
           </div>
 
-          <StatusBadge status={status} label={statusLabel} />
+          <div className="flex items-center gap-2">
+            {(() => {
+              const meta = parseObligationMeta(obligation.notes)
+              if (meta.assigned_to_name) {
+                return (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2 py-0.5 text-[10px] font-medium text-purple-400">
+                    <UserCircle className="h-3 w-3" />
+                    {meta.assigned_to_name}
+                  </span>
+                )
+              }
+              return null
+            })()}
+            <StatusBadge status={status} label={statusLabel} />
+          </div>
         </div>
 
         <AnimatePresence>
@@ -213,11 +301,20 @@ function ObligationListItem({
                 {obligation.description && (
                   <p className="text-sm text-muted-foreground">{obligation.description}</p>
                 )}
-                {obligation.notes && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {obligation.notes}
-                  </p>
-                )}
+                {(() => {
+                  const meta = parseObligationMeta(obligation.notes)
+                  if (meta.proof_url) {
+                    return (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-400">
+                        <Paperclip className="h-3 w-3" />
+                        <a href={meta.proof_url} target="_blank" rel="noopener noreferrer" className="underline" onClick={(e) => e.stopPropagation()}>
+                          {t('viewProof')}
+                        </a>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
                 {status === 'overdue' && (() => {
                   const penalty = estimatePenalty(obligation.type, Math.abs(daysUntil))
                   if (penalty.amount <= 0) return null
@@ -233,19 +330,64 @@ function ObligationListItem({
                     </div>
                   )
                 })()}
-                <div className="mt-3 flex gap-2">
-                  {!isCompleted ? (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
+
+                {/* Assign to team member */}
+                {teamMembers.length > 0 && (
+                  <div className="mt-3">
+                    <label className="mb-1 block text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                      {t('assignTo')}
+                    </label>
+                    <select
+                      className="h-8 w-full max-w-xs rounded-lg border border-border bg-surface-1 px-2 text-xs text-foreground"
+                      value={parseObligationMeta(obligation.notes).assigned_to_id ?? ''}
+                      onChange={(e) => {
                         e.stopPropagation()
-                        onMarkDone(obligation.id)
+                        const member = teamMembers.find((m) => m.id === e.target.value)
+                        if (member) onAssign(obligation.id, member.id, member.name)
                       }}
-                      className="gap-1.5"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      {t('markAsDone')}
-                    </Button>
+                      <option value="">{t('unassigned')}</option>
+                      {teamMembers.map((m) => (
+                        <option key={m.id} value={m.id}>{m.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {!isCompleted ? (
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onMarkDone(obligation.id)
+                        }}
+                        className="gap-1.5"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        {t('markAsDone')}
+                      </Button>
+                      {/* Completion proof upload */}
+                      <label
+                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border bg-surface-1 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-surface-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                        {t('attachProof')}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.jpg,.jpeg,.png,.webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) onProofUpload(obligation.id, file)
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    </>
                   ) : (
                     <Button
                       size="sm"
@@ -682,6 +824,7 @@ export default function CalendarPage() {
   const locale = useLocale()
 
   const [obligations, setObligations] = useState<Obligation[]>([])
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([])
   const [businessId, setBusinessId] = useState<string>('')
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<string>('list')
@@ -718,13 +861,21 @@ export default function CalendarPage() {
 
         setBusinessId(biz.id)
 
-        const { data: obligationsData } = await supabase
-          .from('obligations')
-          .select('*')
-          .eq('business_id', biz.id)
-          .order('next_due_date', { ascending: true }) as { data: Obligation[] | null; error: unknown }
+        const [obligationsResult, teamResult] = await Promise.all([
+          supabase
+            .from('obligations')
+            .select('*')
+            .eq('business_id', biz.id)
+            .order('next_due_date', { ascending: true }) as unknown as Promise<{ data: Obligation[] | null; error: unknown }>,
+          supabase
+            .from('team_members')
+            .select('*')
+            .eq('business_id', biz.id)
+            .eq('status', 'ACTIVE') as unknown as Promise<{ data: TeamMember[] | null; error: unknown }>,
+        ])
 
-        if (obligationsData) setObligations(obligationsData)
+        if (obligationsResult.data) setObligations(obligationsResult.data)
+        if (teamResult.data) setTeamMembers(teamResult.data)
       } catch {
         showToast(locale === 'ar' ? 'فشل في تحميل البيانات' : 'Failed to load data', 'error')
       } finally {
@@ -814,6 +965,63 @@ export default function CalendarPage() {
       .eq('id', id)
   }, [])
 
+  const handleAssign = useCallback(async (obligationId: string, memberId: string, memberName: string) => {
+    setObligations((prev) =>
+      prev.map((ob) => {
+        if (ob.id !== obligationId) return ob
+        const newNotes = serializeObligationMeta(ob.notes, {
+          assigned_to_id: memberId,
+          assigned_to_name: memberName,
+        })
+        return { ...ob, notes: newNotes }
+      })
+    )
+
+    const supabase = createClient()
+    const ob = obligations.find((o) => o.id === obligationId)
+    const newNotes = serializeObligationMeta(ob?.notes ?? null, {
+      assigned_to_id: memberId,
+      assigned_to_name: memberName,
+    })
+    await supabase.from('obligations')
+      .update({ notes: newNotes } as never)
+      .eq('id', obligationId)
+  }, [obligations])
+
+  const handleProofUpload = useCallback(async (obligationId: string, file: File) => {
+    const supabase = createClient()
+    const ext = file.name.split('.').pop()
+    const path = `proofs/${businessId}/${obligationId}/${Date.now()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(path, file)
+
+    if (uploadError) {
+      showToast(locale === 'ar' ? 'فشل رفع الملف' : 'File upload failed', 'error')
+      return
+    }
+
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(path)
+    const proofUrl = urlData.publicUrl
+
+    setObligations((prev) =>
+      prev.map((ob) => {
+        if (ob.id !== obligationId) return ob
+        const newNotes = serializeObligationMeta(ob.notes, { proof_url: proofUrl })
+        return { ...ob, notes: newNotes }
+      })
+    )
+
+    const ob = obligations.find((o) => o.id === obligationId)
+    const newNotes = serializeObligationMeta(ob?.notes ?? null, { proof_url: proofUrl })
+    await supabase.from('obligations')
+      .update({ notes: newNotes } as never)
+      .eq('id', obligationId)
+
+    showToast(locale === 'ar' ? 'تم رفع الإثبات' : 'Proof uploaded', 'success')
+  }, [obligations, businessId, locale, showToast])
+
   const statusCounts = useMemo(() => {
     const counts = { upcoming: 0, due_soon: 0, overdue: 0, completed: 0 }
     for (const ob of obligations) {
@@ -863,6 +1071,9 @@ export default function CalendarPage() {
           {t('addObligation')}
         </Button>
       </div>
+
+      {/* Total Penalty Risk */}
+      <TotalPenaltyRiskCard obligations={obligations} locale={locale} />
 
       {/* Status Summary */}
       <div className="flex flex-wrap gap-2">
@@ -916,11 +1127,13 @@ export default function CalendarPage() {
         <Tabs.Content value="list" className="mt-4">
           {listObligations.length === 0 ? (
             <EmptyState
-              icon={<CalendarDays className="h-8 w-8" />}
+              icon={<CalendarDays className="h-16 w-16 text-muted-foreground/50" />}
               title={tEmpty('noObligations')}
               description={tEmpty('noObligationsDesc')}
-              actionLabel={tEmpty('addObligation')}
-              onAction={() => setIsAddOpen(true)}
+              actionLabel={tEmpty('goToOnboarding')}
+              actionHref="/onboarding"
+              secondaryActionLabel={tEmpty('addObligation')}
+              onSecondaryAction={() => setIsAddOpen(true)}
             />
           ) : (
             <motion.div
@@ -934,8 +1147,11 @@ export default function CalendarPage() {
                   key={ob.id}
                   obligation={ob}
                   locale={locale}
+                  teamMembers={teamMembers}
                   onMarkDone={handleMarkDone}
                   onUndo={handleUndoFromObligation}
+                  onAssign={handleAssign}
+                  onProofUpload={handleProofUpload}
                 />
               ))}
             </motion.div>

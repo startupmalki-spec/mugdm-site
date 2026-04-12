@@ -492,8 +492,9 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:16:40.266Z"
       },
       {
         "id": "3",
@@ -505,8 +506,9 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:17:11.399Z"
       },
       {
         "id": "4",
@@ -543,8 +545,9 @@
         "testStrategy": "1. Test invoice parsing:\n   - Upload supplier invoice, verify extracted as EXPENSE\n   - Upload customer invoice, verify extracted as INCOME\n   - Verify line items parsed correctly\n   - Verify VAT calculated correctly from line items\n2. Test recurring detection:\n   - Create 3 monthly rent transactions (same vendor, similar amount)\n   - Run detection, verify pattern identified\n   - Create next month's transaction, verify auto-categorized\n3. Test auto-categorization:\n   - Upload receipt matching detected pattern\n   - Verify category auto-assigned with confidence score\n   - Reject suggestion, verify system learns\n4. Test recurring dashboard widget:\n   - Verify displays all recurring patterns\n   - Verify predicts next occurrence date",
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:17:41.796Z"
       },
       {
         "id": "7",
@@ -940,8 +943,9 @@
         "dependencies": [
           "31"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:18:10.229Z"
       },
       {
         "id": "39",
@@ -1078,8 +1082,9 @@
           "45",
           "46"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T12:18:34.617Z"
       },
       {
         "id": "49",
@@ -1112,9 +1117,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-12T11:59:57.425Z",
+      "lastModified": "2026-04-12T12:18:34.622Z",
       "taskCount": 50,
-      "completedCount": 10,
+      "completedCount": 15,
       "tags": [
         "master"
       ]

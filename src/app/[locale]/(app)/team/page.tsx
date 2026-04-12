@@ -512,6 +512,7 @@ function MemberCard({
 export default function TeamPage() {
   const t = useTranslations('team')
   const tCommon = useTranslations('common')
+  const tEmpty = useTranslations('emptyStates')
 
   const [members, setMembers] = useState<TeamMember[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -781,21 +782,22 @@ export default function TeamPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="rounded-xl border border-dashed border-border bg-card p-12 text-center"
+          className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center"
         >
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-            <Users className="h-8 w-8 text-primary" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-foreground">
-            {t('noMembers')}
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t('noMembersDescription')}
+          <Users className="h-16 w-16 text-muted-foreground/50" />
+          <h3 className="mt-5 text-lg font-semibold text-foreground">
+            {tEmpty('noTeamMembers')}
+          </h3>
+          <p className="mt-2 max-w-md text-sm text-muted-foreground">
+            {tEmpty('noTeamMembersDesc')}
           </p>
           <Button onClick={handleOpenAdd} className="mt-6 gap-2">
             <UserPlus className="h-4 w-4" />
-            {t('inviteMember')}
+            {tEmpty('addMember')}
           </Button>
+          <p className="mt-4 max-w-sm text-xs text-muted-foreground/70">
+            {tEmpty('saudizationNote')}
+          </p>
         </motion.div>
       )}
 

@@ -15,6 +15,7 @@ import {
   CreditCard,
   Receipt,
   PenLine,
+  Calculator,
   ArrowUpRight,
   Search,
   Download,
@@ -26,6 +27,9 @@ import {
   X,
   Check,
   Loader2,
+  BarChart3,
+  FileSpreadsheet,
+  ChevronDown,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
@@ -66,6 +70,9 @@ import {
   parseImportFile,
   type ImportPreviewRow,
 } from '@/lib/bookkeeper/export'
+import { generateVATReport, type VATReportData } from '@/lib/bookkeeper/vat-report'
+import { generateProfitLoss, type ProfitLossData } from '@/lib/bookkeeper/profit-loss'
+import { exportVATReportToExcel, exportProfitLossToExcel } from '@/lib/bookkeeper/report-export'
 import { TransactionForm } from '@/components/bookkeeper/TransactionForm'
 import { ReceiptCapture } from '@/components/bookkeeper/ReceiptCapture'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -73,6 +80,7 @@ import { ToastContainer, useToast } from '@/components/ui/toast'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
 
 type PeriodKey = 'this_month' | '3_months' | '6_months' | 'this_year'
+type QuarterKey = 'q1' | 'q2' | 'q3' | 'q4'
 
 const PERIOD_KEYS: PeriodKey[] = ['this_month', '3_months', '6_months', 'this_year']
 
@@ -151,6 +159,7 @@ const cardVariants = {
 export default function BookkeeperPage() {
   const t = useTranslations('bookkeeper')
   const tCommon = useTranslations('common')
+  const tEmpty = useTranslations('emptyStates')
   const locale = useLocale()
 
   const [activePeriod, setActivePeriod] = useState<PeriodKey>('3_months')
@@ -165,6 +174,21 @@ export default function BookkeeperPage() {
   const [isImporting, setIsImporting] = useState(false)
   const [isParsing, setIsParsing] = useState(false)
   const importFileRef = useRef<HTMLInputElement>(null)
+
+  // Reports state
+  const currentYear = new Date().getFullYear()
+  const [vatQuarter, setVatQuarter] = useState<QuarterKey>(() => {
+    const m = new Date().getMonth()
+    if (m < 3) return 'q1'
+    if (m < 6) return 'q2'
+    if (m < 9) return 'q3'
+    return 'q4'
+  })
+  const [vatYear, setVatYear] = useState(currentYear)
+  const [vatReport, setVatReport] = useState<VATReportData | null>(null)
+  const [plPeriod, setPlPeriod] = useState<PeriodKey>('this_year')
+  const [plReport, setPlReport] = useState<ProfitLossData | null>(null)
+  const [activeReportTab, setActiveReportTab] = useState<'vat' | 'pl'>('vat')
 
   const { toasts, showToast, dismissToast } = useToast()
 
@@ -469,6 +493,53 @@ export default function BookkeeperPage() {
       setTransactions((prev) => [newTx, ...prev])
     }
   }, [businessId])
+
+  // Report generation handlers
+  const getQuarterDates = useCallback((quarter: QuarterKey, year: number) => {
+    const quarters: Record<QuarterKey, { start: string; end: string }> = {
+      q1: { start: `${year}-01-01`, end: `${year}-03-31` },
+      q2: { start: `${year}-04-01`, end: `${year}-06-30` },
+      q3: { start: `${year}-07-01`, end: `${year}-09-30` },
+      q4: { start: `${year}-10-01`, end: `${year}-12-31` },
+    }
+    return quarters[quarter]
+  }, [])
+
+  const handleGenerateVATReport = useCallback(() => {
+    const dates = getQuarterDates(vatQuarter, vatYear)
+    const report = generateVATReport(transactions, dates.start, dates.end)
+    setVatReport(report)
+  }, [transactions, vatQuarter, vatYear, getQuarterDates])
+
+  const handleGeneratePLReport = useCallback(() => {
+    const range = getPeriodRange(plPeriod)
+    const startStr = range.start.toISOString().split('T')[0]
+    const endStr = range.end.toISOString().split('T')[0]
+    const report = generateProfitLoss(transactions, startStr, endStr)
+    setPlReport(report)
+  }, [transactions, plPeriod])
+
+  const handleExportVATExcel = useCallback(async () => {
+    if (!vatReport) return
+    try {
+      await exportVATReportToExcel(vatReport, 'Business')
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في التصدير' : 'Export failed', 'error')
+    }
+  }, [vatReport, locale, showToast])
+
+  const handleExportPLExcel = useCallback(async () => {
+    if (!plReport) return
+    try {
+      await exportProfitLossToExcel(plReport, 'Business')
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في التصدير' : 'Export failed', 'error')
+    }
+  }, [plReport, locale, showToast])
+
+  const handlePrintReport = useCallback(() => {
+    window.print()
+  }, [])
 
   const sarLabel = tCommon('sar')
 
@@ -1068,6 +1139,360 @@ export default function BookkeeperPage() {
           )}
         </motion.div>
 
+        {/* Financial Reports Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <div className="mb-5 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            <h3 className="text-lg font-semibold text-foreground">{t('reports.title')}</h3>
+          </div>
+
+          {/* Report Tab Switcher */}
+          <div className="mb-5 flex gap-1 rounded-lg bg-surface-1 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveReportTab('vat')}
+              className={cn(
+                'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all',
+                activeReportTab === 'vat'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t('reports.vatReport')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveReportTab('pl')}
+              className={cn(
+                'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all',
+                activeReportTab === 'pl'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t('reports.profitLoss')}
+            </button>
+          </div>
+
+          {/* VAT Report Tab */}
+          {activeReportTab === 'vat' && (
+            <div>
+              <p className="mb-4 text-sm text-muted-foreground">{t('reports.vatReportDescription')}</p>
+
+              {/* Quarter Selector */}
+              <div className="mb-4 flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    {t('reports.selectQuarter')}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={vatQuarter}
+                      onChange={(e) => setVatQuarter(e.target.value as QuarterKey)}
+                      className="h-9 appearance-none rounded-lg border border-border bg-surface-1 pe-8 ps-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {(['q1', 'q2', 'q3', 'q4'] as const).map((q) => (
+                        <option key={q} value={q}>{t(`reports.${q}`)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute end-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    {locale === 'ar' ? 'السنة' : 'Year'}
+                  </label>
+                  <select
+                    value={vatYear}
+                    onChange={(e) => setVatYear(Number(e.target.value))}
+                    className="h-9 rounded-lg border border-border bg-surface-1 px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                  >
+                    {[currentYear, currentYear - 1, currentYear - 2].map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateVATReport}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  {t('reports.generate')}
+                </button>
+              </div>
+
+              {/* VAT Report Results */}
+              {vatReport && (
+                <div className="space-y-4">
+                  {/* Key Metrics */}
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-border bg-surface-1 p-4">
+                      <p className="text-xs font-medium text-muted-foreground">{t('reports.outputVAT')}</p>
+                      <p className="mt-1 text-xl font-bold tabular-nums text-foreground" dir="ltr">
+                        {formatSAR(vatReport.outputVAT, locale)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-1 p-4">
+                      <p className="text-xs font-medium text-muted-foreground">{t('reports.inputVAT')}</p>
+                      <p className="mt-1 text-xl font-bold tabular-nums text-foreground" dir="ltr">
+                        {formatSAR(vatReport.inputVAT, locale)}
+                      </p>
+                    </div>
+                    <div className={cn(
+                      'rounded-lg border p-4',
+                      vatReport.netVAT >= 0
+                        ? 'border-red-500/20 bg-red-500/5'
+                        : 'border-green-500/20 bg-green-500/5'
+                    )}>
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {vatReport.netVAT >= 0 ? t('reports.netVATPayable') : t('reports.vatRefundable')}
+                      </p>
+                      <p className={cn(
+                        'mt-1 text-xl font-bold tabular-nums',
+                        vatReport.netVAT >= 0 ? 'text-red-400' : 'text-green-400'
+                      )} dir="ltr">
+                        {formatSAR(Math.abs(vatReport.netVAT), locale)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Summary */}
+                  <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+                    <span className="text-muted-foreground">
+                      {t('reports.totalSales')}: <span className="font-medium tabular-nums text-foreground" dir="ltr">{formatSAR(vatReport.totalSales, locale)}</span> {sarLabel}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {t('reports.totalPurchases')}: <span className="font-medium tabular-nums text-foreground" dir="ltr">{formatSAR(vatReport.totalPurchases, locale)}</span> {sarLabel}
+                    </span>
+                  </div>
+
+                  {/* Transaction Detail Table */}
+                  {vatReport.transactions.length > 0 ? (
+                    <div className="max-h-64 overflow-auto rounded-lg border border-border">
+                      <table className="w-full text-xs">
+                        <thead className="sticky top-0 bg-surface-2">
+                          <tr>
+                            <th className="px-3 py-2 text-start font-medium text-muted-foreground">{t('reports.date')}</th>
+                            <th className="px-3 py-2 text-start font-medium text-muted-foreground">{t('reports.description')}</th>
+                            <th className="px-3 py-2 text-start font-medium text-muted-foreground">{t('reports.type')}</th>
+                            <th className="px-3 py-2 text-end font-medium text-muted-foreground">{t('reports.amount')}</th>
+                            <th className="px-3 py-2 text-end font-medium text-muted-foreground">{t('reports.vat')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vatReport.transactions.map((tx, idx) => (
+                            <tr key={idx} className="border-t border-border">
+                              <td className="px-3 py-2 tabular-nums text-muted-foreground" dir="ltr">{tx.date}</td>
+                              <td className="max-w-[200px] truncate px-3 py-2 text-foreground">{tx.description}</td>
+                              <td className="px-3 py-2">
+                                <span className={cn(
+                                  'text-xs font-medium',
+                                  tx.type === 'sale' ? 'text-green-400' : 'text-red-400'
+                                )}>
+                                  {tx.type === 'sale' ? t('reports.sale') : t('reports.purchase')}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-end font-medium tabular-nums text-foreground" dir="ltr">
+                                {formatSAR(tx.amount)}
+                              </td>
+                              <td className="px-3 py-2 text-end font-medium tabular-nums text-primary" dir="ltr">
+                                {formatSAR(tx.vat)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="py-6 text-center text-sm text-muted-foreground">{t('reports.noData')}</p>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportVATExcel}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t('reports.exportExcel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrintReport}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      {t('reports.print')}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground/70">{t('reports.disclaimer')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* P&L Report Tab */}
+          {activeReportTab === 'pl' && (
+            <div>
+              <p className="mb-4 text-sm text-muted-foreground">{t('reports.profitLossDescription')}</p>
+
+              {/* Period Selector */}
+              <div className="mb-4 flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    {t('reports.selectPeriod')}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={plPeriod}
+                      onChange={(e) => setPlPeriod(e.target.value as PeriodKey)}
+                      className="h-9 appearance-none rounded-lg border border-border bg-surface-1 pe-8 ps-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {PERIOD_KEYS.map((key) => (
+                        <option key={key} value={key}>{getPeriodLabel(key, locale)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute end-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGeneratePLReport}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  {t('reports.generate')}
+                </button>
+              </div>
+
+              {/* P&L Report Results */}
+              {plReport && (
+                <div className="space-y-4">
+                  {/* Key Metrics */}
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
+                      <p className="text-xs font-medium text-muted-foreground">{t('reports.grossProfit')}</p>
+                      <p className={cn(
+                        'mt-1 text-xl font-bold tabular-nums',
+                        plReport.grossProfit >= 0 ? 'text-green-400' : 'text-red-400'
+                      )} dir="ltr">
+                        {formatSAR(plReport.grossProfit, locale)}
+                      </p>
+                    </div>
+                    <div className={cn(
+                      'rounded-lg border p-4',
+                      plReport.netProfit >= 0
+                        ? 'border-blue-500/20 bg-blue-500/5'
+                        : 'border-red-500/20 bg-red-500/5'
+                    )}>
+                      <p className="text-xs font-medium text-muted-foreground">{t('reports.netProfit')}</p>
+                      <p className={cn(
+                        'mt-1 text-xl font-bold tabular-nums',
+                        plReport.netProfit >= 0 ? 'text-blue-400' : 'text-red-400'
+                      )} dir="ltr">
+                        {formatSAR(plReport.netProfit, locale)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-border bg-surface-1 p-4">
+                      <p className="text-xs font-medium text-muted-foreground">{t('reports.profitMargin')}</p>
+                      <p className={cn(
+                        'mt-1 text-xl font-bold tabular-nums',
+                        plReport.profitMargin >= 0 ? 'text-foreground' : 'text-red-400'
+                      )} dir="ltr">
+                        {plReport.profitMargin}%
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Revenue Breakdown */}
+                  <div className="rounded-lg border border-border p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-green-400">{t('reports.revenue')}</h4>
+                    {plReport.revenue.length > 0 ? (
+                      <div className="space-y-2">
+                        {plReport.revenue.map((rev) => (
+                          <div key={rev.category} className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">{rev.category}</span>
+                            <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                              {formatSAR(rev.amount, locale)} {sarLabel}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="border-t border-border pt-2">
+                          <div className="flex items-center justify-between text-sm font-semibold">
+                            <span className="text-foreground">{t('reports.totalRevenue')}</span>
+                            <span className="tabular-nums text-green-400" dir="ltr">
+                              {formatSAR(plReport.totalRevenue, locale)} {sarLabel}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t('reports.noData')}</p>
+                    )}
+                  </div>
+
+                  {/* Expenses Breakdown */}
+                  <div className="rounded-lg border border-border p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-red-400">{t('reports.expenses')}</h4>
+                    {plReport.expenses.length > 0 ? (
+                      <div className="space-y-2">
+                        {plReport.expenses.map((exp) => (
+                          <div key={exp.category} className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">{exp.category}</span>
+                            <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                              {formatSAR(exp.amount, locale)} {sarLabel}
+                            </span>
+                          </div>
+                        ))}
+                        <div className="border-t border-border pt-2">
+                          <div className="flex items-center justify-between text-sm font-semibold">
+                            <span className="text-foreground">{t('reports.totalExpenses')}</span>
+                            <span className="tabular-nums text-red-400" dir="ltr">
+                              {formatSAR(plReport.totalExpenses, locale)} {sarLabel}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t('reports.noData')}</p>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportPLExcel}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t('reports.exportExcel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrintReport}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      {t('reports.print')}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground/70">{t('reports.disclaimer')}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
+
         {/* Import Preview Modal */}
         {importPreview && (
           <motion.div
@@ -1212,17 +1637,49 @@ export default function BookkeeperPage() {
           </div>
 
           {transactions.length === 0 ? (
-            <div className="rounded-xl border border-border bg-card p-12 text-center">
-              <FileText className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-4 font-medium text-foreground">
-                {locale === 'ar' ? 'لا توجد معاملات بعد' : 'No transactions yet'}
-              </p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {locale === 'ar'
-                  ? 'أضف معاملة يدوية أو ارفع كشف حساب بنكي للبدء'
-                  : 'Add a manual transaction or upload a bank statement to get started'}
-              </p>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-card px-8 py-16 text-center"
+            >
+              <Calculator className="h-16 w-16 text-muted-foreground/50" />
+              <h3 className="mt-5 text-lg font-semibold text-foreground">{tEmpty('noTransactions')}</h3>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">{tEmpty('noTransactionsDesc')}</p>
+
+              <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const btn = document.querySelector<HTMLButtonElement>('[data-receipt-trigger]')
+                    btn?.click()
+                  }}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface-1 px-6 py-4 text-sm transition-colors hover:border-primary/30 hover:bg-surface-2"
+                >
+                  <Receipt className="h-6 w-6 text-primary" />
+                  <span className="font-medium text-foreground">{tEmpty('scanReceipt')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => importFileRef.current?.click()}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface-1 px-6 py-4 text-sm transition-colors hover:border-primary/30 hover:bg-surface-2"
+                >
+                  <Upload className="h-6 w-6 text-primary" />
+                  <span className="font-medium text-foreground">{tEmpty('uploadStatement')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const btn = document.querySelector<HTMLButtonElement>('[data-transaction-trigger]')
+                    btn?.click()
+                  }}
+                  className="flex flex-col items-center gap-2 rounded-xl border border-border bg-surface-1 px-6 py-4 text-sm transition-colors hover:border-primary/30 hover:bg-surface-2"
+                >
+                  <PenLine className="h-6 w-6 text-primary" />
+                  <span className="font-medium text-foreground">{tEmpty('manualEntry')}</span>
+                </button>
+              </div>
+            </motion.div>
           ) : filteredTransactions.length === 0 ? (
             <div className="rounded-xl border border-border bg-card p-12 text-center">
               <Search className="mx-auto h-12 w-12 text-muted-foreground/50" />

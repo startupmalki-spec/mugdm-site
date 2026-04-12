@@ -240,8 +240,10 @@ function ChatBubble({ message }: { message: Message }) {
 
 function SuggestedPrompts({
   onSelect,
+  onFileUpload,
 }: {
   onSelect: (prompt: string) => void
+  onFileUpload?: () => void
 }) {
   const t = useTranslations('chat')
 
@@ -254,7 +256,7 @@ function SuggestedPrompts({
   return (
     <div className="flex flex-1 items-center justify-center px-4">
       <div className="w-full max-w-md space-y-4 text-center">
-        <MessageSquare className="mx-auto h-10 w-10 text-muted-foreground/40" />
+        <MessageSquare className="mx-auto h-16 w-16 text-muted-foreground/50" />
         <h2 className="text-lg font-semibold text-foreground">{t('startConversation')}</h2>
         <p className="text-sm text-muted-foreground">{t('startDescription')}</p>
         <div className="space-y-2 pt-2">
@@ -268,6 +270,16 @@ function SuggestedPrompts({
               {prompt}
             </button>
           ))}
+          {onFileUpload && (
+            <button
+              type="button"
+              onClick={onFileUpload}
+              className="flex w-full items-center gap-3 rounded-xl border border-dashed border-border bg-card px-4 py-3 text-start text-sm text-foreground transition-colors hover:border-primary/30 hover:bg-surface-2"
+            >
+              <FileText className="h-4 w-4 text-primary shrink-0" />
+              {t('uploadExcelPrompt')}
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -519,6 +531,7 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
+  const suggestedFileRef = useRef<HTMLInputElement>(null)
 
   // Auto-scroll to bottom
   const scrollToBottom = useCallback(() => {
@@ -785,7 +798,25 @@ export default function ChatPage() {
 
         {/* Messages area */}
         {messages.length === 0 && !isLoading ? (
-          <SuggestedPrompts onSelect={(prompt) => handleSend(prompt)} />
+          <>
+            <SuggestedPrompts
+              onSelect={(prompt) => handleSend(prompt)}
+              onFileUpload={() => suggestedFileRef.current?.click()}
+            />
+            <input
+              ref={suggestedFileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv,.pdf,.png,.jpg,.jpeg,.webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  handleFileUpload(file)
+                  e.target.value = ''
+                }
+              }}
+            />
+          </>
         ) : (
           <div className="flex-1 overflow-y-auto px-4 py-4">
             <div className="mx-auto max-w-3xl space-y-4">

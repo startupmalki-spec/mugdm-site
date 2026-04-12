@@ -40,7 +40,7 @@ export function EmptyState({
         className
       )}
     >
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 text-muted-foreground">
+      <div className="flex items-center justify-center text-muted-foreground">
         {icon}
       </div>
 
