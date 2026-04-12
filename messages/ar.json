@@ -8,6 +8,7 @@
     "bookkeeper": "المحاسب الذكي",
     "chat": "المحادثة",
     "settings": "الإعدادات",
+    "billing": "الفوترة",
     "logout": "تسجيل الخروج",
     "help": "المساعدة والدعم"
   },
@@ -191,7 +192,30 @@
     "currentVersion": "الحالي",
     "previousVersion": "السابق",
     "superseded": "مُستبدَل",
-    "renewalDetected": "تم اكتشاف تجديد — مرتبط بالإصدار السابق"
+    "renewalDetected": "تم اكتشاف تجديد — مرتبط بالإصدار السابق",
+    "expiry": {
+      "expiresInDays": "ينتهي خلال {days} يوم",
+      "expiresInOneDay": "ينتهي خلال يوم واحد",
+      "expiresToday": "ينتهي اليوم",
+      "expiredDaysAgo": "انتهى منذ {days} يوم",
+      "expiredOneDay": "انتهى منذ يوم واحد",
+      "documentsExpiringSoon": "مستندات تنتهي قريباً",
+      "documentsExpiringSoonCount": "{count} مستند ينتهي خلال 30 يوم",
+      "sortExpiringSoonFirst": "الأقرب انتهاءً أولاً"
+    },
+    "bulkUpload": {
+      "selectMultiple": "اختر ملفات متعددة",
+      "processingFiles": "جارٍ معالجة {current} من {total} ملفات...",
+      "uploadComplete": "اكتمل الرفع",
+      "resultsSummary": "تم رفع {total} ملفات: {success} ناجحة، {failed} فاشلة",
+      "allSuccessful": "تم رفع جميع الملفات ({total}) بنجاح",
+      "retryFailed": "إعادة المحاولة",
+      "retryAll": "إعادة جميع الفاشلة",
+      "failed": "فشل",
+      "success": "نجح",
+      "pending": "في الانتظار",
+      "analyzing": "جارٍ التحليل..."
+    }
   },
   "calendar": {
     "title": "تقويم الالتزامات",
@@ -322,7 +346,33 @@
       "reviewTransactions": "مراجعة العمليات",
       "importSelected": "استيراد المحدد",
       "importAll": "استيراد الكل"
-    }
+    },
+    "recurring": {
+      "title": "المصروفات المتكررة",
+      "subtitle": "أنماط مكتشفة تلقائياً من عملياتك",
+      "vendor": "الجهة",
+      "avgAmount": "متوسط المبلغ",
+      "frequency": "التكرار",
+      "nextExpected": "الموعد المتوقع التالي",
+      "occurrences": "عدد المرات",
+      "monthly": "شهري",
+      "quarterly": "ربع سنوي",
+      "annual": "سنوي",
+      "setReminder": "إنشاء تذكير",
+      "reminderCreated": "تم إنشاء تذكير لـ {vendor}",
+      "totalMonthly": "التكلفة الشهرية المتكررة (تقديرية)",
+      "noPatterns": "لم يتم اكتشاف أنماط متكررة بعد",
+      "noPatternsDescription": "سيتم اكتشاف المصروفات المتكررة تلقائياً عند وجود 3+ عمليات مشابهة"
+    },
+    "exportExcel": "تصدير Excel",
+    "exportPrint": "طباعة / PDF",
+    "importExcel": "استيراد Excel",
+    "importPreview": "معاينة الاستيراد",
+    "importPreviewDescription": "راجع العمليات المكتشفة قبل الاستيراد",
+    "importConfirm": "تأكيد الاستيراد",
+    "importSuccess": "تم استيراد {count} عملية بنجاح",
+    "importNoData": "لم يتم العثور على بيانات عمليات في الملف",
+    "importParsing": "جارٍ تحليل الملف..."
   },
   "common": {
     "save": "حفظ",
@@ -564,6 +614,22 @@
     "suggestBookkeeper": "لخّص مصروفاتي هذا الشهر",
     "suggestTeam": "ما نسبة السعودة لدي؟",
     "suggestDefault": "كيف يمكنني مساعدتك؟"
+  },
+  "billing": {
+    "title": "الفوترة",
+    "subtitle": "إدارة اشتراكك وتفاصيل الدفع",
+    "currentPlan": "الخطة الحالية",
+    "statusActive": "نشط",
+    "statusFree": "الخطة المجانية",
+    "manageBilling": "إدارة الفوترة",
+    "upgradePlan": "ترقية خطتك",
+    "proDescription": "مكالمات ذكاء اصطناعي ومستندات وإدارة فريق غير محدودة",
+    "businessDescription": "شركات غير محدودة، وصول API، ودعم مخصص",
+    "usage": "الاستخدام",
+    "aiCalls": "مكالمات الذكاء الاصطناعي",
+    "aiCallsLimit": "استخدام اليوم",
+    "documents": "المستندات",
+    "documentsLimit": "المخزنة في الخزينة"
   },
   "emptyStates": {
     "noDocuments": "لا توجد مستندات بعد",

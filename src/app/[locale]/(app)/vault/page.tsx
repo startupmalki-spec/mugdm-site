@@ -27,6 +27,9 @@ import {
   FolderOpen,
   FolderClosed,
   History,
+  AlertCircle,
+  CheckCircle2,
+  RotateCcw,
 } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
@@ -58,7 +61,6 @@ import type { ExpiryStatus } from '@/lib/documents'
 
 type ViewMode = 'grid' | 'list' | 'folder'
 type SortField = 'uploaded_at' | 'expiry_date' | 'type'
-type UploadStep = 'idle' | 'uploading' | 'analyzing' | 'confirm'
 
 interface AnalysisResult {
   type: DocumentType
@@ -110,6 +112,123 @@ function TypeBadge({ type, locale }: { type: DocumentType; locale: string }) {
     >
       {getDocumentTypeLabel(type, locale)}
     </span>
+  )
+}
+
+function ExpiryCountdownBadge({
+  expiryDate,
+  uploadedAt,
+}: {
+  expiryDate: string | null
+  uploadedAt: string
+}) {
+  const t = useTranslations('vault')
+
+  if (!expiryDate) return null
+
+  const now = new Date()
+  const expiry = new Date(expiryDate)
+  const uploaded = new Date(uploadedAt)
+  const daysLeft = differenceInDays(expiry, now)
+
+  // Calculate progress: ratio of time elapsed vs total lifespan
+  const totalLifespan = differenceInDays(expiry, uploaded)
+  const elapsed = differenceInDays(now, uploaded)
+  const progressPercent = totalLifespan > 0 ? Math.max(0, Math.min(100, (elapsed / totalLifespan) * 100)) : 100
+
+  // Determine color scheme
+  let colorClass: string
+  let ringColor: string
+  let label: string
+
+  if (daysLeft < 0) {
+    const daysAgo = Math.abs(daysLeft)
+    colorClass = 'bg-red-700/15 text-red-500 border-red-700/20'
+    ringColor = 'text-red-500'
+    label = daysAgo === 1 ? t('expiry.expiredOneDay') : t('expiry.expiredDaysAgo', { days: daysAgo })
+  } else if (daysLeft === 0) {
+    colorClass = 'bg-red-500/15 text-red-400 border-red-500/20'
+    ringColor = 'text-red-400'
+    label = t('expiry.expiresToday')
+  } else if (daysLeft < 7) {
+    colorClass = 'bg-red-500/15 text-red-400 border-red-500/20'
+    ringColor = 'text-red-400'
+    label = daysLeft === 1 ? t('expiry.expiresInOneDay') : t('expiry.expiresInDays', { days: daysLeft })
+  } else if (daysLeft <= 30) {
+    colorClass = 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+    ringColor = 'text-amber-400'
+    label = t('expiry.expiresInDays', { days: daysLeft })
+  } else {
+    colorClass = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+    ringColor = 'text-emerald-400'
+    label = t('expiry.expiresInDays', { days: daysLeft })
+  }
+
+  // Small ring/progress indicator
+  const radius = 7
+  const circumference = 2 * Math.PI * radius
+  const strokeDashoffset = circumference * (1 - progressPercent / 100)
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+        colorClass
+      )}
+    >
+      <svg width="18" height="18" viewBox="0 0 18 18" className={cn('shrink-0', ringColor)}>
+        <circle cx="9" cy="9" r={radius} fill="none" stroke="currentColor" strokeWidth="2" opacity="0.2" />
+        <circle
+          cx="9"
+          cy="9"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          transform="rotate(-90 9 9)"
+        />
+      </svg>
+      {label}
+    </span>
+  )
+}
+
+function ExpiringSoonBanner({
+  count,
+  onFilterExpiring,
+}: {
+  count: number
+  onFilterExpiring: () => void
+}) {
+  const t = useTranslations('vault')
+
+  if (count === 0) return null
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3"
+    >
+      <div className="flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
+          <AlertTriangle className="h-4 w-4 text-amber-400" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">{t('expiry.documentsExpiringSoon')}</p>
+          <p className="text-xs text-muted-foreground">
+            {t('expiry.documentsExpiringSoonCount', { count })}
+          </p>
+        </div>
+      </div>
+      <Button variant="outline" size="sm" onClick={onFilterExpiring} className="gap-1.5 text-amber-400 border-amber-500/30 hover:bg-amber-500/10">
+        <Clock className="h-3.5 w-3.5" />
+        {t('expiry.sortExpiringSoonFirst')}
+      </Button>
+    </motion.div>
   )
 }
 
@@ -165,25 +284,17 @@ function DocumentCard({
 
       <p className="mt-3 line-clamp-2 text-sm font-medium text-foreground">{doc.name}</p>
 
-      <div className="mt-2">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <TypeBadge type={doc.type} locale={locale} />
+        <ExpiryCountdownBadge expiryDate={doc.expiry_date} uploadedAt={doc.uploaded_at} />
       </div>
 
       <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
         <span>{format(new Date(doc.uploaded_at), 'dd MMM yyyy', { locale: dateLocale })}</span>
-        {daysLeft !== null && daysLeft >= 0 && (
-          <span className="flex items-center gap-1">
-            <Clock className="h-3 w-3" />
-            {daysLeft}d
-          </span>
+        {formatFileSize(doc.file_size) !== '--' && (
+          <span>{formatFileSize(doc.file_size)}</span>
         )}
       </div>
-
-      {formatFileSize(doc.file_size) !== '--' && (
-        <span className="mt-1 text-xs text-muted-foreground">
-          {formatFileSize(doc.file_size)}
-        </span>
-      )}
     </motion.button>
   )
 }
@@ -246,11 +357,7 @@ function DocumentListRow({
       </div>
 
       <div className="hidden shrink-0 sm:block">
-        {doc.expiry_date && (
-          <span className="text-xs text-muted-foreground">
-            {format(new Date(doc.expiry_date), 'dd MMM yyyy', { locale: dateLocale })}
-          </span>
-        )}
+        <ExpiryCountdownBadge expiryDate={doc.expiry_date} uploadedAt={doc.uploaded_at} />
       </div>
 
       <div className="shrink-0">
@@ -623,6 +730,21 @@ function FolderView({
   )
 }
 
+// --- Bulk Upload Types ---
+
+type BulkFileStatus = 'pending' | 'uploading' | 'analyzing' | 'success' | 'failed'
+
+interface BulkFileEntry {
+  file: File
+  status: BulkFileStatus
+  error: string | null
+  insertedDocId: string | null
+  analysis: AnalysisResult | null
+  resultDoc: Document | null
+}
+
+type BulkUploadStep = 'idle' | 'processing' | 'results'
+
 function UploadDialog({
   isOpen,
   onOpenChange,
@@ -643,48 +765,45 @@ function UploadDialog({
   const t = useTranslations('vault')
   const tCommon = useTranslations('common')
 
-  const [uploadStep, setUploadStep] = useState<UploadStep>('idle')
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [analysis, setAnalysis] = useState<AnalysisResult | null>(null)
-  const [selectedType, setSelectedType] = useState<DocumentType>('OTHER')
-  const [expiryDate, setExpiryDate] = useState('')
-  const [insertedDocId, setInsertedDocId] = useState<string | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
+  const [bulkStep, setBulkStep] = useState<BulkUploadStep>('idle')
+  const [fileEntries, setFileEntries] = useState<BulkFileEntry[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
 
   const handleReset = useCallback(() => {
-    setUploadStep('idle')
-    setSelectedFile(null)
-    setAnalysis(null)
-    setSelectedType('OTHER')
-    setExpiryDate('')
-    setInsertedDocId(null)
-    setIsSaving(false)
-    setUploadError(null)
+    setBulkStep('idle')
+    setFileEntries([])
+    setCurrentIndex(0)
   }, [])
 
-  const handleDrop = useCallback(
-    async (acceptedFiles: File[]) => {
-      const file = acceptedFiles[0]
-      if (!file || !businessId) return
+  // Process a single file: upload -> analyze -> auto-save with AI results
+  const processFile = useCallback(
+    async (file: File, index: number): Promise<BulkFileEntry> => {
+      const entry: BulkFileEntry = {
+        file,
+        status: 'uploading',
+        error: null,
+        insertedDocId: null,
+        analysis: null,
+        resultDoc: null,
+      }
 
-      setSelectedFile(file)
-      setUploadError(null)
-      setUploadStep('uploading')
+      // Update status to uploading
+      setFileEntries((prev) => prev.map((e, i) => (i === index ? { ...e, status: 'uploading' } : e)))
 
       try {
+        if (!businessId) throw new Error('No business ID')
+
         const supabase = createClient()
         const fileExt = file.name.split('.').pop() ?? 'bin'
-        const storagePath = `${businessId}/${Date.now()}.${fileExt}`
+        const storagePath = `${businessId}/${Date.now()}-${index}.${fileExt}`
 
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadErr } = await supabase.storage
           .from('documents')
           .upload(storagePath, file, { cacheControl: '3600', upsert: false })
 
-        if (uploadError) throw uploadError
+        if (uploadErr) throw uploadErr
 
         const SIGNED_URL_EXPIRY_SECONDS = 3600
-
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('documents')
           .createSignedUrl(uploadData.path, SIGNED_URL_EXPIRY_SECONDS)
@@ -709,9 +828,15 @@ function UploadDialog({
 
         if (insertError || !insertedDoc) throw insertError ?? new Error('Insert failed')
 
-        setInsertedDocId(insertedDoc.id)
-        setUploadStep('analyzing')
+        entry.insertedDocId = insertedDoc.id
 
+        // Update status to analyzing
+        setFileEntries((prev) =>
+          prev.map((e, i) => (i === index ? { ...e, status: 'analyzing', insertedDocId: insertedDoc.id } : e))
+        )
+
+        // AI analysis (best-effort)
+        let analysis: AnalysisResult | null = null
         try {
           const analysisRes = await fetch('/api/analyze-document', {
             method: 'POST',
@@ -721,114 +846,157 @@ function UploadDialog({
 
           if (analysisRes.ok) {
             const raw = await analysisRes.json()
-            const result: AnalysisResult = {
+            analysis = {
               type: raw.document_type ?? 'OTHER',
               confidence: raw.ai_confidence ?? 0,
               expiryDate: raw.expiry_date ?? null,
               registrationNumber: raw.registration_number ?? null,
             }
-            setAnalysis(result)
-            setSelectedType(result.type)
-            if (result.expiryDate) setExpiryDate(result.expiryDate)
           }
         } catch {
-          // Analysis is best-effort; proceed to confirm step regardless
+          // Analysis is best-effort
         }
 
-        setUploadStep('confirm')
+        entry.analysis = analysis
+
+        // Auto-save with AI results
+        const updatePayload: Record<string, unknown> = {
+          type: analysis?.type ?? 'OTHER',
+          expiry_date: analysis?.expiryDate ?? null,
+          ai_confidence: analysis?.confidence ?? null,
+        }
+
+        // Auto-detect renewal
+        if (analysis?.registrationNumber && analysis.type !== 'OTHER') {
+          const { data: existingDocs } = (await supabase
+            .from('documents')
+            .select('*')
+            .eq('business_id', businessId)
+            .eq('type', analysis.type)
+            .eq('is_current', true)
+            .neq('id', insertedDoc.id)
+            .order('version_number', { ascending: false })
+            .limit(10)) as unknown as { data: Document[] | null; error: unknown }
+
+          const matchingDoc = existingDocs?.find((d) => {
+            const regNum = (d.extracted_data as Record<string, unknown> | null)?.registration_number
+            return regNum === analysis!.registrationNumber
+          })
+
+          if (matchingDoc) {
+            updatePayload.previous_version_id = matchingDoc.id
+            updatePayload.version_number = matchingDoc.version_number + 1
+
+            await supabase
+              .from('documents')
+              .update({ is_current: false } as never)
+              .eq('id', matchingDoc.id)
+          }
+        }
+
+        if (analysis?.registrationNumber) {
+          updatePayload.extracted_data = {
+            registration_number: analysis.registrationNumber,
+          }
+        }
+
+        const { data: updatedDoc } = (await supabase
+          .from('documents')
+          .update(updatePayload as never)
+          .eq('id', insertedDoc.id)
+          .select()
+          .single()) as unknown as { data: Document | null; error: unknown }
+
+        if (updatedDoc) {
+          onDocumentAdded(updatedDoc)
+
+          if (updatePayload.previous_version_id) {
+            onRenewalDetected(updatePayload.previous_version_id as string)
+          }
+
+          const obligationId = await linkDocumentToObligation(supabase, businessId, updatedDoc)
+          if (obligationId) onObligationLinked()
+
+          entry.resultDoc = updatedDoc
+        }
+
+        entry.status = 'success'
+        setFileEntries((prev) =>
+          prev.map((e, i) => (i === index ? { ...entry } : e))
+        )
+        return entry
       } catch (err) {
         const message =
           err instanceof Error ? err.message : locale === 'ar' ? 'فشل رفع الملف' : 'Upload failed'
-        setUploadError(message)
-        setUploadStep('idle')
+        entry.status = 'failed'
+        entry.error = message
+        setFileEntries((prev) =>
+          prev.map((e, i) => (i === index ? { ...entry } : e))
+        )
+        return entry
       }
     },
-    [businessId, locale]
+    [businessId, locale, onDocumentAdded, onObligationLinked, onRenewalDetected]
   )
+
+  const handleDrop = useCallback(
+    async (acceptedFiles: File[]) => {
+      if (!acceptedFiles.length || !businessId) return
+
+      const entries: BulkFileEntry[] = acceptedFiles.map((file) => ({
+        file,
+        status: 'pending' as BulkFileStatus,
+        error: null,
+        insertedDocId: null,
+        analysis: null,
+        resultDoc: null,
+      }))
+
+      setFileEntries(entries)
+      setBulkStep('processing')
+      setCurrentIndex(0)
+
+      // Process sequentially
+      for (let i = 0; i < entries.length; i++) {
+        setCurrentIndex(i)
+        await processFile(entries[i].file, i)
+      }
+
+      setBulkStep('results')
+    },
+    [businessId, processFile]
+  )
+
+  const handleRetryFailed = useCallback(async () => {
+    setBulkStep('processing')
+
+    const failedIndices = fileEntries
+      .map((e, i) => (e.status === 'failed' ? i : -1))
+      .filter((i) => i >= 0)
+
+    for (const idx of failedIndices) {
+      setCurrentIndex(idx)
+      // Reset the entry to pending first
+      setFileEntries((prev) =>
+        prev.map((e, i) => (i === idx ? { ...e, status: 'pending', error: null } : e))
+      )
+      await processFile(fileEntries[idx].file, idx)
+    }
+
+    setBulkStep('results')
+  }, [fileEntries, processFile])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleDrop,
     accept: ACCEPTED_FILE_TYPES,
     maxSize: MAX_FILE_SIZE_BYTES,
-    multiple: false,
-    disabled: uploadStep !== 'idle',
+    multiple: true,
+    disabled: bulkStep !== 'idle',
   })
 
-  const handleSave = useCallback(async () => {
-    if (!selectedFile || !businessId || !insertedDocId) return
-
-    setIsSaving(true)
-
-    try {
-      const supabase = createClient()
-
-      const updatePayload: Record<string, unknown> = {
-        type: selectedType,
-        expiry_date: expiryDate || null,
-        ai_confidence: analysis?.confidence ?? null,
-      }
-
-      // Auto-detect renewal: check if a document with the same type and registration number exists
-      if (analysis?.registrationNumber && selectedType !== 'OTHER') {
-        const { data: existingDocs } = (await supabase
-          .from('documents')
-          .select('*')
-          .eq('business_id', businessId)
-          .eq('type', selectedType)
-          .eq('is_current', true)
-          .neq('id', insertedDocId)
-          .order('version_number', { ascending: false })
-          .limit(10)) as unknown as { data: Document[] | null; error: unknown }
-
-        // Find a matching document by registration number in extracted_data
-        const matchingDoc = existingDocs?.find((d) => {
-          const regNum = (d.extracted_data as Record<string, unknown> | null)?.registration_number
-          return regNum === analysis.registrationNumber
-        })
-
-        if (matchingDoc) {
-          // This is a renewal — set version chain
-          updatePayload.previous_version_id = matchingDoc.id
-          updatePayload.version_number = matchingDoc.version_number + 1
-
-          // Mark the previous document as superseded
-          await supabase
-            .from('documents')
-            .update({ is_current: false } as never)
-            .eq('id', matchingDoc.id)
-        }
-      }
-
-      // Store extracted_data with registration_number for future renewal detection
-      if (analysis?.registrationNumber) {
-        updatePayload.extracted_data = {
-          registration_number: analysis.registrationNumber,
-        }
-      }
-
-      const { data: updatedDoc } = (await supabase
-        .from('documents')
-        .update(updatePayload as never)
-        .eq('id', insertedDocId)
-        .select()
-        .single()) as unknown as { data: Document | null; error: unknown }
-
-      if (updatedDoc) {
-        onDocumentAdded(updatedDoc)
-
-        // If this was a renewal, also update the superseded doc in local state
-        if (updatePayload.previous_version_id) {
-          onRenewalDetected(updatePayload.previous_version_id as string)
-        }
-
-        const obligationId = await linkDocumentToObligation(supabase, businessId, updatedDoc)
-        if (obligationId) onObligationLinked()
-      }
-    } finally {
-      handleReset()
-      onOpenChange(false)
-    }
-  }, [selectedFile, selectedType, expiryDate, analysis, businessId, insertedDocId, onDocumentAdded, onObligationLinked, onOpenChange, handleReset, onRenewalDetected])
+  const successCount = fileEntries.filter((e) => e.status === 'success').length
+  const failedCount = fileEntries.filter((e) => e.status === 'failed').length
+  const totalCount = fileEntries.length
 
   return (
     <Dialog.Root
@@ -840,7 +1008,7 @@ function UploadDialog({
     >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 data-[state=open]:animate-fade-in" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl data-[state=open]:animate-scale-in">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl data-[state=open]:animate-scale-in max-h-[85vh] overflow-y-auto">
           <Dialog.Title className="text-lg font-semibold text-foreground">
             {t('uploadDocument')}
           </Dialog.Title>
@@ -849,7 +1017,8 @@ function UploadDialog({
           </Dialog.Description>
 
           <div className="mt-6">
-            {uploadStep === 'idle' && (
+            {/* Idle: drop zone */}
+            {bulkStep === 'idle' && (
               <div
                 {...getRootProps()}
                 className={cn(
@@ -867,122 +1036,153 @@ function UploadDialog({
                 <p className="mt-1 text-xs text-muted-foreground">
                   PDF, PNG, JPG, DOC, DOCX — max 25MB
                 </p>
-              </div>
-            )}
-
-            {uploadStep === 'idle' && uploadError && (
-              <div className="mt-3 flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
-                <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
-                <p className="text-xs text-red-500">{uploadError}</p>
-              </div>
-            )}
-
-            {(uploadStep === 'uploading' || uploadStep === 'analyzing') && (
-              <div className="flex flex-col items-center py-12">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="mt-4 text-sm font-medium text-foreground">
-                  {uploadStep === 'uploading' ? tCommon('loading') : 'Analyzing document...'}
+                <p className="mt-1 text-xs text-primary">
+                  {t('bulkUpload.selectMultiple')}
                 </p>
-                {selectedFile && (
-                  <p className="mt-1 text-xs text-muted-foreground">{selectedFile.name}</p>
-                )}
               </div>
             )}
 
-            {uploadStep === 'confirm' && (
+            {/* Processing: show progress */}
+            {bulkStep === 'processing' && (
               <div className="space-y-4">
-                {selectedFile && (
-                  <div className="flex items-center gap-3 rounded-lg bg-surface-2 p-3">
-                    <FileText className="h-5 w-5 shrink-0 text-primary" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {selectedFile.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatFileSize(selectedFile.size)}
-                      </p>
+                <div className="flex flex-col items-center py-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="mt-3 text-sm font-medium text-foreground">
+                    {t('bulkUpload.processingFiles', {
+                      current: Math.min(currentIndex + 1, totalCount),
+                      total: totalCount,
+                    })}
+                  </p>
+                  {/* Overall progress bar */}
+                  <div className="mt-3 w-full max-w-xs">
+                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-3">
+                      <motion.div
+                        className="h-full rounded-full bg-primary"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${((currentIndex + 1) / totalCount) * 100}%` }}
+                        transition={{ duration: 0.3 }}
+                      />
                     </div>
                   </div>
-                )}
+                </div>
 
-                {analysis && analysis.confidence > 0.5 && (
-                  <div className="flex items-start gap-2 rounded-lg bg-primary/5 border border-primary/20 p-3">
-                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <p className="text-xs text-foreground">
-                      We think this is a{' '}
-                      <strong>{getDocumentTypeLabel(analysis.type, locale)}</strong>
-                      {' '}({Math.round(analysis.confidence * 100)}% confidence). Is that right?
+                {/* File list with status */}
+                <div className="max-h-48 space-y-1.5 overflow-y-auto">
+                  {fileEntries.map((entry, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 rounded-lg bg-surface-2 px-3 py-2"
+                    >
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <p className="min-w-0 flex-1 truncate text-xs text-foreground">{entry.file.name}</p>
+                      <span className="shrink-0">
+                        {entry.status === 'pending' && (
+                          <span className="text-[10px] text-muted-foreground">{t('bulkUpload.pending')}</span>
+                        )}
+                        {entry.status === 'uploading' && (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        )}
+                        {entry.status === 'analyzing' && (
+                          <span className="text-[10px] text-primary">{t('bulkUpload.analyzing')}</span>
+                        )}
+                        {entry.status === 'success' && (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        )}
+                        {entry.status === 'failed' && (
+                          <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Results: summary */}
+            {bulkStep === 'results' && (
+              <div className="space-y-4">
+                {/* Summary banner */}
+                <div className={cn(
+                  'flex items-center gap-3 rounded-xl border p-4',
+                  failedCount === 0
+                    ? 'border-emerald-500/20 bg-emerald-500/5'
+                    : 'border-amber-500/20 bg-amber-500/5'
+                )}>
+                  {failedCount === 0 ? (
+                    <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-400" />
+                  ) : (
+                    <AlertTriangle className="h-6 w-6 shrink-0 text-amber-400" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">
+                      {t('bulkUpload.uploadComplete')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {failedCount === 0
+                        ? t('bulkUpload.allSuccessful', { total: totalCount })
+                        : t('bulkUpload.resultsSummary', {
+                            total: totalCount,
+                            success: successCount,
+                            failed: failedCount,
+                          })}
                     </p>
                   </div>
-                )}
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Document Type
-                  </label>
-                  <Select.Root value={selectedType} onValueChange={(v) => setSelectedType(v as DocumentType)}>
-                    <Select.Trigger className="flex h-10 w-full items-center justify-between rounded-lg border border-border bg-surface-1 px-3 text-sm text-foreground transition-colors hover:border-primary/50 focus:outline-none focus:ring-2 focus:ring-ring">
-                      <Select.Value>
-                        {getDocumentTypeLabel(selectedType, locale)}
-                      </Select.Value>
-                      <Select.Icon>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      </Select.Icon>
-                    </Select.Trigger>
-                    <Select.Portal>
-                      <Select.Content
-                        className="z-[60] max-h-64 overflow-auto rounded-xl border border-border bg-card p-1 shadow-xl"
-                        position="popper"
-                        sideOffset={4}
-                      >
-                        <Select.Viewport>
-                          {ALL_DOCUMENT_TYPES.map((dtype) => (
-                            <Select.Item
-                              key={dtype}
-                              value={dtype}
-                              className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm text-foreground outline-none hover:bg-surface-2 data-[highlighted]:bg-surface-2"
-                            >
-                              <Select.ItemIndicator>
-                                <Check className="h-4 w-4 text-primary" />
-                              </Select.ItemIndicator>
-                              <Select.ItemText>
-                                {getDocumentTypeLabel(dtype, locale)}
-                              </Select.ItemText>
-                            </Select.Item>
-                          ))}
-                        </Select.Viewport>
-                      </Select.Content>
-                    </Select.Portal>
-                  </Select.Root>
                 </div>
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Expiry Date
-                  </label>
-                  <Input
-                    type="date"
-                    value={expiryDate}
-                    onChange={(e) => setExpiryDate(e.target.value)}
-                    className="h-10"
-                  />
+                {/* File list with results */}
+                <div className="max-h-48 space-y-1.5 overflow-y-auto">
+                  {fileEntries.map((entry, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        'flex items-center gap-2 rounded-lg px-3 py-2',
+                        entry.status === 'failed' ? 'bg-red-500/5' : 'bg-surface-2'
+                      )}
+                    >
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs text-foreground">{entry.file.name}</p>
+                        {entry.status === 'failed' && entry.error && (
+                          <p className="truncate text-[10px] text-red-400">{entry.error}</p>
+                        )}
+                        {entry.status === 'success' && entry.analysis?.type && (
+                          <p className="text-[10px] text-muted-foreground">
+                            {getDocumentTypeLabel(entry.analysis.type, locale)}
+                          </p>
+                        )}
+                      </div>
+                      <span className="shrink-0">
+                        {entry.status === 'success' && (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                        )}
+                        {entry.status === 'failed' && (
+                          <AlertCircle className="h-3.5 w-3.5 text-red-400" />
+                        )}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
+                {/* Actions */}
                 <div className="flex gap-2 pt-2">
+                  {failedCount > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={handleRetryFailed}
+                      className="flex-1 gap-2 text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      {t('bulkUpload.retryAll')}
+                    </Button>
+                  )}
                   <Button
-                    variant="outline"
                     onClick={() => {
                       handleReset()
                       onOpenChange(false)
                     }}
                     className="flex-1"
-                    disabled={isSaving}
                   >
-                    {tCommon('cancel')}
-                  </Button>
-                  <Button onClick={handleSave} className="flex-1 gap-2" disabled={isSaving}>
-                    {isSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {tCommon('save')}
+                    {tCommon('close')}
                   </Button>
                 </div>
               </div>
@@ -1114,6 +1314,11 @@ export default function VaultPage() {
       valid: current.filter((d) => getExpiryStatus(d.expiry_date) === 'valid').length,
       expiring: current.filter((d) => getExpiryStatus(d.expiry_date) === 'expiring').length,
       expired: current.filter((d) => getExpiryStatus(d.expiry_date) === 'expired').length,
+      expiringSoonTotal: current.filter((d) => {
+        if (!d.expiry_date) return false
+        const daysLeft = differenceInDays(new Date(d.expiry_date), new Date())
+        return daysLeft >= 0 && daysLeft <= 30
+      }).length,
     }
   }, [documents])
 
@@ -1255,6 +1460,15 @@ export default function VaultPage() {
           {statusCounts.expired} {t('status.expired')}
         </span>
       </div>
+
+      {/* Expiring Soon Banner */}
+      <ExpiringSoonBanner
+        count={statusCounts.expiringSoonTotal}
+        onFilterExpiring={() => {
+          setStatusFilter('expiring')
+          setSortField('expiry_date')
+        }}
+      />
 
       {/* Search and Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">

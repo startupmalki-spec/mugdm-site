@@ -518,8 +518,9 @@
         "dependencies": [
           "1"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:58:59.265Z"
       },
       {
         "id": "5",
@@ -580,8 +581,9 @@
         "testStrategy": "1. Test GOSI calculations:\n   - Create Saudi employee with SAR 5,000 salary\n   - Verify GOSI = SAR 1,075 (21.5%)\n   - Create Non-Saudi employee with SAR 4,000 salary\n   - Verify GOSI = SAR 80 (2%)\n   - Generate GOSI report for 10 employees, verify totals\n2. Test contract tracking:\n   - Add limited contract with end date in 60 days\n   - Verify renewal reminder triggered\n   - Renew contract, verify history stored\n3. Test leave tracking:\n   - Create employee with 2 years service\n   - Verify annual leave balance = 21 days\n   - Record 5 days leave, verify balance = 16 days\n   - Test sick leave tracking\n4. Test employee documents:\n   - Upload Iqama copy for employee\n   - Link to employee record\n   - Verify appears in employee detail view\n   - Set Iqama expiry date, verify expiry alert",
         "priority": "medium",
         "dependencies": [],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:59:57.421Z"
       },
       {
         "id": "10",
@@ -1015,8 +1017,9 @@
           "41",
           "42"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:59:18.672Z"
       },
       {
         "id": "45",
@@ -1058,8 +1061,9 @@
           "45",
           "46"
         ],
-        "status": "pending",
-        "subtasks": []
+        "status": "done",
+        "subtasks": [],
+        "updatedAt": "2026-04-12T11:59:39.065Z"
       },
       {
         "id": "48",
@@ -1108,9 +1112,9 @@
     ],
     "metadata": {
       "version": "1.0.0",
-      "lastModified": "2026-04-12T11:50:04.931Z",
+      "lastModified": "2026-04-12T11:59:57.425Z",
       "taskCount": 50,
-      "completedCount": 6,
+      "completedCount": 10,
       "tags": [
         "master"
       ]

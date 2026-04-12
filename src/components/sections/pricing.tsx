@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
 import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas } from "@/lib/animations";
+import { PRICE_IDS } from "@/lib/stripe/price-ids";
 
 const tiers = [
   {
@@ -60,6 +61,23 @@ const tiers = [
     highlighted: false,
   },
 ];
+
+async function handleCheckout(priceId: string) {
+  try {
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priceId }),
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    }
+  } catch {
+    // If not authenticated or error, redirect to signup
+    window.location.href = "/signup?plan=pro";
+  }
+}
 
 export function Pricing() {
   const [annual, setAnnual] = useState(false);
@@ -181,16 +199,30 @@ export function Pricing() {
 
                   {/* CTA */}
                   <div>
-                    <a
-                      href={tier.href}
-                      className={`inline-flex items-center justify-center w-full h-11 rounded-lg text-sm font-medium transition-all duration-200 ${
-                        tier.highlighted
-                          ? "bg-primary text-primary-foreground shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
-                          : "border border-border bg-surface-1 text-foreground hover:border-primary/30 hover:bg-primary/5 hover:-translate-y-px active:scale-[0.98]"
-                      }`}
-                    >
-                      {tier.cta}
-                    </a>
+                    {tier.name === "Pro" ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleCheckout(
+                            annual ? PRICE_IDS.PRO_ANNUAL : PRICE_IDS.PRO_MONTHLY
+                          )
+                        }
+                        className="inline-flex items-center justify-center w-full h-11 rounded-lg text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
+                      >
+                        {tier.cta}
+                      </button>
+                    ) : (
+                      <a
+                        href={tier.href}
+                        className={`inline-flex items-center justify-center w-full h-11 rounded-lg text-sm font-medium transition-all duration-200 ${
+                          tier.highlighted
+                            ? "bg-primary text-primary-foreground shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
+                            : "border border-border bg-surface-1 text-foreground hover:border-primary/30 hover:bg-primary/5 hover:-translate-y-px active:scale-[0.98]"
+                        }`}
+                      >
+                        {tier.cta}
+                      </a>
+                    )}
                     {tier.ctaSubtext && (
                       <p className="text-xs text-muted-foreground text-center mt-2">
                         {tier.ctaSubtext}

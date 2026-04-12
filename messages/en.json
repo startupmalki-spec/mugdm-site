@@ -8,6 +8,7 @@
     "bookkeeper": "Bookkeeper",
     "chat": "Chat",
     "settings": "Settings",
+    "billing": "Billing",
     "logout": "Log Out",
     "help": "Help & Support"
   },
@@ -191,7 +192,30 @@
     "currentVersion": "Current",
     "previousVersion": "Previous",
     "superseded": "Superseded",
-    "renewalDetected": "Renewal detected — linked to previous version"
+    "renewalDetected": "Renewal detected — linked to previous version",
+    "expiry": {
+      "expiresInDays": "Expires in {days} days",
+      "expiresInOneDay": "Expires in 1 day",
+      "expiresToday": "Expires today",
+      "expiredDaysAgo": "Expired {days} days ago",
+      "expiredOneDay": "Expired 1 day ago",
+      "documentsExpiringSoon": "Documents Expiring Soon",
+      "documentsExpiringSoonCount": "{count} documents expiring within 30 days",
+      "sortExpiringSoonFirst": "Expiring soon first"
+    },
+    "bulkUpload": {
+      "selectMultiple": "Select multiple files",
+      "processingFiles": "Processing {current} of {total} files...",
+      "uploadComplete": "Upload Complete",
+      "resultsSummary": "{total} files uploaded: {success} successful, {failed} failed",
+      "allSuccessful": "All {total} files uploaded successfully",
+      "retryFailed": "Retry Failed",
+      "retryAll": "Retry All Failed",
+      "failed": "Failed",
+      "success": "Success",
+      "pending": "Pending",
+      "analyzing": "Analyzing..."
+    }
   },
   "calendar": {
     "title": "Compliance Calendar",
@@ -322,7 +346,33 @@
       "reviewTransactions": "Review Transactions",
       "importSelected": "Import Selected",
       "importAll": "Import All"
-    }
+    },
+    "recurring": {
+      "title": "Recurring Expenses",
+      "subtitle": "Automatically detected patterns from your transactions",
+      "vendor": "Vendor",
+      "avgAmount": "Avg. Amount",
+      "frequency": "Frequency",
+      "nextExpected": "Next Expected",
+      "occurrences": "Occurrences",
+      "monthly": "Monthly",
+      "quarterly": "Quarterly",
+      "annual": "Annual",
+      "setReminder": "Set Reminder",
+      "reminderCreated": "Reminder created for {vendor}",
+      "totalMonthly": "Est. Monthly Recurring",
+      "noPatterns": "No recurring patterns detected yet",
+      "noPatternsDescription": "Recurring expenses will be auto-detected once you have 3+ similar transactions"
+    },
+    "exportExcel": "Export Excel",
+    "exportPrint": "Print / PDF",
+    "importExcel": "Import Excel",
+    "importPreview": "Import Preview",
+    "importPreviewDescription": "Review the detected transactions before importing",
+    "importConfirm": "Confirm Import",
+    "importSuccess": "{count} transactions imported successfully",
+    "importNoData": "No transaction data found in the file",
+    "importParsing": "Parsing file..."
   },
   "common": {
     "save": "Save",
@@ -564,6 +614,22 @@
     "suggestBookkeeper": "Summarize my expenses this month",
     "suggestTeam": "What's my Saudization ratio?",
     "suggestDefault": "How can I help?"
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Manage your subscription and payment details",
+    "currentPlan": "Current Plan",
+    "statusActive": "Active",
+    "statusFree": "Free Plan",
+    "manageBilling": "Manage Billing",
+    "upgradePlan": "Upgrade Your Plan",
+    "proDescription": "Unlimited AI calls, documents, and team management",
+    "businessDescription": "Unlimited businesses, API access, and dedicated support",
+    "usage": "Usage",
+    "aiCalls": "AI Calls",
+    "aiCallsLimit": "Today's usage",
+    "documents": "Documents",
+    "documentsLimit": "Stored in vault"
   },
   "emptyStates": {
     "noDocuments": "No documents yet",

@@ -86,8 +86,82 @@ function renderMarkdown(text: string) {
     return parts.length === 1 ? parts[0] : <>{parts}</>
   }
 
+  // Helper: detect and collect a markdown table (pipe-delimited lines)
+  function tryParseTable(startIdx: number): { element: React.ReactNode; consumed: number } | null {
+    // A table needs at least a header row and a separator row
+    if (startIdx + 1 >= lines.length) return null
+
+    const headerLine = lines[startIdx].trim()
+    const separatorLine = lines[startIdx + 1]?.trim() ?? ''
+
+    // Check header is pipe-delimited
+    if (!headerLine.startsWith('|') || !headerLine.endsWith('|')) return null
+    // Check separator looks like |---|---|
+    if (!/^\|[\s:]*-+[\s:]*(\|[\s:]*-+[\s:]*)*\|$/.test(separatorLine)) return null
+
+    const parseRow = (line: string) =>
+      line
+        .replace(/^\|/, '')
+        .replace(/\|$/, '')
+        .split('|')
+        .map((cell) => cell.trim())
+
+    const headers = parseRow(headerLine)
+
+    // Collect body rows
+    const bodyRows: string[][] = []
+    let idx = startIdx + 2
+    while (idx < lines.length) {
+      const row = lines[idx].trim()
+      if (!row.startsWith('|') || !row.endsWith('|')) break
+      bodyRows.push(parseRow(row))
+      idx++
+    }
+
+    const element = (
+      <div key={`table-${startIdx}`} className="my-2 overflow-x-auto rounded border border-border">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-surface-2">
+              {headers.map((h, ci) => (
+                <th
+                  key={ci}
+                  className="whitespace-nowrap border-b border-border px-3 py-1.5 text-start font-semibold"
+                >
+                  {renderInline(h)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {bodyRows.map((row, ri) => (
+              <tr key={ri} className="border-b border-border last:border-b-0">
+                {row.map((cell, ci) => (
+                  <td key={ci} className="whitespace-nowrap px-3 py-1.5">
+                    {renderInline(cell)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )
+
+    return { element, consumed: idx - startIdx }
+  }
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
+
+    // Markdown table
+    const table = tryParseTable(i)
+    if (table) {
+      flushList()
+      elements.push(table.element)
+      i += table.consumed - 1 // -1 because the for loop increments
+      continue
+    }
 
     // Unordered list
     if (/^[-*]\s+/.test(line)) {

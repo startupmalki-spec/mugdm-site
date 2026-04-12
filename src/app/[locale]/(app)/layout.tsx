@@ -14,6 +14,7 @@ import {
   CalendarDays,
   Calculator,
   MessageSquare,
+  CreditCard,
   Settings,
   Menu,
   X,
@@ -36,6 +37,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/calendar', labelKey: 'calendar', icon: CalendarDays },
   { href: '/bookkeeper', labelKey: 'bookkeeper', icon: Calculator },
   { href: '/chat', labelKey: 'chat', icon: MessageSquare },
+  { href: '/billing', labelKey: 'billing', icon: CreditCard },
   { href: '/settings', labelKey: 'settings', icon: Settings },
 ]
 

@@ -10,6 +10,7 @@ import {
   addObligation,
   getDocumentSummary,
 } from '@/lib/chat/actions'
+import { importExcelData } from '@/lib/chat/excel-importer'
 
 const CLAUDE_MODEL = 'claude-sonnet-4-20250514'
 
@@ -171,6 +172,32 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: [],
     },
   },
+  {
+    name: 'import_spreadsheet_data',
+    description:
+      'Import parsed spreadsheet data into Mugdm. Use after analyzing an uploaded Excel/CSV file and getting user confirmation. Supports importing transactions, team members, or obligations.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        dataType: {
+          type: 'string',
+          enum: ['transactions', 'team_members', 'obligations'],
+          description: 'Which Mugdm data type to import the rows as.',
+        },
+        rows: {
+          type: 'array',
+          items: { type: 'object' },
+          description: 'Array of row objects with Excel column names as keys.',
+        },
+        columnMapping: {
+          type: 'object',
+          description:
+            'Maps Excel column names to Mugdm field names. For transactions: date, amount, type, category, description, vendor_or_client. For team_members: name, nationality, role, salary, start_date, iqama_number. For obligations: name, type, frequency, next_due_date, description, notes.',
+        },
+      },
+      required: ['dataType', 'rows', 'columnMapping'],
+    },
+  },
 ]
 
 async function executeToolCall(
@@ -320,6 +347,17 @@ async function executeToolCall(
 
     case 'get_document_summary': {
       const result = await getDocumentSummary(supabase, businessId)
+      return JSON.stringify(result)
+    }
+
+    case 'import_spreadsheet_data': {
+      const result = await importExcelData(
+        supabase,
+        businessId,
+        toolInput.dataType as 'transactions' | 'team_members' | 'obligations',
+        toolInput.rows as Record<string, unknown>[],
+        toolInput.columnMapping as Record<string, string>
+      )
       return JSON.stringify(result)
     }
 

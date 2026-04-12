@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef, type ChangeEvent } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Link } from '@/i18n/routing'
 import { motion } from 'framer-motion'
@@ -17,6 +17,15 @@ import {
   PenLine,
   ArrowUpRight,
   Search,
+  Download,
+  Printer,
+  FileUp,
+  RefreshCw,
+  Bell,
+  Repeat,
+  X,
+  Check,
+  Loader2,
 } from 'lucide-react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import {
@@ -46,6 +55,17 @@ import {
   getCategoryColor,
   type DateRange,
 } from '@/lib/bookkeeper/calculations'
+import {
+  detectRecurringExpenses,
+  calculateMonthlyRecurringCost,
+  type RecurringPattern,
+} from '@/lib/bookkeeper/recurring-detection'
+import {
+  exportTransactionsToExcel,
+  downloadBlob,
+  parseImportFile,
+  type ImportPreviewRow,
+} from '@/lib/bookkeeper/export'
 import { TransactionForm } from '@/components/bookkeeper/TransactionForm'
 import { ReceiptCapture } from '@/components/bookkeeper/ReceiptCapture'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -141,6 +161,10 @@ export default function BookkeeperPage() {
   const [txSearch, setTxSearch] = useState('')
   const [txCategoryFilter, setTxCategoryFilter] = useState<TransactionCategory | 'ALL'>('ALL')
   const [txTypeFilter, setTxTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL')
+  const [importPreview, setImportPreview] = useState<ImportPreviewRow[] | null>(null)
+  const [isImporting, setIsImporting] = useState(false)
+  const [isParsing, setIsParsing] = useState(false)
+  const importFileRef = useRef<HTMLInputElement>(null)
 
   const { toasts, showToast, dismissToast } = useToast()
 
@@ -270,6 +294,114 @@ export default function BookkeeperPage() {
     }).length
   }, [transactions])
 
+  const recurringPatterns = useMemo(
+    () => detectRecurringExpenses(transactions),
+    [transactions]
+  )
+
+  const monthlyRecurringCost = useMemo(
+    () => calculateMonthlyRecurringCost(recurringPatterns),
+    [recurringPatterns]
+  )
+
+  const handleExportExcel = useCallback(async () => {
+    try {
+      const blob = await exportTransactionsToExcel(filteredTransactions, 'Business')
+      const dateStr = new Date().toISOString().split('T')[0]
+      downloadBlob(blob, `transactions-${dateStr}.xlsx`)
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في التصدير' : 'Export failed', 'error')
+    }
+  }, [filteredTransactions, locale, showToast])
+
+  const handleExportPrint = useCallback(() => {
+    window.print()
+  }, [])
+
+  const handleImportFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setIsParsing(true)
+    try {
+      const rows = await parseImportFile(file)
+      if (rows.length === 0) {
+        showToast(t('importNoData'), 'error')
+      } else {
+        setImportPreview(rows)
+      }
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في تحليل الملف' : 'Failed to parse file', 'error')
+    } finally {
+      setIsParsing(false)
+      if (importFileRef.current) importFileRef.current.value = ''
+    }
+  }, [locale, showToast, t])
+
+  const handleConfirmImport = useCallback(async () => {
+    if (!importPreview || !businessId) return
+    setIsImporting(true)
+    try {
+      const supabase = createClient()
+      let imported = 0
+      for (const row of importPreview) {
+        const payload = {
+          business_id: businessId,
+          date: row.date,
+          amount: row.amount,
+          type: row.type,
+          category: (row.category || 'OTHER_EXPENSE') as TransactionCategory,
+          description: row.description,
+          vendor_or_client: row.vendor_or_client || null,
+          source: 'BANK_STATEMENT_CSV' as const,
+          source_file_id: null,
+          receipt_url: null,
+          linked_obligation_id: null,
+          vat_amount: null,
+          ai_confidence: null,
+          is_reviewed: false,
+        }
+        const { data: newTx } = (await supabase.from('transactions')
+          .insert(payload as never)
+          .select()
+          .single()) as unknown as { data: Transaction | null; error: unknown }
+        if (newTx) {
+          setTransactions((prev) => [newTx, ...prev])
+          imported++
+        }
+      }
+      showToast(t('importSuccess', { count: imported }), 'success')
+      setImportPreview(null)
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في الاستيراد' : 'Import failed', 'error')
+    } finally {
+      setIsImporting(false)
+    }
+  }, [importPreview, businessId, locale, showToast, t])
+
+  const handleSetReminder = useCallback(async (pattern: RecurringPattern) => {
+    if (!businessId) return
+    try {
+      const supabase = createClient()
+      const freq = pattern.frequency === 'monthly' ? 'MONTHLY'
+        : pattern.frequency === 'quarterly' ? 'QUARTERLY'
+        : 'ANNUAL'
+      await supabase.from('obligations').insert({
+        business_id: businessId,
+        type: 'CUSTOM',
+        name: `${pattern.vendor} - ${pattern.description}`.slice(0, 100),
+        description: `Recurring ${pattern.frequency} expense: ~${pattern.averageAmount} SAR`,
+        frequency: freq,
+        next_due_date: pattern.nextExpectedDate,
+      } as never)
+      showToast(
+        t('recurring.reminderCreated', { vendor: pattern.vendor ?? '' }),
+        'success'
+      )
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في إنشاء التذكير' : 'Failed to create reminder', 'error')
+    }
+  }, [businessId, locale, showToast, t])
+
   const handleAddTransaction = useCallback(async (data: {
     date: string; amount: number; type: 'INCOME' | 'EXPENSE';
     category: TransactionCategory; description: string; vendor_or_client: string
@@ -378,6 +510,38 @@ export default function BookkeeperPage() {
           <div className="flex flex-wrap gap-2">
             <ReceiptCapture businessId={businessId} onSave={handleAddReceipt} />
             <TransactionForm onSave={handleAddTransaction} />
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+            >
+              <Download className="h-3.5 w-3.5" />
+              {t('exportExcel')}
+            </button>
+            <button
+              type="button"
+              onClick={handleExportPrint}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              {t('exportPrint')}
+            </button>
+            <button
+              type="button"
+              onClick={() => importFileRef.current?.click()}
+              disabled={isParsing}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2 disabled:opacity-50"
+            >
+              {isParsing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileUp className="h-3.5 w-3.5" />}
+              {isParsing ? t('importParsing') : t('importExcel')}
+            </button>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={handleImportFileChange}
+            />
           </div>
         </div>
 
@@ -809,6 +973,177 @@ export default function BookkeeperPage() {
               : 'This is an estimate. Consult your accountant for exact filing.'}
           </p>
         </motion.div>
+
+        {/* Recurring Expenses */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+          className="rounded-xl border border-border bg-card p-5"
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Repeat className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">{t('recurring.title')}</h3>
+            </div>
+            {recurringPatterns.length > 0 && (
+              <div className="rounded-lg bg-primary/10 px-3 py-1">
+                <span className="text-xs font-medium text-primary">
+                  {t('recurring.totalMonthly')}: <span className="tabular-nums" dir="ltr">{formatSAR(monthlyRecurringCost, locale)}</span> {sarLabel}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {recurringPatterns.length === 0 ? (
+            <div className="py-8 text-center">
+              <RefreshCw className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-3 text-sm font-medium text-foreground">{t('recurring.noPatterns')}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t('recurring.noPatternsDescription')}</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {recurringPatterns.map((pattern, idx) => (
+                <motion.div
+                  key={`${pattern.vendor}-${pattern.category}`}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.7 + idx * 0.05 }}
+                  className="rounded-lg border border-border bg-surface-1 p-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">{pattern.vendor}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">{pattern.description}</p>
+                    </div>
+                    {pattern.category && (
+                      <span
+                        className="ms-2 inline-flex shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium"
+                        style={{
+                          backgroundColor: `${getCategoryColor(pattern.category)}15`,
+                          color: getCategoryColor(pattern.category),
+                        }}
+                      >
+                        {CATEGORY_LABEL_MAP[pattern.category][locale === 'ar' ? 'ar' : 'en']}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3 space-y-1.5 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>{t('recurring.avgAmount')}</span>
+                      <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                        {formatSAR(pattern.averageAmount, locale)} {sarLabel}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{t('recurring.frequency')}</span>
+                      <span className="font-medium text-foreground">
+                        {t(`recurring.${pattern.frequency}`)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{t('recurring.nextExpected')}</span>
+                      <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                        {pattern.nextExpectedDate}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{t('recurring.occurrences')}</span>
+                      <span className="font-medium text-foreground">{pattern.occurrences}x</span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSetReminder(pattern)}
+                    className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-md border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                  >
+                    <Bell className="h-3 w-3" />
+                    {t('recurring.setReminder')}
+                  </button>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </motion.div>
+
+        {/* Import Preview Modal */}
+        {importPreview && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-primary/30 bg-card p-5"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">{t('importPreview')}</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {t('importPreviewDescription')} ({importPreview.length} {locale === 'ar' ? 'عملية' : 'transactions'})
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportPreview(null)}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="max-h-64 overflow-auto rounded-lg border border-border">
+              <table className="w-full text-xs">
+                <thead className="sticky top-0 bg-surface-2">
+                  <tr>
+                    <th className="px-3 py-2 text-start font-medium text-muted-foreground">{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+                    <th className="px-3 py-2 text-start font-medium text-muted-foreground">{locale === 'ar' ? 'الوصف' : 'Description'}</th>
+                    <th className="px-3 py-2 text-start font-medium text-muted-foreground">{locale === 'ar' ? 'النوع' : 'Type'}</th>
+                    <th className="px-3 py-2 text-end font-medium text-muted-foreground">{locale === 'ar' ? 'المبلغ' : 'Amount'}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importPreview.slice(0, 50).map((row, idx) => (
+                    <tr key={idx} className="border-t border-border">
+                      <td className="px-3 py-2 tabular-nums text-muted-foreground" dir="ltr">{row.date}</td>
+                      <td className="max-w-[200px] truncate px-3 py-2 text-foreground">{row.description}</td>
+                      <td className="px-3 py-2">
+                        <span className={cn(
+                          'text-xs font-medium',
+                          row.type === 'INCOME' ? 'text-green-400' : 'text-red-400'
+                        )}>
+                          {row.type === 'INCOME' ? (locale === 'ar' ? 'إيراد' : 'Income') : (locale === 'ar' ? 'مصروف' : 'Expense')}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-end font-medium tabular-nums text-foreground" dir="ltr">
+                        {formatSAR(row.amount)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setImportPreview(null)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+                {tCommon('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmImport}
+                disabled={isImporting}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isImporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                {t('importConfirm')}
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Recent Transactions */}
         <div>

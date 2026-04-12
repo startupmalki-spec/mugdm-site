@@ -277,3 +277,31 @@ html:not(.dark) .text-gradient {
   initial-value: 0deg;
   inherits: false;
 }
+
+/* ─── Print styles for bookkeeper export ─── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12px;
+  }
+  nav, aside, header, footer,
+  [data-no-print],
+  button, .no-print {
+    display: none !important;
+  }
+  .rounded-xl {
+    border: 1px solid #ddd !important;
+    background: white !important;
+  }
+  .text-foreground { color: black !important; }
+  .text-muted-foreground { color: #666 !important; }
+  .text-green-400 { color: #16a34a !important; }
+  .text-red-400 { color: #dc2626 !important; }
+  .text-blue-400 { color: #2563eb !important; }
+  .text-primary { color: #1E40AF !important; }
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+}
