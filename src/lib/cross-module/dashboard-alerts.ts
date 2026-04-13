@@ -101,9 +101,9 @@ export function generateDashboardAlerts(data: AlertInput): DashboardAlert[] {
   // Obligations due within 15 days
   for (const ob of data.obligations) {
     const status = getObligationStatus(ob.next_due_date, ob.last_completed_at ?? null)
-    if (status === 'upcoming') {
+    if (status === 'due_soon' || status === 'upcoming') {
       const daysUntil = differenceInDays(new Date(ob.next_due_date), now)
-      if (daysUntil <= 15) {
+      if (daysUntil <= 15 && daysUntil >= 0) {
         alerts.push({
           id: `due-soon-${ob.id}`,
           severity: 'warning',
