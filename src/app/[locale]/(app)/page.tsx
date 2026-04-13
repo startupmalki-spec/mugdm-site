@@ -1,7 +1,12 @@
-import { redirect } from 'next/navigation'
+'use client'
 
-export const dynamic = 'force-dynamic'
+import { useEffect } from 'react'
+import { useRouter } from '@/i18n/routing'
 
 export default function AppRoot() {
-  redirect('/dashboard')
+  const router = useRouter()
+  useEffect(() => {
+    router.replace('/dashboard')
+  }, [router])
+  return null
 }
