@@ -6,6 +6,7 @@ import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { selectModel } from '@/lib/ai/model-router'
 import { trackUsage } from '@/lib/ai/usage-tracker'
+import { emitServerEvent } from '@/lib/analytics/server-events'
 import type { TransactionCategory, TransactionType } from '@/lib/supabase/types'
 
 const SAUDI_BANKS = [
@@ -281,6 +282,14 @@ export async function POST(request: Request) {
       )
     }
 
+    void emitServerEvent({
+      event_name: 'bookkeeper.upload_start',
+      event_category: 'bookkeeper',
+      business_id: body.businessId,
+      user_id: user.id,
+      properties: { mode: hasPdf ? 'pdf' : 'csv', bank_name: body.bankName ?? null },
+    })
+
     const anthropic = new Anthropic()
     const statementModel = selectModel({ userId: user.id, task: 'statement_parsing' })
 
@@ -342,6 +351,14 @@ export async function POST(request: Request) {
 
     const result = parseClaudeResponse(responseText)
 
+    void emitServerEvent({
+      event_name: 'bookkeeper.upload_complete',
+      event_category: 'bookkeeper',
+      business_id: body.businessId,
+      user_id: user.id,
+      properties: { tx_count: result.transactions?.length ?? 0, mode: hasPdf ? 'pdf' : 'csv' },
+    })
+
     return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })
   } catch (error) {
     console.error('[API] parse-statement failed:', {
@@ -349,6 +366,15 @@ export async function POST(request: Request) {
       businessId,
       error: error instanceof Error ? error.message : 'Unknown error',
     })
+    if (businessId && userId) {
+      void emitServerEvent({
+        event_name: 'bookkeeper.upload_fail',
+        event_category: 'bookkeeper',
+        business_id: businessId,
+        user_id: userId,
+        properties: { reason: error instanceof Error ? error.message : 'unknown' },
+      })
+    }
     return NextResponse.json(
       { error: 'Statement parsing failed' },
       { status: 502 }

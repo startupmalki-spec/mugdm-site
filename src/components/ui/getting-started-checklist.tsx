@@ -85,7 +85,7 @@ export function GettingStartedChecklist() {
     init()
   }, [])
 
-  // Persist state changes
+  // Persist state changes + emit analytics for newly completed steps.
   const updateState = useCallback((updates: Partial<ChecklistState>) => {
     setState((prev) => {
       const next = { ...prev, ...updates }
@@ -94,12 +94,25 @@ export function GettingStartedChecklist() {
       } catch {
         // localStorage not available
       }
+      // Fire onboarding.step_complete for each task that transitioned to true.
+      for (const task of TASKS) {
+        const before = prev[task.key]
+        const after = next[task.key]
+        if (!before && after) {
+          void import('@/lib/analytics/event-collector').then(({ track }) =>
+            track('onboarding.step_complete', { properties: { step: task.key } })
+          )
+        }
+      }
       return next
     })
   }, [])
 
   const handleDismiss = useCallback(() => {
     updateState({ dismissed: true })
+    void import('@/lib/analytics/event-collector').then(({ track }) =>
+      track('onboarding.checklist_dismiss')
+    )
   }, [updateState])
 
   const completedCount = TASKS.filter((task) => state[task.key]).length

@@ -247,3 +247,80 @@ export function weeklyDigestEmail(
     html: baseLayout(content, options),
   }
 }
+
+/* ───────── Phase 1 Nudge Templates (PRD_ML §8.2) ───────── */
+
+export function nudgeOnboardingStall(options: TemplateOptions = {}): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
+  const content = isAr ? `
+    ${heading('خطوة واحدة وتكمّل التسجيل')}
+    ${paragraph('لاحظنا أنك بدأت إعداد حسابك ولم تكمله. أكمل الخطوات الأساسية لتستفيد من لوحة التحكم والتقارير والتنبيهات.')}
+    ${ctaButton('أكمل الإعداد', `https://mugdm.com/ar/onboarding`)}
+  ` : `
+    ${heading('Finish setting up your account')}
+    ${paragraph('You started onboarding but haven\'t finished yet. Complete the basics and we\'ll unlock your dashboard, reports, and reminders.')}
+    ${ctaButton('Resume setup', `https://mugdm.com/en/onboarding`)}
+  `
+  return {
+    subject: isAr ? 'أكمل إعداد مُقدِم' : 'Finish setting up Mugdm',
+    html: baseLayout(content, options),
+  }
+}
+
+export function nudgeComplianceBoost(
+  obligationName: string,
+  options: TemplateOptions = {}
+): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
+  const content = isAr ? `
+    ${heading('التزام متأخر يحتاج إلى متابعة')}
+    ${paragraph(`لديك التزام &laquo;${obligationName}&raquo; تجاوز موعد استحقاقه. أكمله اليوم أو أعد جدولته من التقويم.`)}
+    ${ctaButton('افتح التقويم', `https://mugdm.com/ar/calendar`)}
+  ` : `
+    ${heading('An overdue obligation needs your attention')}
+    ${paragraph(`Your &ldquo;${obligationName}&rdquo; obligation is past its due date. Close it out today or reschedule it from the calendar.`)}
+    ${ctaButton('Open calendar', `https://mugdm.com/en/calendar`)}
+  `
+  return {
+    subject: isAr ? `التزام متأخر: ${obligationName}` : `Overdue: ${obligationName}`,
+    html: baseLayout(content, options),
+  }
+}
+
+export function nudgeReengagement(options: TemplateOptions = {}): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
+  const content = isAr ? `
+    ${heading('افتقدناك في مُقدِم')}
+    ${paragraph('الأمور تتغيّر بسرعة في عالم الأعمال. ارجع وتحقّق من التزاماتك، مستنداتك، وحساباتك قبل أن تتراكم.')}
+    ${ctaButton('افتح لوحة التحكم', `https://mugdm.com/ar/dashboard`)}
+  ` : `
+    ${heading('We miss you at Mugdm')}
+    ${paragraph('A lot changes in business — come back and review your obligations, documents, and books before anything slips.')}
+    ${ctaButton('Open dashboard', `https://mugdm.com/en/dashboard`)}
+  `
+  return {
+    subject: isAr ? 'تسجيل دخول سريع إلى مُقدِم' : 'A quick check-in with Mugdm',
+    html: baseLayout(content, options),
+  }
+}
+
+export function nudgeChurnPrevention(options: TemplateOptions = {}): { subject: string; html: string } {
+  const locale = resolveLocale(options)
+  const isAr = locale === 'ar'
+  const content = isAr ? `
+    ${heading('هل تحتاج مساعدة؟')}
+    ${paragraph('نحن هنا لأي سؤال أو تعثّر. رد مباشرة على هذا البريد وسنساعدك شخصياً في إعداد حسابك أو حل أي مشكلة.')}
+    ${ctaButton('تواصل مع الدعم', `https://mugdm.com/ar/chat`)}
+  ` : `
+    ${heading('Can we help?')}
+    ${paragraph('If something isn\'t working or you\'re unsure how to get value from Mugdm, reply to this email and a human from our team will help you personally.')}
+    ${ctaButton('Contact support', `https://mugdm.com/en/chat`)}
+  `
+  return {
+    subject: isAr ? 'هل نستطيع مساعدتك في مُقدِم؟' : 'Can we help with Mugdm?',
+    html: baseLayout(content, options),
+  }
+}

@@ -6,6 +6,7 @@ import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { extractCRData } from '@/lib/agents/cr-agent'
 import { selectModel } from '@/lib/ai/model-router'
+import { computeCacheKey, getCached, setCached } from '@/lib/ai/response-cache'
 import { trackUsage } from '@/lib/ai/usage-tracker'
 import type { DocumentType } from '@/lib/supabase/types'
 
@@ -267,6 +268,20 @@ export async function POST(request: Request) {
     const anthropic = new Anthropic()
     const documentModel = selectModel({ userId: user.id, task: 'document_analysis' })
 
+    // Cache only works for base64 payloads (URL-based docs may change at their source).
+    const cachePayload = body.base64Data
+      ? `${body.mediaType ?? 'image/jpeg'}::${body.base64Data}`
+      : null
+    const cacheKey = cachePayload
+      ? computeCacheKey({ task: 'document_analysis', model: documentModel, payload: cachePayload })
+      : null
+    if (cacheKey) {
+      const cached = await getCached<ReturnType<typeof parseClaudeResponse>>(cacheKey)
+      if (cached) {
+        return NextResponse.json(cached.response, { headers: buildRateLimitHeaders(rateCheck) })
+      }
+    }
+
     // Detect PDF from mediaType OR from file URL extension
     const isPdf = body.mediaType === 'application/pdf' ||
       (body.fileUrl && /\.pdf(\?|$)/i.test(body.fileUrl))
@@ -327,8 +342,10 @@ export async function POST(request: Request) {
       ],
     })
 
-    trackUsage(supabase, user.id, documentModel, response.usage.input_tokens, response.usage.output_tokens)
-      .catch(() => {})
+    trackUsage(supabase, user.id, documentModel, response.usage.input_tokens, response.usage.output_tokens, {
+      taskType: 'document_analysis',
+      businessId: body.businessId,
+    }).catch(() => {})
 
     const responseText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
@@ -336,6 +353,17 @@ export async function POST(request: Request) {
       .join('')
 
     const result = parseClaudeResponse(responseText)
+
+    if (cacheKey && result.ai_confidence >= 0.5) {
+      setCached({
+        cacheKey,
+        task: 'document_analysis',
+        model: documentModel,
+        response: result,
+        tokensSavedIn: response.usage.input_tokens,
+        tokensSavedOut: response.usage.output_tokens,
+      }).catch(() => {})
+    }
 
     return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })
   } catch (error) {

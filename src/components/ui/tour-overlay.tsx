@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronRight, ChevronLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { track } from '@/lib/analytics/event-collector'
 
 const TOUR_COMPLETED_KEY = 'mugdm-tour-completed'
 
@@ -77,16 +78,23 @@ export function TourOverlay({ steps, ns, onComplete }: TourOverlayProps) {
   const completeTour = useCallback(() => {
     localStorage.setItem(TOUR_COMPLETED_KEY, 'true')
     setIsVisible(false)
+    track('onboarding.tour_complete', { properties: { ns, steps: steps.length } })
     onComplete?.()
-  }, [onComplete])
+  }, [onComplete, ns, steps.length])
 
   const handleNext = useCallback(() => {
     if (currentStep < steps.length - 1) {
+      track('onboarding.tour_step_view', { properties: { ns, step: currentStep + 1 } })
       setCurrentStep((s) => s + 1)
     } else {
       completeTour()
     }
-  }, [currentStep, steps.length, completeTour])
+  }, [currentStep, steps.length, completeTour, ns])
+
+  const handleDismiss = useCallback(() => {
+    track('onboarding.tour_dismiss', { properties: { ns, step: currentStep } })
+    completeTour()
+  }, [completeTour, ns, currentStep])
 
   const handlePrev = useCallback(() => {
     if (currentStep > 0) {
@@ -180,7 +188,7 @@ export function TourOverlay({ steps, ns, onComplete }: TourOverlayProps) {
             </span>
             <button
               type="button"
-              onClick={completeTour}
+              onClick={handleDismiss}
               className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground"
               aria-label={tCommon('close')}
             >
@@ -200,7 +208,7 @@ export function TourOverlay({ steps, ns, onComplete }: TourOverlayProps) {
           <div className="mt-4 flex items-center justify-between">
             <button
               type="button"
-              onClick={completeTour}
+              onClick={handleDismiss}
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
               {t('tourSkip')}

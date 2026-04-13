@@ -70,3 +70,7 @@ node_modules/
 7.png
 8.png
 .omc/
+
+# Test artifacts
+/playwright-report/
+/test-results/

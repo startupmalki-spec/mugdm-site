@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { buildRateLimitHeaders } from '@/lib/rate-limit-middleware'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { selectModel } from '@/lib/ai/model-router'
+import { computeCacheKey, getCached, setCached } from '@/lib/ai/response-cache'
 import { trackUsage } from '@/lib/ai/usage-tracker'
 import type { TransactionCategory } from '@/lib/supabase/types'
 
@@ -224,6 +225,17 @@ export async function POST(request: Request) {
 
     const isPdf = mediaType === 'application/pdf'
 
+    // Cache lookup: identical document+prompt+model returns a stored extraction.
+    const cacheKey = computeCacheKey({
+      task: 'receipt_analysis',
+      model: receiptModel,
+      payload: `${mediaType}::${body.base64Data}`,
+    })
+    const cached = await getCached<ReturnType<typeof parseClaudeResponse>>(cacheKey)
+    if (cached) {
+      return NextResponse.json(cached.response, { headers: buildRateLimitHeaders(rateCheck) })
+    }
+
     const documentBlock: Anthropic.ContentBlockParam = isPdf
       ? {
           type: 'document' as const,
@@ -256,8 +268,10 @@ export async function POST(request: Request) {
       ],
     })
 
-    trackUsage(supabase, user.id, receiptModel, response.usage.input_tokens, response.usage.output_tokens)
-      .catch(() => {})
+    trackUsage(supabase, user.id, receiptModel, response.usage.input_tokens, response.usage.output_tokens, {
+      taskType: 'receipt_analysis',
+      businessId: body.businessId,
+    }).catch(() => {})
 
     const responseText = response.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
@@ -271,6 +285,18 @@ export async function POST(request: Request) {
         { error: 'Could not extract data from the uploaded document. Please ensure the image or PDF is clear and readable.' },
         { status: 422 }
       )
+    }
+
+    // Fire-and-forget cache write — only cache confident, useful extractions.
+    if (result.ai_confidence >= 0.5) {
+      setCached({
+        cacheKey,
+        task: 'receipt_analysis',
+        model: receiptModel,
+        response: result,
+        tokensSavedIn: response.usage.input_tokens,
+        tokensSavedOut: response.usage.output_tokens,
+      }).catch(() => {})
     }
 
     return NextResponse.json(result, { headers: buildRateLimitHeaders(rateCheck) })

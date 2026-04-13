@@ -28,6 +28,7 @@ import SetPasswordModal from '@/components/auth/SetPasswordModal'
 import { ParticleNetwork, TwinklingStars, ShootingStar } from '@/lib/animations'
 import { BusinessProvider, useBusiness } from '@/lib/business-context'
 import { initPostHog, identifyUser } from '@/lib/analytics/posthog'
+import { trackPageView } from '@/lib/analytics/event-collector'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 
 interface NavItem {
@@ -192,6 +193,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       }
     })
   }, [])
+
+  // Fire page.view on every in-app route change (PRD_ML §9).
+  useEffect(() => {
+    trackPageView(pathname)
+  }, [pathname])
 
   const handleToggleMobileMenu = useCallback(() => {
     setIsMobileMenuOpen((prev) => !prev)

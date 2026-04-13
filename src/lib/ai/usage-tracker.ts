@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import type { Purpose, TaskType } from './model-router'
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
@@ -21,12 +22,28 @@ function estimateCost(model: string, tokensIn: number, tokensOut: number): numbe
   return Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000
 }
 
+interface TrackUsageOptions {
+  taskType?: TaskType
+  /**
+   * Caller intent. `intelligence_classification` calls are excluded from
+   * user-facing rate limits. Defaults to `'user'`.
+   */
+  purpose?: Purpose
+  /** Model-reported confidence (0-1), when available. */
+  confidence?: number | null
+  /** True if this call is a re-run after a low-confidence escalation. */
+  escalated?: boolean
+  /** Active business, when known — enables per-business analytics. */
+  businessId?: string | null
+}
+
 export async function trackUsage(
   supabase: SupabaseClient,
   userId: string,
   model: string,
   tokensIn: number,
-  tokensOut: number
+  tokensOut: number,
+  options: TrackUsageOptions = {}
 ): Promise<void> {
   const costEstimate = estimateCost(model, tokensIn, tokensOut)
 
@@ -36,6 +53,11 @@ export async function trackUsage(
     tokens_in: tokensIn,
     tokens_out: tokensOut,
     cost_estimate: costEstimate,
+    task_type: options.taskType ?? null,
+    purpose: options.purpose ?? 'user',
+    ai_confidence: options.confidence ?? null,
+    escalated: options.escalated ?? false,
+    business_id: options.businessId ?? null,
   } as never)
 
   if (error) {
@@ -44,6 +66,10 @@ export async function trackUsage(
   }
 }
 
+/**
+ * Daily user-facing call count. Intelligence-classification rows are excluded
+ * so background ML work never eats into the user's quota.
+ */
 export async function getUserUsageToday(
   supabase: SupabaseClient,
   userId: string
@@ -55,6 +81,7 @@ export async function getUserUsageToday(
     .from('ai_usage_log')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
+    .eq('purpose', 'user')
     .gte('created_at', todayStart.toISOString())
 
   if (error) {

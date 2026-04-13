@@ -3,6 +3,7 @@ import { differenceInDays } from 'date-fns'
 
 import { sendEmail } from '@/lib/email/resend'
 import { complianceReminderEmail, documentExpiryEmail } from '@/lib/email/templates'
+import { emitServerEvent } from '@/lib/analytics/server-events'
 import type { Obligation, Document } from '@/lib/supabase/types'
 
 // Use service role for cron (no user session)
@@ -117,6 +118,14 @@ export async function POST(request: Request) {
           .update({ [threshold.field]: true })
           .eq('id', row.id)
 
+        void emitServerEvent({
+          event_name: 'notification.email_sent',
+          event_category: 'notification',
+          business_id: row.business_id,
+          user_id: business.user_id,
+          properties: { kind: 'obligation_reminder', obligation_name: row.name, days_left: daysLeft },
+        })
+
         result.obligationsSent++
       }
     }
@@ -177,11 +186,48 @@ export async function POST(request: Request) {
           continue
         }
 
+        void emitServerEvent({
+          event_name: 'notification.email_sent',
+          event_category: 'notification',
+          business_id: row.business_id,
+          user_id: business.user_id,
+          properties: { kind: 'document_expiry', document_name: row.name, days_left: daysLeft },
+        })
+
         result.documentsSent++
       }
     }
   } catch (err) {
     result.errors.push(`Document processing error: ${err instanceof Error ? err.message : String(err)}`)
+  }
+
+  // Overdue obligation scan — emits compliance.obligation_overdue events used
+  // by the churn-prevention + compliance-boost nudge rules.
+  try {
+    const { data: overdueRows } = await supabase
+      .from('obligations')
+      .select('id, business_id, name, next_due_date, businesses!inner(user_id)')
+      .lt('next_due_date', todayStr)
+
+    for (const row of (overdueRows ?? []) as unknown as Array<
+      Obligation & { businesses: { user_id: string } }
+    >) {
+      void emitServerEvent({
+        event_name: 'compliance.obligation_overdue',
+        event_category: 'compliance',
+        business_id: row.business_id,
+        user_id: row.businesses.user_id,
+        properties: {
+          obligation_name: row.name,
+          due_date: row.next_due_date,
+          days_overdue: Math.max(1, differenceInDays(today, new Date(row.next_due_date))),
+        },
+      })
+    }
+  } catch (err) {
+    result.errors.push(
+      `Overdue scan error: ${err instanceof Error ? err.message : String(err)}`
+    )
   }
 
   const status = result.errors.length > 0 ? 207 : 200

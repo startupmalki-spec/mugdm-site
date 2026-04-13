@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
-import { buildBusinessContext } from '@/lib/chat/context-builder'
+import { buildBusinessContext, buildCompactContext } from '@/lib/chat/context-builder'
 import {
   addTransaction,
   addTeamMember,
@@ -14,6 +14,8 @@ import { importExcelData } from '@/lib/chat/excel-importer'
 import { enforceRateLimit } from '@/lib/rate-limit-middleware'
 import { selectModel } from '@/lib/ai/model-router'
 import { trackUsage } from '@/lib/ai/usage-tracker'
+import { emitServerEvent } from '@/lib/analytics/server-events'
+import { classifyAndRecordFrustration } from '@/lib/intelligence/frustration-classifier'
 
 interface ChatRequest {
   message: string
@@ -571,28 +573,54 @@ export async function POST(request: Request) {
       metadata: {},
     } as never)
 
-    // Load conversation history (last 20 messages for context)
-    const { data: history } = await (supabase
-      .from('chat_messages')
-      .select('role, content')
-      .eq('conversation_id', conversationId as string)
-      .order('created_at', { ascending: true })
-      .limit(20) as unknown as Promise<{ data: { role: string; content: string }[] | null }>)
+    void emitServerEvent({
+      event_name: 'chat.message_sent',
+      event_category: 'chat',
+      business_id: body.businessId,
+      user_id: user.id,
+      properties: { mode: body.mode ?? 'chat', conversation_id: conversationId },
+    })
 
-    // Build context
+    // Async frustration classification — runs on Haiku, never blocks the user.
+    classifyAndRecordFrustration({
+      businessId: body.businessId,
+      userMessage: body.message,
+      conversationId,
+    })
+
+    // Sliding window: full query returns up to 20 messages (newest) and we
+    // keep only the last 10 in the prompt — PRD_AI §4.2 token-reduction policy.
+    const { data: recentHistory } = await (supabase
+      .from('chat_messages')
+      .select('role, content, created_at')
+      .eq('conversation_id', conversationId as string)
+      .order('created_at', { ascending: false })
+      .limit(10) as unknown as Promise<{ data: { role: string; content: string; created_at: string }[] | null }>)
+    const history = [...(recentHistory ?? [])].reverse()
+
+    // Build context — advisory mode uses the full builder; simple chat uses the
+    // compact variant to cut input tokens ~70% (PRD_AI §4.2).
     const mode = body.mode === 'advisory' ? 'advisory' : 'chat'
-    const businessContext = await buildBusinessContext(body.businessId, supabase)
+    const businessContext = mode === 'advisory'
+      ? await buildBusinessContext(body.businessId, supabase)
+      : await buildCompactContext(body.businessId, supabase)
     const systemPrompt = buildSystemPrompt(businessContext, mode)
 
     // Build messages array from history
-    const messages: Anthropic.MessageParam[] = (history ?? []).map((msg) => ({
+    const messages: Anthropic.MessageParam[] = history.map((msg) => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
     }))
 
-    // Call Claude with streaming
+    // Call Claude with streaming. Advisory mode → Sonnet; simple chat → Sonnet
+    // by default (safer than Haiku for reasoning). Tool-result follow-up below
+    // uses Haiku per PRD_AI §4.3 (cost reduction on formatting-only calls).
     const anthropic = new Anthropic()
-    const chatModel = selectModel({ userId: user.id, task: 'chat' })
+    const chatModel = selectModel({
+      userId: user.id,
+      task: mode === 'advisory' ? 'chat_advisory' : 'chat',
+    })
+    const followUpModel = selectModel({ userId: user.id, task: 'chat_follow_up' })
 
     const encoder = new TextEncoder()
     const stream = new ReadableStream({
@@ -646,6 +674,13 @@ export async function POST(request: Request) {
                   id: currentToolId,
                   name: currentToolName,
                   input: parsedInput,
+                })
+                void emitServerEvent({
+                  event_name: 'chat.tool_used',
+                  event_category: 'chat',
+                  business_id: body.businessId,
+                  user_id: user.id,
+                  properties: { tool_name: currentToolName, conversation_id: conversationId },
                 })
                 currentToolName = ''
                 currentToolInput = ''
@@ -724,7 +759,7 @@ export async function POST(request: Request) {
                 }
 
                 const followUp = await anthropic.messages.create({
-                  model: chatModel,
+                  model: followUpModel,
                   max_tokens: 4096,
                   system: systemPrompt,
                   messages: [
@@ -778,7 +813,7 @@ export async function POST(request: Request) {
             // Follow-up call with tool results
             fullResponse = '' // Reset for the final response
             const followUp = await anthropic.messages.create({
-              model: chatModel,
+              model: followUpModel,
               max_tokens: 4096,
               system: systemPrompt,
               messages: [
@@ -815,6 +850,18 @@ export async function POST(request: Request) {
               metadata: {},
             } as never)
           }
+
+          void emitServerEvent({
+            event_name: 'chat.response_received',
+            event_category: 'chat',
+            business_id: body.businessId,
+            user_id: user.id,
+            properties: {
+              mode: body.mode ?? 'chat',
+              conversation_id: conversationId,
+              tool_count: toolUseBlocks.length,
+            },
+          })
 
           // Send conversation ID and done signal
           controller.enqueue(
@@ -893,6 +940,19 @@ async function handleActionConfirmation(
               metadata: {},
             } as never)
           }
+
+          try {
+            const { data: { user: u } } = await supabase.auth.getUser()
+            if (u) {
+              void emitServerEvent({
+                event_name: 'chat.tool_rejected',
+                event_category: 'chat',
+                business_id: businessId,
+                user_id: u.id,
+                properties: { tool_name: confirmAction.toolName, conversation_id: conversationId },
+              })
+            }
+          } catch { /* silent */ }
         } else {
           // User confirmed -- execute the action
           const result = await executeToolCall(
