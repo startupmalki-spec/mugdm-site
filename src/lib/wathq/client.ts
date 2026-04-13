@@ -251,11 +251,8 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
   const headers: Record<string, string> = {
-    apiKey,
+    Authorization: `Bearer ${apiKey}`,
     Accept: 'application/json',
-  }
-  if (apiSecret) {
-    headers.apiSecret = apiSecret
   }
 
   let res: Response
