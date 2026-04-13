@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { Reveal, StaggerContainer, StaggerItem, TiltCard, FloatingElements, FloatingShaddas, ParticleNetwork } from "@/lib/animations";
 import { Link } from "@/i18n/routing";
 import { PRICE_IDS } from "@/lib/stripe/price-ids";
@@ -14,7 +14,7 @@ const TIER_CONFIG = {
   biz: { monthlyPrice: 299, yearlyPrice: 2990, href: "#contact", highlighted: false, featureCount: 6 },
 } as const;
 
-async function handleCheckout(priceId: string) {
+async function handleCheckout(priceId: string, locale: string) {
   try {
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
@@ -26,13 +26,13 @@ async function handleCheckout(priceId: string) {
       window.location.href = data.url;
     }
   } catch {
-    // If not authenticated or error, redirect to signup
-    window.location.href = "/signup?plan=pro";
+    window.location.href = `/${locale}/signup?plan=pro`;
   }
 }
 
 export function Pricing() {
   const t = useTranslations("landing.pricing");
+  const locale = useLocale();
   const [annual, setAnnual] = useState(false);
 
   return (
@@ -153,7 +153,7 @@ export function Pricing() {
                       {key === "pro" ? (
                         <button
                           type="button"
-                          onClick={() => handleCheckout(annual ? PRICE_IDS.PRO_ANNUAL : PRICE_IDS.PRO_MONTHLY)}
+                          onClick={() => handleCheckout(annual ? PRICE_IDS.PRO_ANNUAL : PRICE_IDS.PRO_MONTHLY, locale)}
                           className="inline-flex items-center justify-center w-full h-11 rounded-lg text-sm font-medium transition-all duration-200 bg-primary text-primary-foreground shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
                         >
                           {cta}
