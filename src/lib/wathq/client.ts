@@ -232,9 +232,12 @@ export function isWathqConfigured(): boolean {
  * Throws `WathqError` on any failure (including NOT_CONFIGURED).
  */
 export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
-  // Wathq's official auth (per OpenAPI securityDefinitions): a single
-  // `apiKey` header carrying the Consumer Key. No secret, no OAuth.
-  const apiKey = process.env.WATHQ_API_KEY?.trim().replace(/^["']|["']$/g, '')
+  // Wathq's THIQAH gateway requires both Consumer Key and Consumer Secret
+  // as separate headers (apiKey + apiSecret).
+  const stripQuotes = (v?: string) =>
+    v?.trim().replace(/^["']|["']$/g, '') ?? ''
+  const apiKey = stripQuotes(process.env.WATHQ_API_KEY)
+  const apiSecret = stripQuotes(process.env.WATHQ_API_SECRET)
   if (!apiKey) {
     throw new WathqError('NOT_CONFIGURED', 'WATHQ_API_KEY is not set')
   }
@@ -250,6 +253,9 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   const headers: Record<string, string> = {
     apiKey,
     Accept: 'application/json',
+  }
+  if (apiSecret) {
+    headers.apiSecret = apiSecret
   }
 
   let res: Response
