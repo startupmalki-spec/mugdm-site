@@ -17,7 +17,8 @@
 
 import type { CRAgentData, CROwner } from '@/lib/agents/cr-agent'
 
-const WATHQ_BASE_URL = 'https://api.wathq.sa/v5/commercialregistration/info'
+const WATHQ_CR_URL = 'https://api.wathq.sa/v5/commercialregistration/info'
+const WATHQ_UNIFIED_URL = 'https://api.wathq.sa/v5/commercialregistration/unified'
 const REQUEST_TIMEOUT_MS = 10_000
 
 export type WathqErrorCode =
@@ -259,7 +260,10 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
 
   let res: Response
   try {
-    res = await fetch(`${WATHQ_BASE_URL}/${digits}`, {
+    // Wathq has two endpoints: regular CR (most numbers) and Unified Number
+    // (700-series). Pick by prefix so callers can paste either.
+    const baseUrl = digits.startsWith('7') ? WATHQ_UNIFIED_URL : WATHQ_CR_URL
+    res = await fetch(`${baseUrl}/${digits}`, {
       method: 'GET',
       headers,
       signal: controller.signal,
