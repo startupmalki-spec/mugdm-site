@@ -19,48 +19,6 @@ import type { CRAgentData, CROwner } from '@/lib/agents/cr-agent'
 
 const WATHQ_CR_URL = 'https://api.wathq.sa/v5/commercialregistration/info'
 const WATHQ_UNIFIED_URL = 'https://api.wathq.sa/v5/commercialregistration/unified'
-const WATHQ_TOKEN_URL = 'https://api.wathq.sa/oauth2/token'
-
-interface CachedToken {
-  token: string
-  expiresAt: number
-}
-let cachedToken: CachedToken | null = null
-
-async function getAccessToken(
-  apiKey: string,
-  apiSecret: string,
-  signal: AbortSignal
-): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) {
-    return cachedToken.token
-  }
-  const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
-  const res = await fetch(WATHQ_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${basic}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body: 'grant_type=client_credentials',
-    signal,
-  })
-  if (!res.ok) {
-    throw new WathqError(
-      'UNAUTHORIZED',
-      `Wathq token endpoint returned ${res.status}`,
-      res.status
-    )
-  }
-  const data = (await res.json()) as { access_token?: string; expires_in?: number }
-  if (!data.access_token) {
-    throw new WathqError('UNAUTHORIZED', 'Wathq token response missing access_token')
-  }
-  const ttlMs = (data.expires_in ?? 3600) * 1000
-  cachedToken = { token: data.access_token, expiresAt: Date.now() + ttlMs }
-  return data.access_token
-}
 const REQUEST_TIMEOUT_MS = 10_000
 
 export type WathqErrorCode =
@@ -274,8 +232,9 @@ export function isWathqConfigured(): boolean {
  * Throws `WathqError` on any failure (including NOT_CONFIGURED).
  */
 export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
-  const apiKey = process.env.WATHQ_API_KEY
-  const apiSecret = process.env.WATHQ_API_SECRET
+  // Wathq's official auth (per OpenAPI securityDefinitions): a single
+  // `apiKey` header carrying the Consumer Key. No secret, no OAuth.
+  const apiKey = process.env.WATHQ_API_KEY?.trim().replace(/^["']|["']$/g, '')
   if (!apiKey) {
     throw new WathqError('NOT_CONFIGURED', 'WATHQ_API_KEY is not set')
   }
@@ -288,21 +247,9 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-  // OAuth 2.0 client_credentials: exchange consumer key+secret for a
-  // bearer token, then call the lookup endpoint with it. Falls back to
-  // raw apiKey header when no secret is configured (legacy single-key).
   const headers: Record<string, string> = {
     apiKey,
     Accept: 'application/json',
-  }
-  if (apiSecret) {
-    try {
-      const token = await getAccessToken(apiKey, apiSecret, controller.signal)
-      headers.Authorization = `Bearer ${token}`
-    } catch (err) {
-      clearTimeout(timer)
-      throw err
-    }
   }
 
   let res: Response
