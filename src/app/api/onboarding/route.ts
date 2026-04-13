@@ -182,16 +182,42 @@ export async function POST(request: Request) {
       console.error('[API] onboarding failed:', { userId, businessId: business.id, step: 'team_member_insert', error: teamError.message })
     }
 
-    // Store CR document reference if provided
-    if (body.cr_document_url) {
+    // Store CR document reference if provided.
+    // Relocate from the temp upload path to the business-scoped path so RLS
+    // policies (which require business_id as the first folder segment) work.
+    let finalCrPath: string | null = body.cr_document_url ?? null
+    if (finalCrPath && !finalCrPath.startsWith('http')) {
+      const newPath = `${business.id}/cr/${finalCrPath.split('/').pop()}`
+      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+      const serviceClient = createServiceClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      )
+      const { error: moveError } = await serviceClient.storage
+        .from('documents')
+        .move(finalCrPath, newPath)
+      if (!moveError) {
+        finalCrPath = newPath
+      } else {
+        console.error('[API] onboarding: failed to relocate CR file:', moveError.message)
+      }
+    }
+
+    // Guard: never persist a signed URL as file_url — it expires.
+    if (finalCrPath && finalCrPath.startsWith('http')) {
+      console.warn('[API] onboarding: cr_document_url is a signed URL, not a storage path — skipping document insert')
+      finalCrPath = null
+    }
+
+    if (finalCrPath) {
       const { error: docError } = await (supabase.from('documents') as unknown as DocumentTableBuilder).insert({
         business_id: business.id,
         type: 'CR',
         name: 'Commercial Registration',
-        file_url: body.cr_document_url,
+        file_url: finalCrPath,
         file_size: null,
         mime_type: null,
-        expiry_date: null,
+        expiry_date: body.cr_expiry_date ?? null,
         is_current: true,
         extracted_data: null,
         ai_confidence: null,

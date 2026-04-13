@@ -162,6 +162,7 @@ export default function OnboardingPage() {
   const [wathqError, setWathqError] = useState<string | null>(null)
   const [showUploadFallback, setShowUploadFallback] = useState(false)
   const [crSource, setCrSource] = useState<'manual' | 'wathq_api' | 'document_ocr' | 'qr_webpage'>('manual')
+  const [crStoragePath, setCrStoragePath] = useState<string | null>(null)
   const [mainActivityCode, setMainActivityCode] = useState<string | null>(null)
   const [subActivities, setSubActivities] = useState<string[]>([])
   const [hasPhysicalLocation, setHasPhysicalLocation] = useState<boolean | null>(null)
@@ -370,8 +371,9 @@ export default function OnboardingPage() {
   /* ─── CR Upload Handler ─── */
 
   const handleCRUpload = useCallback(
-    async (url: string) => {
+    async (url: string, _file: File, storagePath?: string) => {
       setData((prev) => ({ ...prev, crDocumentUrl: url }))
+      if (storagePath) setCrStoragePath(storagePath)
       setIsAnalyzing(true)
       setAnalyzingMessage(t('crAgentReading'))
       setDirection(1)
@@ -522,7 +524,7 @@ export default function OnboardingPage() {
         contact_phone: data.phone || undefined,
         contact_email: data.email || undefined,
         contact_address: data.address || undefined,
-        cr_document_url: data.crDocumentUrl || undefined,
+        cr_document_url: crStoragePath || data.crDocumentUrl || undefined,
         cr_source: crSource,
         main_activity_code: mainActivityCode,
         sub_activities: subActivities,
@@ -556,7 +558,17 @@ export default function OnboardingPage() {
     } finally {
       setIsSubmitting(false)
     }
-  }, [data, router, tCommon])
+  }, [
+    data,
+    router,
+    tCommon,
+    crSource,
+    mainActivityCode,
+    subActivities,
+    hasPhysicalLocation,
+    confirmedTypes,
+    crStoragePath,
+  ])
 
   /* ─── Step 1: Upload CR ─── */
 

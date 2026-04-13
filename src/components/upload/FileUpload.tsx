@@ -25,7 +25,7 @@ const MAX_FILE_SIZE_DEFAULT = 10 * 1024 * 1024
 interface FileUploadProps {
   accept?: Record<string, string[]>
   maxSize?: number
-  onUpload: (url: string, file: File) => void
+  onUpload: (url: string, file: File, storagePath?: string) => void
   label?: string
   description?: string
   bucket: string
@@ -109,6 +109,7 @@ export function FileUpload({
 
       try {
         let signedUrl: string
+        let storagePath: string | undefined
 
         if (uploadViaApi) {
           // Server-side upload via API route (bypasses storage RLS)
@@ -129,6 +130,7 @@ export function FileUpload({
 
           const json = await res.json()
           signedUrl = json.url
+          storagePath = json.path
         } else {
           const supabase = createClient()
           const fileExt = file.name.split('.').pop()
@@ -157,12 +159,13 @@ export function FileUpload({
           }
 
           signedUrl = signedUrlData.signedUrl
+          storagePath = data.path
         }
 
         setProgress(100)
         setUploadState('complete')
         trackEvent('document_uploaded', { type: file.type, size: file.size, bucket })
-        onUpload(signedUrl, file)
+        onUpload(signedUrl, file, storagePath)
       } catch {
         clearInterval(progressInterval)
         setUploadState('error')
