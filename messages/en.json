@@ -128,6 +128,15 @@
       "MONTHLY": "Monthly",
       "QUARTERLY": "Quarterly",
       "ANNUAL": "Annual"
+    },
+    "obligationReview": {
+      "title": "Review your compliance obligations",
+      "subtitle": "We selected what we think applies. Uncheck anything that doesn't fit your business.",
+      "suggestedNote": "We think this applies — confirm?",
+      "baladyPhysicalNote": "Does your business have physical premises (office, shop, warehouse)?",
+      "requiredLabel": "Required",
+      "suggestedLabel": "Suggested",
+      "continue": "Confirm & continue"
     }
   },
   "profile": {

@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { generateObligations } from '@/lib/compliance/rules-engine'
-import { generateObligationsFromCR, toObligationSeeds } from '@/lib/compliance/obligation-generator'
+import {
+  generateObligationsFromCR,
+  generateObligationsWithApplicability,
+  toObligationSeeds,
+} from '@/lib/compliance/obligation-generator'
 import type { CRData } from '@/lib/compliance/obligation-generator'
-import type { Business, Database } from '@/lib/supabase/types'
+import type { Business, Database, ObligationType } from '@/lib/supabase/types'
 
 type Tables = Database['public']['Tables']
 
@@ -54,6 +58,15 @@ interface OnboardingPayload {
   contact_address?: string
   cr_document_url?: string
   cr_source?: 'manual' | 'wathq_api' | 'document_ocr' | 'qr_webpage'
+  main_activity_code?: string | null
+  sub_activities?: string[]
+  has_physical_location?: boolean | null
+  /**
+   * Obligation types the user confirmed in the review step. When provided,
+   * only these obligation types are persisted. When omitted, falls back to
+   * the full generated set (backwards-compatible).
+   */
+  confirmed_obligation_types?: ObligationType[]
 }
 
 // NOTE: Supabase typed client resolves .insert()/.update() params to `never`
@@ -198,13 +211,43 @@ export async function POST(request: Request) {
       activityType: business.activity_type,
       expiryDate: business.cr_expiry_date,
       city: business.city,
+      isicCode: body.main_activity_code ?? null,
+      subActivityCodes: body.sub_activities ?? [],
+      hasPhysicalLocation:
+        body.has_physical_location === undefined
+          ? null
+          : body.has_physical_location,
+      // capital is used as an annual-revenue proxy when no explicit value
+      // is provided — imperfect but it's what Wathq gives us.
+      annualRevenue: body.capital ?? null,
     }
-    const generated = generateObligationsFromCR(crData)
-    const obligationSeeds = toObligationSeeds(business.id, generated)
+
+    // Prefer the applicability-aware pipeline so we can honor the user's
+    // confirmation list. Fall back to the classic generator / rules-engine
+    // when nothing is returned.
+    const enriched = generateObligationsWithApplicability(crData)
+    const generated =
+      enriched.length > 0 ? enriched : generateObligationsFromCR(crData)
+
+    // Only persist obligations the user confirmed in the review step. When
+    // no list is supplied (legacy callers), persist the full set.
+    const confirmedSet = body.confirmed_obligation_types
+      ? new Set(body.confirmed_obligation_types)
+      : null
+    const filtered = confirmedSet
+      ? generated.filter((o) => confirmedSet.has(o.type))
+      : generated
+
+    const obligationSeeds = toObligationSeeds(business.id, filtered)
 
     // Fall back to the basic generator if CR-based generation returned nothing
-    // (e.g. missing CR expiry date could reduce output)
-    const seeds = obligationSeeds.length > 0 ? obligationSeeds : generateObligations(business)
+    // AND no confirmation list was supplied.
+    const seeds =
+      obligationSeeds.length > 0
+        ? obligationSeeds
+        : confirmedSet
+          ? []
+          : generateObligations(business)
 
     if (seeds.length > 0) {
       await (supabase.from('obligations') as unknown as ObligationTableBuilder).insert(seeds)

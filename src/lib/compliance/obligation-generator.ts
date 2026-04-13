@@ -9,6 +9,11 @@ import {
 import { getNextOccurrence, buildSeed } from '@/lib/compliance/rules-engine'
 import type { ObligationFrequency, ObligationType } from '@/lib/supabase/types'
 import type { ObligationSeed } from '@/lib/compliance/rules-engine'
+import {
+  classifyByIsic,
+  type Applicability,
+  type ApplicabilityResult,
+} from '@/lib/compliance/isic-rules'
 
 /* ───────── Public interface ───────── */
 
@@ -18,6 +23,20 @@ export interface CRData {
   activityType: string | null
   expiryDate: string | null
   city: string | null
+  /** ISIC main activity code from Wathq (e.g. "6201"). */
+  isicCode?: string | null
+  /** ISIC sub-activity codes from Wathq. */
+  subActivityCodes?: string[]
+  /**
+   * Whether the business has physical premises. `null` means unknown (we will
+   * default to conservative behavior for location-dependent obligations).
+   */
+  hasPhysicalLocation?: boolean | null
+  /**
+   * Annual revenue in SAR. When unknown, Wathq `capital` is used as a proxy —
+   * callers pass `capital` here if no revenue data is available.
+   */
+  annualRevenue?: number | null
 }
 
 export interface GeneratedObligation {
@@ -26,6 +45,10 @@ export interface GeneratedObligation {
   description: string
   frequency: ObligationFrequency
   next_due_date: string
+  /** Optional — present when generated via the applicability-aware pipeline. */
+  applicability?: Applicability
+  /** Optional bilingual rationale for SUGGESTED/NOT_APPLICABLE labels. */
+  reason?: { ar: string; en: string }
 }
 
 /* ───────── Activity-type matchers ───────── */
@@ -233,6 +256,165 @@ export function generateObligationsFromCR(crData: CRData): GeneratedObligation[]
   }
 
   return obligations
+}
+
+/* ───────── Applicability-aware generator ───────── */
+
+/** VAT threshold (SAR): above this is mandatory monthly filing. */
+const VAT_MONTHLY_THRESHOLD = 40_000_000
+/** VAT registration threshold (SAR). Below this VAT is optional — we skip it. */
+const VAT_REGISTRATION_THRESHOLD = 375_000
+
+function pickVatFrequency(
+  annualRevenue: number | null | undefined
+): { frequency: ObligationFrequency; skip: boolean } {
+  if (annualRevenue === null || annualRevenue === undefined) {
+    return { frequency: 'QUARTERLY', skip: false }
+  }
+  if (annualRevenue < VAT_REGISTRATION_THRESHOLD) {
+    return { frequency: 'QUARTERLY', skip: true }
+  }
+  if (annualRevenue > VAT_MONTHLY_THRESHOLD) {
+    return { frequency: 'MONTHLY', skip: false }
+  }
+  return { frequency: 'QUARTERLY', skip: false }
+}
+
+/**
+ * Generate obligations with per-item applicability labels using ISIC rules
+ * when available, falling back to free-text activity matching otherwise.
+ *
+ * Returned obligations all carry `applicability` + `reason`. Items classified
+ * as NOT_APPLICABLE are filtered out. SUGGESTED items are returned alongside
+ * REQUIRED ones so the UI can render a review step.
+ *
+ * Does NOT persist anything.
+ */
+export function generateObligationsWithApplicability(
+  crData: CRData
+): GeneratedObligation[] {
+  const hasIsic = Boolean(
+    (crData.isicCode && crData.isicCode.trim()) ||
+      (crData.subActivityCodes && crData.subActivityCodes.length > 0)
+  )
+
+  // Build a lookup map: ObligationType → ApplicabilityResult
+  const applicabilityMap = new Map<ObligationType, ApplicabilityResult>()
+  if (hasIsic) {
+    const results = classifyByIsic(
+      crData.isicCode ?? null,
+      crData.subActivityCodes ?? []
+    )
+    for (const r of results) applicabilityMap.set(r.type, r)
+  }
+
+  // Base set of obligations from the classic generator (activity-keyword based).
+  const base = generateObligationsFromCR(crData)
+
+  // VAT frequency adjustment (per revenue / capital proxy).
+  // Note: `capital` is used as a proxy when no explicit annual revenue is
+  // provided — it is imperfect but matches what Wathq gives us.
+  const { frequency: vatFrequency, skip: skipVat } = pickVatFrequency(
+    crData.annualRevenue
+  )
+
+  const enriched: GeneratedObligation[] = []
+
+  for (const ob of base) {
+    // VAT skipped under registration threshold
+    if (ob.type === 'ZATCA_VAT' && skipVat) continue
+
+    // Apply ISIC-derived applicability when we have it
+    const fromIsic = applicabilityMap.get(ob.type)
+    let applicability: Applicability = 'REQUIRED'
+    let reason: { ar: string; en: string } | undefined
+
+    if (fromIsic) {
+      applicability = fromIsic.applicability
+      reason = fromIsic.reason
+    } else if (!hasIsic) {
+      // No ISIC — keyword matching already picked the right base set. Universal
+      // items stay REQUIRED, business-type items marked SUGGESTED.
+      if (
+        ob.type === 'CR_CONFIRMATION' ||
+        ob.type === 'GOSI' ||
+        ob.type === 'ZATCA_VAT' ||
+        ob.type === 'CHAMBER' ||
+        ob.type === 'ZAKAT'
+      ) {
+        applicability = 'REQUIRED'
+      } else {
+        applicability = 'SUGGESTED'
+        reason = {
+          en: 'We think this may apply based on your activity description — please confirm.',
+          ar: 'نعتقد أن هذا قد ينطبق بناءً على وصف نشاطك — يرجى التأكيد.',
+        }
+      }
+    }
+
+    // Drop items explicitly NOT_APPLICABLE (e.g. Balady for IT shops).
+    if (applicability === 'NOT_APPLICABLE') continue
+
+    // Physical-location downgrade: Balady REQUIRED via ISIC but user says no
+    // premises → downgrade to SUGGESTED with a note.
+    let finalReason = reason
+    if (
+      ob.type === 'BALADY' &&
+      applicability === 'REQUIRED' &&
+      crData.hasPhysicalLocation === false
+    ) {
+      applicability = 'SUGGESTED'
+      finalReason = {
+        en: 'Confirm if you have physical premises.',
+        ar: 'يرجى التأكيد إذا كان لديك مقر فعلي.',
+      }
+    }
+
+    enriched.push({
+      ...ob,
+      frequency: ob.type === 'ZATCA_VAT' ? vatFrequency : ob.frequency,
+      applicability,
+      reason: finalReason,
+    })
+  }
+
+  // Also emit SUGGESTED items that weren't in the base set (e.g. MISA/QIWA)
+  // when we have ISIC data — so the review step can surface them. Use a
+  // sensible default due date (Jan 1 next year).
+  if (hasIsic) {
+    const present = new Set(enriched.map((o) => o.type))
+    const today = startOfDay(new Date())
+    const defaultDue = new Date(today.getFullYear() + 1, 0, 1)
+      .toISOString()
+      .split('T')[0]
+
+    for (const r of applicabilityMap.values()) {
+      if (present.has(r.type)) continue
+      if (r.applicability !== 'SUGGESTED') continue
+      // Skip CUSTOM / universal types we've already handled
+      if (
+        r.type === 'CR_CONFIRMATION' ||
+        r.type === 'GOSI' ||
+        r.type === 'ZATCA_VAT' ||
+        r.type === 'CHAMBER' ||
+        r.type === 'ZAKAT' ||
+        r.type === 'CUSTOM'
+      )
+        continue
+
+      enriched.push({
+        type: r.type,
+        name: r.type,
+        description: r.reason.en,
+        frequency: 'ANNUAL',
+        next_due_date: defaultDue,
+        applicability: 'SUGGESTED',
+        reason: r.reason,
+      })
+    }
+  }
+
+  return enriched
 }
 
 /**

@@ -128,6 +128,15 @@
       "MONTHLY": "شهري",
       "QUARTERLY": "ربع سنوي",
       "ANNUAL": "سنوي"
+    },
+    "obligationReview": {
+      "title": "راجع التزامات الامتثال",
+      "subtitle": "اخترنا لك ما نعتقد أنه ينطبق على نشاطك. ألغِ تحديد أي بند لا يناسبك.",
+      "suggestedNote": "نعتقد أن هذا ينطبق — يرجى التأكيد.",
+      "baladyPhysicalNote": "هل لدى منشأتك مقر فعلي (مكتب، محل، مستودع)؟",
+      "requiredLabel": "إلزامي",
+      "suggestedLabel": "مقترح",
+      "continue": "تأكيد ومتابعة"
     }
   },
   "profile": {
