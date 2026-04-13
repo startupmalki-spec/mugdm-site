@@ -91,9 +91,9 @@ describe('getNextOccurrence', () => {
   })
 
   it('returns the base date as-is for ONE_TIME', () => {
-    const base = new Date('2025-01-01')
+    const base = new Date(2025, 0, 1) // local-TZ Jan 1 2025
     const next = getNextOccurrence('ONE_TIME', base)
-    expect(next.toISOString().slice(0, 10)).toBe('2025-01-01')
+    expect(next.getTime()).toBe(base.getTime())
   })
 })
 

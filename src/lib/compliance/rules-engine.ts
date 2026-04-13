@@ -99,6 +99,13 @@ function getNextOccurrence(frequency: ObligationFrequency, baseDate: Date): Date
   }
 }
 
+function formatLocalYMD(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function buildSeed(
   businessId: string,
   type: ObligationType,
@@ -113,7 +120,7 @@ function buildSeed(
     name,
     description,
     frequency,
-    next_due_date: nextDueDate.toISOString().split('T')[0],
+    next_due_date: formatLocalYMD(nextDueDate),
     last_completed_at: null,
     reminder_30d_sent: false,
     reminder_15d_sent: false,
