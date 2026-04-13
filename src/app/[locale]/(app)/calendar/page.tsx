@@ -56,6 +56,7 @@ import {
   getNextRecurrence,
 } from '@/lib/compliance/rules-engine'
 import { estimatePenalty } from '@/lib/compliance/penalties'
+import { onObligationCompleted } from '@/lib/cross-module/events'
 import { createClient } from '@/lib/supabase/client'
 
 import type { Obligation, ObligationType, ObligationFrequency, TeamMember } from '@/lib/supabase/types'
@@ -933,9 +934,20 @@ export default function CalendarPage() {
 
     await supabase.from('obligations').update(updates as never).eq('id', id)
 
+    // Cross-module: check for proof documents
+    if (businessId && ob.type) {
+      onObligationCompleted(supabase, businessId, id, ob.type).then((result) => {
+        if (result.needsProof) {
+          showToast(t('proofNeeded', { type: ob.name }), 'info')
+        } else if (result.proofDocumentId) {
+          showToast(t('proofOnFile'), 'success')
+        }
+      }).catch(() => {})
+    }
+
     setToast({ message: t('obligationSaved'), undoId: id })
     setTimeout(() => setToast(null), 5000)
-  }, [obligations, t])
+  }, [obligations, t, businessId, showToast])
 
   const handleUndo = useCallback(async (id: string) => {
     if (!undoBackup || undoBackup.id !== id) return

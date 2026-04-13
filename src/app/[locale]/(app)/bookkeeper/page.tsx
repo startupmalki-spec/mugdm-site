@@ -104,6 +104,7 @@ import { TransactionForm } from '@/components/bookkeeper/TransactionForm'
 import { ReceiptCapture } from '@/components/bookkeeper/ReceiptCapture'
 import { PossibleDuplicates } from '@/components/bookkeeper/PossibleDuplicates'
 import { AgentInsights } from '@/components/bookkeeper/AgentInsights'
+import { onTransactionsChanged } from '@/lib/cross-module/events'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToastContainer, useToast } from '@/components/ui/toast'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
@@ -589,6 +590,7 @@ export default function BookkeeperPage() {
 
     if (newTx) {
       setTransactions((prev) => [newTx, ...prev])
+      onTransactionsChanged(supabase, businessId).catch(() => {})
     }
   }, [businessId])
 
@@ -623,6 +625,7 @@ export default function BookkeeperPage() {
 
     if (newTx) {
       setTransactions((prev) => [newTx, ...prev])
+      onTransactionsChanged(supabase, businessId).catch(() => {})
     }
   }, [businessId])
 
