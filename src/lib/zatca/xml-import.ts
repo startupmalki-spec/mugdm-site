@@ -155,7 +155,7 @@ export function parseImportedInvoice(xml: string): ParsedImportedInvoice {
   const uuid = textOf(inv.UUID)
   const issueDate = textOf(inv.IssueDate) ?? ''
   const profileId = textOf(inv.ProfileID)
-  const currency = textOf(inv.DocumentCurrencyCode) ?? 'SAR'
+  const _currency = textOf(inv.DocumentCurrencyCode) ?? 'SAR'
   const notes = textOf(inv.Note)
 
   // Infer invoice_type from ProfileID (spec):

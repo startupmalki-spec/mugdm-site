@@ -19,15 +19,15 @@ interface QrCodeDisplayProps {
   size?: number
 }
 
+type QrState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ok'; dataUrl: string }
+
 export function QrCodeDisplay({ invoiceId, size = 256 }: QrCodeDisplayProps) {
   const t = useTranslations('invoicing.invoices.detail.qr')
-  const [dataUrl, setDataUrl] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
+  const [state, setState] = useState<QrState>({ status: 'loading' })
   useEffect(() => {
     let cancelled = false
-    setDataUrl(null)
-    setError(null)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on invoiceId change before fetch
+    setState({ status: 'loading' })
     fetch(`/api/invoicing/invoices/${invoiceId}/qr`)
       .then(async (res) => {
         const body = (await res.json().catch(() => ({}))) as {
@@ -36,13 +36,13 @@ export function QrCodeDisplay({ invoiceId, size = 256 }: QrCodeDisplayProps) {
         }
         if (cancelled) return
         if (!res.ok || !body.dataUrl) {
-          setError(body.error?.en ?? t('error'))
+          setState({ status: 'error', message: body.error?.en ?? t('error') })
           return
         }
-        setDataUrl(body.dataUrl)
+        setState({ status: 'ok', dataUrl: body.dataUrl })
       })
       .catch(() => {
-        if (!cancelled) setError(t('error'))
+        if (!cancelled) setState({ status: 'error', message: t('error') })
       })
     return () => {
       cancelled = true
@@ -56,17 +56,17 @@ export function QrCodeDisplay({ invoiceId, size = 256 }: QrCodeDisplayProps) {
         className="flex items-center justify-center bg-white rounded-md"
         style={{ width: size, height: size }}
       >
-        {dataUrl ? (
+        {state.status === 'ok' ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={dataUrl}
+            src={state.dataUrl}
             alt={t('alt')}
             width={size}
             height={size}
             className="w-full h-full"
           />
-        ) : error ? (
-          <span className="text-xs text-destructive p-2 text-center">{error}</span>
+        ) : state.status === 'error' ? (
+          <span className="text-xs text-destructive p-2 text-center">{state.message}</span>
         ) : (
           <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         )}

@@ -107,11 +107,10 @@ function matchesAnyPattern(text: string, patterns: string[]): boolean {
  * 2. Saudi-specific rule-based patterns
  * 3. Default fallback
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function categorizeTransaction(
   description: string,
   vendor: string,
-  _amount?: number
+  _amount?: number // reserved for amount-based categorization rules
 ): CategorizationResult {
   // 1. Check learned corrections first
   if (vendor) {
