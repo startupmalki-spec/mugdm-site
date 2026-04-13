@@ -231,6 +231,9 @@ export async function POST(request: Request) {
         fileUrl: body.fileUrl,
         base64Data: body.base64Data,
         mediaType: body.mediaType,
+        // When the caller already knows the CR number (e.g. a chat-driven
+        // verification flow), Wathq becomes the authoritative first source.
+        crNumber: (body as { crNumber?: string }).crNumber,
       })
 
       // Map CR agent result to the standard response shape

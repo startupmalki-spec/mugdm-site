@@ -53,6 +53,7 @@ interface OnboardingPayload {
   contact_email?: string
   contact_address?: string
   cr_document_url?: string
+  cr_source?: 'manual' | 'wathq_api' | 'document_ocr' | 'qr_webpage'
 }
 
 // NOTE: Supabase typed client resolves .insert()/.update() params to `never`
@@ -132,6 +133,10 @@ export async function POST(request: Request) {
         letterhead_config: null,
         data_sharing_consent: false,
         profile_history: [],
+        cr_source: body.cr_source ?? 'manual',
+        wathq_last_checked_at: null,
+        wathq_cr_status: null,
+        vat_number: null,
       })
       .select()
       .single()

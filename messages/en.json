@@ -68,6 +68,12 @@
     "subtitle": "Complete these steps to get the most out of Mugdm",
     "step1Title": "Upload Commercial Registration",
     "step1Description": "Upload your CR document so we can auto-fill your business details",
+    "wathqEntryTitle": "Enter your CR number",
+    "wathqEntryDescription": "We'll fetch your verified business data from the Ministry of Commerce in seconds.",
+    "wathqLookupButton": "Look up my business",
+    "wathqLookingUp": "Verifying with the Ministry of Commerce…",
+    "wathqOrUpload": "Don't have your CR number? Upload the document instead.",
+    "wathqLookupFailed": "We couldn't fetch this CR. You can upload the document instead.",
     "step2Title": "Confirm Business Profile",
     "step2Description": "Verify and complete the extracted information",
     "step3Title": "Contact Information",
@@ -767,11 +773,18 @@
       "title": "See Mugdm",
       "titleGradient": "in action",
       "subtitle": "One dashboard, one vault, one AI assistant — everything your business needs.",
-      "tabs": { "dashboard": "Dashboard", "vault": "Document Vault", "chat": "AI Chat" },
+      "tabs": {
+        "dashboard": "Dashboard",
+        "vault": "Document Vault",
+        "chat": "AI Chat"
+      },
       "dashboard": {
-        "documents": "Documents", "documentsValue": "24",
-        "dueSoon": "Due Soon", "dueSoonValue": "3",
-        "netPosition": "Net Position", "netPositionValue": "SAR 42K",
+        "documents": "Documents",
+        "documentsValue": "24",
+        "dueSoon": "Due Soon",
+        "dueSoonValue": "3",
+        "netPosition": "Net Position",
+        "netPositionValue": "SAR 42K",
         "complianceScore": "Compliance Score",
         "recentActivity": "Recent Activity",
         "activity1": "CR Renewal uploaded",
@@ -779,10 +792,15 @@
         "activity3": "VAT Return due in 5 days"
       },
       "vault": {
-        "cr": "Commercial Registration", "vat": "VAT Certificate",
-        "gosi": "GOSI Certificate", "chamber": "Chamber Membership",
-        "valid": "valid", "expiring": "expiring", "expired": "expired",
-        "documentsLabel": "Documents", "totalLabel": "total",
+        "cr": "Commercial Registration",
+        "vat": "VAT Certificate",
+        "gosi": "GOSI Certificate",
+        "chamber": "Chamber Membership",
+        "valid": "valid",
+        "expiring": "expiring",
+        "expired": "expired",
+        "documentsLabel": "Documents",
+        "totalLabel": "total",
         "expiresLabel": "Expires"
       },
       "chat": {
@@ -798,9 +816,21 @@
       "title": "Trusted by",
       "titleGradient": "real businesses",
       "subtitle": "See what Saudi entrepreneurs are saying about Mugdm.",
-      "ahmed": { "name": "Ahmed S.", "role": "Restaurant Owner", "quote": "Mugdm replaced my Excel spreadsheets and my accountant's monthly visits. I save 10+ hours a week." },
-      "sarah": { "name": "Sarah M.", "role": "Trading Company", "quote": "The AI bookkeeper caught a duplicate GOSI payment I would have missed. Paid for itself in the first month." },
-      "khalid": { "name": "Khalid R.", "role": "Construction", "quote": "Finally, one place for all my compliance documents. No more WhatsApp reminders to myself." },
+      "ahmed": {
+        "name": "Ahmed S.",
+        "role": "Restaurant Owner",
+        "quote": "Mugdm replaced my Excel spreadsheets and my accountant's monthly visits. I save 10+ hours a week."
+      },
+      "sarah": {
+        "name": "Sarah M.",
+        "role": "Trading Company",
+        "quote": "The AI bookkeeper caught a duplicate GOSI payment I would have missed. Paid for itself in the first month."
+      },
+      "khalid": {
+        "name": "Khalid R.",
+        "role": "Construction",
+        "quote": "Finally, one place for all my compliance documents. No more WhatsApp reminders to myself."
+      },
       "statBusinesses": "Businesses",
       "statDocuments": "Documents Processed",
       "statDeadlines": "In Deadlines Tracked"
@@ -820,17 +850,33 @@
       "freeName": "Free",
       "freeDesc": "Get started with the essentials. No credit card required.",
       "freeCta": "Start Free",
-      "freeF1": "1 business", "freeF2": "50 AI calls / day", "freeF3": "Document Vault (10 docs)", "freeF4": "Compliance Calendar", "freeF5": "Basic Bookkeeper",
+      "freeF1": "1 business",
+      "freeF2": "50 AI calls / day",
+      "freeF3": "Document Vault (10 docs)",
+      "freeF4": "Compliance Calendar",
+      "freeF5": "Basic Bookkeeper",
       "proName": "Pro",
       "proBadge": "Most Popular",
       "proDesc": "Everything you need to run your business like a pro.",
       "proCta": "Start Pro Trial",
       "proTrial": "14-day free trial",
-      "proF1": "3 businesses", "proF2": "Unlimited AI calls", "proF3": "Unlimited documents", "proF4": "Full Compliance Calendar with reminders", "proF5": "AI Bookkeeper with VAT reports", "proF6": "Team Management", "proF7": "Email notifications", "proF8": "Priority support",
+      "proF1": "3 businesses",
+      "proF2": "Unlimited AI calls",
+      "proF3": "Unlimited documents",
+      "proF4": "Full Compliance Calendar with reminders",
+      "proF5": "AI Bookkeeper with VAT reports",
+      "proF6": "Team Management",
+      "proF7": "Email notifications",
+      "proF8": "Priority support",
       "bizName": "Business",
       "bizDesc": "For teams that need full power and dedicated support.",
       "bizCta": "Contact Sales",
-      "bizF1": "Unlimited businesses", "bizF2": "Everything in Pro", "bizF3": "WhatsApp notifications", "bizF4": "API access", "bizF5": "Dedicated support", "bizF6": "Custom integrations"
+      "bizF1": "Unlimited businesses",
+      "bizF2": "Everything in Pro",
+      "bizF3": "WhatsApp notifications",
+      "bizF4": "API access",
+      "bizF5": "Dedicated support",
+      "bizF6": "Custom integrations"
     }
   },
   "settings": {
@@ -1006,5 +1052,488 @@
     "saudizationNote": "Saudi Arabia requires minimum Saudization ratios by industry",
     "completeOnboarding": "Complete Onboarding",
     "completeOnboardingDesc": "Set up your business profile to unlock all features"
+  },
+  "invoicing": {
+    "import": {
+      "title": "Import Invoice XML",
+      "subtitle": "Upload a ZATCA UBL 2.1 invoice XML to preview and save as a draft.",
+      "breadcrumbInvoicing": "Invoicing",
+      "dropzoneTitle": "Click to choose or drop an XML file",
+      "dropzoneHint": "UBL 2.1 · Max 5 MB",
+      "parsing": "Parsing invoice...",
+      "validationErrorsTitle": "Validation issues",
+      "emptyState": "No invoice loaded yet. Upload a file to preview.",
+      "invoiceNumber": "Invoice number",
+      "issueDate": "Issue date",
+      "invoiceType": "Invoice type",
+      "sellerVat": "Seller VAT",
+      "buyerVat": "Buyer VAT",
+      "uuid": "UUID",
+      "subtotal": "Subtotal",
+      "totalVat": "Total VAT",
+      "totalAmount": "Total amount",
+      "description": "Description",
+      "quantity": "Qty",
+      "unitPrice": "Unit price",
+      "vatRate": "VAT %",
+      "vatAmount": "VAT",
+      "lineTotal": "Line total",
+      "noLines": "No line items were found.",
+      "readyToSave": "Invoice passed validation and is ready to save as a draft.",
+      "fixErrorsHint": "Fix the validation issues above before saving.",
+      "savedHint": "This invoice has already been saved.",
+      "saveDraft": "Save to drafts",
+      "saved": "Saved",
+      "savedSuccess": "Invoice saved as draft. ID:",
+      "invoiceTypes": {
+        "standard": "Standard (B2B)",
+        "simplified": "Simplified (B2C)"
+      }
+    },
+    "customers": {
+      "title": "Customers",
+      "subtitle": "Manage the customers you bill on invoices.",
+      "addCustomer": "Add customer",
+      "searchPlaceholder": "Search by name, VAT, or CR number",
+      "empty": "No customers yet. Add your first one to get started.",
+      "noResults": "No customers match your search.",
+      "noBusiness": "Select a business to manage customers.",
+      "backToList": "Back to customers",
+      "newTitle": "Add customer",
+      "newSubtitle": "Create a customer to use on your invoices.",
+      "editTitle": "Edit customer",
+      "editSubtitle": "Update the customer's billing details.",
+      "wathqLookup": "Lookup via Wathq",
+      "wathqLooking": "Looking up…",
+      "wathqStub": "Wathq integration coming soon.",
+      "wathqErrors": {
+        "NOT_CONFIGURED": "Wathq lookup is not available right now.",
+        "INVALID_CR": "CR number must be exactly 10 digits.",
+        "NOT_FOUND": "No CR found with this number at the Ministry of Commerce.",
+        "UNAUTHORIZED": "Wathq rejected our credentials. Please contact support.",
+        "RATE_LIMITED": "Daily Wathq lookup limit reached. Please try again tomorrow.",
+        "UPSTREAM_ERROR": "Wathq is having trouble responding. Please try again shortly.",
+        "TIMEOUT": "Wathq took too long to respond. Please try again.",
+        "NETWORK_ERROR": "Network error contacting Wathq."
+      },
+      "fields": {
+        "name": "Name (Arabic)",
+        "nameEn": "Name (English)",
+        "vat": "VAT number",
+        "vatHint": "15 digits, starts and ends with 3.",
+        "cr": "Commercial Registration",
+        "crHint": "10 digits as shown on the CR certificate.",
+        "address": "Address",
+        "city": "City",
+        "phone": "Phone",
+        "email": "Email"
+      },
+      "cols": {
+        "name": "Name",
+        "vat": "VAT",
+        "cr": "CR",
+        "city": "City",
+        "phone": "Phone",
+        "actions": "Actions"
+      },
+      "actions": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "edit": "Edit",
+        "delete": "Delete",
+        "confirmDelete": "Delete customer"
+      },
+      "deleteConfirm": {
+        "title": "Delete this customer?",
+        "body": "This action cannot be undone. Past invoices that reference this customer will keep their snapshot data."
+      },
+      "pagination": {
+        "summary": "Page {page} of {totalPages} · {total} customers",
+        "prev": "Previous",
+        "next": "Next"
+      },
+      "errors": {
+        "loadFailed": "Failed to load customers.",
+        "saveFailed": "Failed to save the customer.",
+        "deleteFailed": "Failed to delete the customer.",
+        "nameRequired": "Customer name is required.",
+        "invalidVat": "VAT number must be 15 digits starting and ending with 3.",
+        "invalidCr": "CR number must be exactly 10 digits."
+      }
+    },
+    "invoices": {
+      "newTitle": "New invoice",
+      "newSubtitle": "Create a standard B2B invoice and submit it to ZATCA for clearance.",
+      "backToInvoicing": "Back to invoicing",
+      "sections": {
+        "customer": "Customer",
+        "metadata": "Invoice details",
+        "lineItems": "Line items"
+      },
+      "customer": {
+        "searchPlaceholder": "Search customers by name, VAT, or CR",
+        "loading": "Loading customers…",
+        "empty": "No customers match your search.",
+        "selected": "Selected"
+      },
+      "fields": {
+        "issueDate": "Issue date",
+        "supplyDate": "Supply date",
+        "dueDate": "Due date",
+        "paymentTerms": "Payment terms",
+        "paymentTermsPlaceholder": "e.g. Net 30",
+        "notes": "Notes"
+      },
+      "lineItems": {
+        "descriptionAr": "Description (Arabic)",
+        "descriptionEn": "Description (English)",
+        "descriptionArPlaceholder": "الوصف",
+        "descriptionEnPlaceholder": "Description",
+        "qty": "Qty",
+        "unitPrice": "Unit price",
+        "discount": "Discount",
+        "vatRate": "VAT %",
+        "lineTotal": "Line total",
+        "addLine": "Add line",
+        "remove": "Remove",
+        "duplicate": "Duplicate"
+      },
+      "totals": {
+        "title": "Totals",
+        "subtotal": "Subtotal",
+        "vat": "VAT",
+        "grandTotal": "Total"
+      },
+      "preview": {
+        "title": "Invoice preview",
+        "heading": "Tax Invoice",
+        "draftPlaceholder": "DRAFT — number assigned on save",
+        "print": "Print",
+        "close": "Close",
+        "issueDate": "Issue date",
+        "supplyDate": "Supply date",
+        "dueDate": "Due date",
+        "seller": "Seller",
+        "buyer": "Buyer",
+        "noBuyer": "No customer selected.",
+        "description": "Description",
+        "qty": "Qty",
+        "unitPrice": "Unit price",
+        "vat": "VAT",
+        "lineTotal": "Line total",
+        "subtotal": "Subtotal",
+        "totalVat": "Total VAT",
+        "grandTotal": "Total",
+        "paymentTerms": "Payment terms",
+        "notes": "Notes"
+      },
+      "actions": {
+        "saveDraft": "Save draft",
+        "preview": "Preview",
+        "submitZatca": "Submit to ZATCA"
+      },
+      "errors": {
+        "noBusiness": "Select a business to create an invoice.",
+        "noLines": "Add at least one line item.",
+        "saveFailed": "Failed to save invoice.",
+        "submitFailed": "Failed to submit invoice to ZATCA."
+      },
+      "simplified": {
+        "newTitle": "New simplified invoice",
+        "newSubtitle": "Create a B2C simplified invoice and report it to ZATCA. The customer receives a scannable QR receipt.",
+        "walkInCustomer": "عميل عام / Walk-in customer",
+        "sections": {
+          "buyer": "Buyer (optional)"
+        },
+        "fields": {
+          "buyerName": "Buyer name",
+          "buyerNamePlaceholder": "Leave blank for walk-in customer",
+          "buyerVat": "Buyer VAT (optional)",
+          "buyerVatPlaceholder": "15-digit VAT number if available"
+        },
+        "actions": {
+          "reportZatca": "Report to ZATCA"
+        },
+        "errors": {
+          "reportFailed": "Failed to report invoice to ZATCA."
+        },
+        "receipt": {
+          "title": "Receipt",
+          "reportedBanner": "Reported to ZATCA",
+          "invoiceNumber": "Invoice number",
+          "issueDate": "Date",
+          "seller": "Seller",
+          "buyer": "Buyer",
+          "subtotal": "Subtotal",
+          "vat": "VAT",
+          "total": "Total",
+          "scanHint": "Scan this QR code to verify the invoice with ZATCA.",
+          "print": "Print receipt",
+          "done": "Done",
+          "newInvoice": "New simplified invoice"
+        }
+      },
+      "list": {
+        "title": "Invoices",
+        "subtitle": "View, filter, and manage your ZATCA invoices.",
+        "noBusiness": "Select a business to view invoices.",
+        "walkIn": "Walk-in customer",
+        "cta": {
+          "newStandard": "New B2B invoice",
+          "newSimplified": "New B2C invoice"
+        },
+        "filters": {
+          "searchPlaceholder": "Search by invoice number",
+          "statusAll": "All statuses",
+          "typeAll": "All types",
+          "dateFrom": "From date",
+          "dateTo": "To date"
+        },
+        "status": {
+          "draft": "Draft",
+          "pending_clearance": "Pending",
+          "cleared": "Cleared",
+          "reported": "Reported",
+          "rejected": "Rejected"
+        },
+        "typePill": {
+          "standard": "B2B",
+          "simplified": "B2C",
+          "imported": "Imported",
+          "creditNote": "Credit Note",
+          "debitNote": "Debit Note"
+        },
+        "cols": {
+          "invoiceNumber": "Invoice #",
+          "issueDate": "Issue date",
+          "customer": "Customer",
+          "customerVat": "Customer VAT",
+          "type": "Type",
+          "source": "Source",
+          "zatcaStatus": "ZATCA status",
+          "total": "Total"
+        },
+        "actions": {
+          "menu": "Open actions menu",
+          "view": "View",
+          "edit": "Edit",
+          "submit": "Submit to ZATCA",
+          "delete": "Delete",
+          "downloadXml": "Download XML"
+        },
+        "bulk": {
+          "selected": "{count} selected",
+          "selectAll": "Select all rows",
+          "selectRow": "Select row",
+          "submit": "Submit selected",
+          "delete": "Delete selected",
+          "exportCsv": "Export CSV",
+          "clear": "Clear selection",
+          "working": "Working…"
+        },
+        "confirm": {
+          "bulkDeleteTitle": "Delete selected invoices?",
+          "bulkDeleteBody": "This permanently removes {count} draft invoice(s). This action cannot be undone.",
+          "deleteOne": "Delete this draft invoice? This cannot be undone.",
+          "cancel": "Cancel",
+          "deleteConfirm": "Delete"
+        },
+        "empty": {
+          "title": "No invoices yet",
+          "body": "Create your first invoice to start issuing ZATCA-compliant e-invoices.",
+          "noMatches": "No invoices match your current filters."
+        },
+        "pagination": {
+          "summary": "Page {page} of {totalPages} · {total} invoices",
+          "pageSize": "Per page",
+          "prev": "Previous",
+          "next": "Next"
+        },
+        "errors": {
+          "loadFailed": "Failed to load invoices."
+        }
+      },
+      "detail": {
+        "backToList": "Back to invoices",
+        "walkInCustomer": "Walk-in customer",
+        "issuedOn": "Issued on {date}",
+        "linkedTransaction": "View linked transaction",
+        "actions": {
+          "edit": "Edit",
+          "submit": "Submit to ZATCA",
+          "downloadPdf": "Download PDF",
+          "downloadXml": "Download XML",
+          "share": "Share link",
+          "creditNote": "Create credit note",
+          "debitNote": "Create debit note"
+        },
+        "rejected": {
+          "title": "ZATCA rejected this invoice",
+          "fallbackReason": "No reason was returned. Edit the invoice and resubmit.",
+          "editAndResubmit": "Edit and resubmit"
+        },
+        "customer": {
+          "title": "Customer",
+          "vat": "VAT",
+          "cr": "CR"
+        },
+        "meta": {
+          "issueDate": "Issue date",
+          "supplyDate": "Supply date",
+          "dueDate": "Due date",
+          "paymentTerms": "Payment terms"
+        },
+        "lineItems": {
+          "title": "Line items",
+          "description": "Description",
+          "qty": "Qty",
+          "unitPrice": "Unit price",
+          "vatRate": "VAT %",
+          "total": "Total"
+        },
+        "notes": {
+          "title": "Notes"
+        },
+        "qr": {
+          "title": "ZATCA QR code",
+          "alt": "ZATCA QR code",
+          "hint": "Scan to verify with ZATCA.",
+          "error": "Could not load QR code."
+        },
+        "timeline": {
+          "title": "Timeline",
+          "created": "Created",
+          "submitted": "Submitted to ZATCA",
+          "pending": "Awaiting clearance",
+          "cleared": "Cleared by ZATCA",
+          "reported": "Reported to ZATCA",
+          "rejected": "Rejected by ZATCA",
+          "notYet": "Not yet"
+        },
+        "share": {
+          "urlLabel": "Public share link (valid 30 days):",
+          "copy": "Copy",
+          "copied": "Copied"
+        },
+        "errors": {
+          "loadFailed": "Failed to load invoice.",
+          "notFound": "Invoice not found.",
+          "shareFailed": "Failed to create share link."
+        },
+        "creditNote": {
+          "originalInvoice": "Original invoice (credited)"
+        },
+        "debitNote": {
+          "originalInvoice": "Original invoice (debit)"
+        },
+        "relatedNotes": {
+          "title": "Credit & debit notes",
+          "credit": "Credit notes",
+          "debit": "Debit notes"
+        }
+      },
+      "creditNote": {
+        "editTitle": "Edit credit note",
+        "editSubtitle": "Adjust the refund line items, then submit to ZATCA.",
+        "originalInvoice": "Original invoice (credited)",
+        "errors": {
+          "originalNotCleared": "Credit notes can only be issued for cleared or reported invoices."
+        }
+      },
+      "debitNote": {
+        "editTitle": "Edit debit note",
+        "editSubtitle": "Add the additional charges, then submit to ZATCA.",
+        "originalInvoice": "Original invoice (debit)",
+        "errors": {
+          "originalNotCleared": "Debit notes can only be issued for cleared or reported invoices."
+        }
+      },
+      "share": {
+        "expiredTitle": "Link expired",
+        "expiredBody": "This share link is invalid or has expired. Ask the issuer for a new one.",
+        "taxInvoice": "Tax Invoice",
+        "simplifiedTaxInvoice": "Simplified Tax Invoice",
+        "creditNote": "Credit Note",
+        "debitNote": "Debit Note",
+        "issuedOn": "Issued {date}",
+        "seller": "Seller",
+        "buyer": "Buyer",
+        "walkInCustomer": "Walk-in customer",
+        "description": "Description",
+        "qty": "Qty",
+        "unitPrice": "Unit price",
+        "total": "Total",
+        "subtotal": "Subtotal",
+        "vat": "VAT"
+      }
+    },
+    "onboarding": {
+      "pageTitle": "ZATCA E-Invoicing Setup",
+      "pageSubtitle": "Connect your business to ZATCA Fatoora for Phase-2 e-invoicing.",
+      "stepper": {
+        "intro": "Intro",
+        "credentials": "Details",
+        "otp": "OTP",
+        "compliance": "Check",
+        "done": "Done"
+      },
+      "intro": {
+        "title": "Before you begin",
+        "subtitle": "We'll link your business to ZATCA so invoices clear automatically. This takes about 5 minutes.",
+        "bullet1": "We generate a secure cryptographic key pair on our servers — your private key is encrypted at rest.",
+        "bullet2": "We submit a sample invoice to ZATCA's compliance sandbox to verify the setup.",
+        "bullet3": "On success, we issue a 1-year production certificate and remind you 30 days before it expires.",
+        "consent": "I authorize Mugdm to generate and manage a ZATCA certificate on my business's behalf.",
+        "continue": "Continue"
+      },
+      "credentials": {
+        "title": "Business tax details",
+        "subtitle": "Enter the VAT and Commercial Registration numbers ZATCA has on file.",
+        "vatLabel": "VAT registration number",
+        "vatHint": "15 digits, starts with 3 and ends with 3 (e.g. 300000000000003).",
+        "crLabel": "Commercial Registration (CR)",
+        "crHint": "10 digits as shown on your CR certificate.",
+        "back": "Back",
+        "continue": "Continue"
+      },
+      "otp": {
+        "title": "Enter ZATCA OTP",
+        "subtitle": "Generate a one-time password from the ZATCA Fatoora portal to authorize certificate issuance.",
+        "step1": "Log in to the ZATCA Fatoora portal with your TIN credentials.",
+        "step2": "Open 'Onboard new solution / device' and generate an OTP.",
+        "step3": "Copy the OTP and paste it below — it expires in 60 minutes.",
+        "openPortal": "Open ZATCA Fatoora portal",
+        "otpLabel": "One-time password",
+        "back": "Back",
+        "submit": "Start onboarding"
+      },
+      "compliance": {
+        "title": "Setting up your certificate",
+        "subtitle": "Hang tight — this usually takes 10-30 seconds.",
+        "phaseCsr": "Generating signing request (CSR)",
+        "phaseCheck": "Running compliance check with ZATCA",
+        "phaseProd": "Issuing production certificate"
+      },
+      "done": {
+        "title": "You're all set",
+        "subtitle": "Your ZATCA production certificate is active. You can now issue e-invoices that clear automatically.",
+        "expiryLabel": "Certificate expires",
+        "reminderNote": "We'll remind you 30 days before expiry to renew.",
+        "goDashboard": "Back to dashboard",
+        "goCalendar": "View compliance calendar"
+      },
+      "errors": {
+        "generic": "Something went wrong. Please verify your details and try again."
+      }
+    },
+    "certExpiry": {
+      "warningTitle": "ZATCA certificate expiring soon",
+      "warningBody": "Your e-invoicing certificate expires in {days} days. Renew now to avoid service interruption.",
+      "criticalTitle": "ZATCA certificate expires very soon",
+      "criticalBody": "Only {days} days left before your e-invoicing certificate expires. Renew immediately.",
+      "expiredTitle": "ZATCA certificate expired",
+      "expiredBody": "Your e-invoicing certificate expired {days} days ago. New invoices may be blocked — renew now.",
+      "renewCta": "Renew certificate"
+    }
   }
 }

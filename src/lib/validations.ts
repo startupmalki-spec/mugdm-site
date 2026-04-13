@@ -11,6 +11,52 @@ export function isValidCRNumber(cr: string): boolean {
   return digits.length === CR_NUMBER_LENGTH && /^\d+$/.test(digits)
 }
 
+/**
+ * Verify a CR number against Wathq (live MoC data).
+ *
+ * Returns `{ valid: false }` when the format is wrong, when WATHQ_API_KEY is
+ * not configured, or when Wathq rejects/cannot find the CR. Never throws —
+ * callers can rely on this in a graceful-degradation chain.
+ */
+export async function validateCRWithWathq(crNumber: string): Promise<{
+  valid: boolean
+  status?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any
+  error?: string
+}> {
+  if (!isValidCRNumber(crNumber)) return { valid: false, error: 'INVALID_CR' }
+  // Lazy import: keep this module side-effect-free for client bundles.
+  const { lookupCR, isWathqConfigured } = await import('@/lib/wathq/client')
+  if (!isWathqConfigured()) return { valid: false, error: 'NOT_CONFIGURED' }
+  try {
+    const res = await lookupCR(crNumber.replace(/\s/g, ''))
+    const status = res.status ?? undefined
+    const isActive =
+      !status || /active|valid|نشط|سار/i.test(status)
+    return { valid: isActive, status, data: res.data }
+  } catch (err) {
+    return {
+      valid: false,
+      error: err instanceof Error ? err.message : 'UPSTREAM_ERROR',
+    }
+  }
+}
+
+/**
+ * Saudi VAT registration numbers are 15 digits, must start AND end with the
+ * digit "3" per ZATCA Fatoora spec (e.g. 3XXXXXXXXXXXXX3).
+ */
+export function isValidSaudiVat(vat: string): boolean {
+  const digits = vat.replace(/\s/g, '')
+  return (
+    digits.length === 15 &&
+    /^\d+$/.test(digits) &&
+    digits.startsWith('3') &&
+    digits.endsWith('3')
+  )
+}
+
 export function isValidIqama(iqama: string): boolean {
   const digits = iqama.replace(/\s/g, '')
   if (digits.length !== IQAMA_LENGTH || !/^\d+$/.test(digits)) return false

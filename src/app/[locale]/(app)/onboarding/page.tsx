@@ -146,6 +146,11 @@ export default function OnboardingPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [revealDone, setRevealDone] = useState(false)
   const [generatedObligations, setGeneratedObligations] = useState<GeneratedObligation[]>([])
+  const [wathqCrInput, setWathqCrInput] = useState('')
+  const [wathqBusy, setWathqBusy] = useState(false)
+  const [wathqError, setWathqError] = useState<string | null>(null)
+  const [showUploadFallback, setShowUploadFallback] = useState(false)
+  const [crSource, setCrSource] = useState<'manual' | 'wathq_api' | 'document_ocr' | 'qr_webpage'>('manual')
 
   /* ─── Generate obligations when profile data changes ─── */
   const obligations = useMemo(() => {
@@ -243,6 +248,57 @@ export default function OnboardingPage() {
     })
   }, [])
 
+  /* ─── Wathq Lookup (preferred path) ─── */
+
+  const handleWathqLookup = useCallback(async () => {
+    setWathqError(null)
+    const cr = wathqCrInput.replace(/\D/g, '').slice(0, 10)
+    if (!isValidCRNumber(cr)) {
+      setWathqError(tProfile('crNumberPlaceholder'))
+      return
+    }
+    setWathqBusy(true)
+    try {
+      const res = await fetch('/api/wathq/lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cr_number: cr }),
+      })
+      const json = (await res.json()) as {
+        ok?: boolean
+        code?: string
+        wizard?: Partial<WizardData> & { owners?: Owner[] }
+      }
+      if (!res.ok || !json.ok || !json.wizard) {
+        setWathqError(t('wathqLookupFailed'))
+        return
+      }
+      const w = json.wizard
+      setData((prev) => ({
+        ...prev,
+        nameAr: w.nameAr ?? prev.nameAr,
+        nameEn: w.nameEn ?? prev.nameEn,
+        crNumber: w.crNumber ?? cr,
+        activityType: w.activityType ?? prev.activityType,
+        city: w.city ?? prev.city,
+        capital: w.capital ?? prev.capital,
+        crIssuanceDate: w.crIssuanceDate ?? prev.crIssuanceDate,
+        crExpiryDate: w.crExpiryDate ?? prev.crExpiryDate,
+        owners:
+          Array.isArray(w.owners) && w.owners.length > 0 ? w.owners : prev.owners,
+      }))
+      setCrSource('wathq_api')
+      // Jump straight to the reveal animation (Step 2). Step 3 will be
+      // entered automatically by the existing reveal auto-advance timer.
+      setDirection(1)
+      setStep(2)
+    } catch {
+      setWathqError(t('wathqLookupFailed'))
+    } finally {
+      setWathqBusy(false)
+    }
+  }, [wathqCrInput, t, tCommon, tProfile])
+
   /* ─── CR Upload Handler ─── */
 
   const handleCRUpload = useCallback(
@@ -288,6 +344,13 @@ export default function OnboardingPage() {
           // Update status based on agent source
           if (extra.cr_agent_source === 'qr_webpage') {
             setAnalyzingMessage(t('crAgentVerified'))
+          }
+          if (
+            extra.cr_agent_source === 'wathq_api' ||
+            extra.cr_agent_source === 'qr_webpage' ||
+            extra.cr_agent_source === 'document_ocr'
+          ) {
+            setCrSource(extra.cr_agent_source)
           }
 
           // Map ALL returned fields to form data
@@ -389,6 +452,7 @@ export default function OnboardingPage() {
         contact_email: data.email || undefined,
         contact_address: data.address || undefined,
         cr_document_url: data.crDocumentUrl || undefined,
+        cr_source: crSource,
       }
 
       const res = await fetch('/api/onboarding', {
@@ -456,13 +520,65 @@ export default function OnboardingPage() {
       <div className="space-y-6">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-foreground">
-            {t('step1Title')}
+            {showUploadFallback ? t('step1Title') : t('wathqEntryTitle')}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {t('step1Description')}
+            {showUploadFallback ? t('step1Description') : t('wathqEntryDescription')}
           </p>
         </div>
 
+        {!showUploadFallback && (
+          <div className="space-y-4 rounded-xl border border-border bg-card p-5">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {tProfile('crNumber')}
+              </label>
+              <Input
+                value={wathqCrInput}
+                onChange={(e) => {
+                  setWathqError(null)
+                  setWathqCrInput(e.target.value.replace(/\D/g, '').slice(0, 10))
+                }}
+                placeholder={tProfile('crNumberPlaceholder')}
+                dir="ltr"
+                inputMode="numeric"
+                error={wathqError ?? undefined}
+                disabled={wathqBusy}
+              />
+            </div>
+            <Button
+              onClick={handleWathqLookup}
+              disabled={wathqBusy || !isValidCRNumber(wathqCrInput)}
+              size="lg"
+              className="w-full gap-2"
+            >
+              {wathqBusy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('wathqLookingUp')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4" />
+                  {t('wathqLookupButton')}
+                </>
+              )}
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                setWathqError(null)
+                setShowUploadFallback(true)
+              }}
+              className="block w-full text-center text-xs text-muted-foreground underline-offset-2 hover:underline"
+            >
+              {t('wathqOrUpload')}
+            </button>
+          </div>
+        )}
+
+        {showUploadFallback && (
+        <>
         <FileUpload
           accept={{
             'application/pdf': ['.pdf'],
@@ -490,6 +606,8 @@ export default function OnboardingPage() {
             <ChevronRight className="h-4 w-4 rtl:rotate-180" />
           </Button>
         </div>
+        </>
+        )}
       </div>
     )
   }

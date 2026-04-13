@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 
 import { selectModel } from '@/lib/ai/model-router'
+import { isWathqConfigured, lookupCR, WathqError } from '@/lib/wathq/client'
 
 /* ───────── Public types ───────── */
 
@@ -28,11 +29,13 @@ export interface CRAgentData {
 }
 
 export interface CRAgentResult {
-  source: 'qr_webpage' | 'document_ocr' | 'fallback'
+  source: 'wathq_api' | 'qr_webpage' | 'document_ocr' | 'fallback'
   confidence: number
   data: CRAgentData
   /** Status messages emitted by each step (useful for UX progress) */
   steps: string[]
+  /** Fields where Wathq and OCR disagreed (Wathq wins, OCR value flagged). */
+  mismatches?: Array<{ field: keyof CRAgentData; wathq: unknown; ocr: unknown }>
 }
 
 /* ───────── Prompts ───────── */
@@ -130,6 +133,41 @@ function mergeData(base: CRAgentData, over: Partial<CRAgentData>): CRAgentData {
   return merged
 }
 
+/**
+ * When both Wathq and OCR/QR returned data, treat Wathq as authoritative,
+ * but record any field-level disagreements for the UI to surface.
+ */
+function reconcileWithWathq(
+  wathq: CRAgentData | null,
+  ocr: CRAgentData
+): { data: CRAgentData; mismatches: CRAgentResult['mismatches'] } {
+  if (!wathq) return { data: ocr, mismatches: [] }
+  const mismatches: NonNullable<CRAgentResult['mismatches']> = []
+  const fields: (keyof CRAgentData)[] = [
+    'name_ar',
+    'name_en',
+    'cr_number',
+    'cr_expiry_date',
+    'cr_issuance_date',
+    'activity_type',
+    'city',
+    'capital',
+    'legal_form',
+  ]
+  for (const f of fields) {
+    const w = wathq[f]
+    const o = ocr[f]
+    if (w && o && typeof w === 'string' && typeof o === 'string') {
+      const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ')
+      if (norm(w) !== norm(o)) {
+        mismatches.push({ field: f, wathq: w, ocr: o })
+      }
+    }
+  }
+  // Wathq fields take precedence; OCR fills gaps.
+  return { data: mergeData(ocr, wathq), mismatches }
+}
+
 function isValidMCUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
@@ -149,9 +187,44 @@ export async function extractCRData(params: {
   fileUrl?: string
   base64Data?: string
   mediaType?: string
+  /** When provided, Wathq is tried FIRST as the authoritative source. */
+  crNumber?: string
 }): Promise<CRAgentResult> {
   const anthropic = new Anthropic()
   const steps: string[] = []
+
+  /* ── Step 0: Wathq (preferred) ── */
+  let wathqData: CRAgentData | null = null
+  const candidateCR = params.crNumber?.replace(/\s/g, '')
+  if (candidateCR && /^\d{10}$/.test(candidateCR) && isWathqConfigured()) {
+    steps.push('Querying Wathq (Ministry of Commerce API)...')
+    try {
+      const result = await lookupCR(candidateCR)
+      wathqData = result.data
+      steps.push('Wathq returned verified business data')
+      // If we don't have a document to cross-reference, return immediately.
+      if (!params.fileUrl && !params.base64Data) {
+        return {
+          source: 'wathq_api',
+          confidence: 1.0,
+          data: wathqData,
+          steps,
+        }
+      }
+    } catch (err) {
+      const code = err instanceof WathqError ? err.code : 'UPSTREAM_ERROR'
+      steps.push(`Wathq lookup failed (${code}) — falling back to document OCR`)
+      console.error('[CR Agent] Wathq lookup failed:', err instanceof Error ? err.message : err)
+    }
+  }
+
+  // No document to OCR? Bail out with whatever we have.
+  if (!params.fileUrl && !params.base64Data) {
+    if (wathqData) {
+      return { source: 'wathq_api', confidence: 1.0, data: wathqData, steps }
+    }
+    return { source: 'fallback', confidence: 0, data: emptyData(), steps }
+  }
 
   // Build the document content block for Claude
   const isPdf =
@@ -218,6 +291,9 @@ export async function extractCRData(params: {
   } catch (err) {
     console.error('[CR Agent] Step A failed:', err instanceof Error ? err.message : err)
     steps.push('Document reading failed')
+    if (wathqData) {
+      return { source: 'wathq_api', confidence: 1.0, data: wathqData, steps }
+    }
     return { source: 'fallback', confidence: 0, data: emptyData(), steps }
   }
 
@@ -228,11 +304,15 @@ export async function extractCRData(params: {
   const barcodeUrl = docData.barcode_url
   if (!barcodeUrl || !isValidMCUrl(barcodeUrl)) {
     steps.push('No QR code URL found — using document data only')
-    return {
-      source: 'document_ocr',
-      confidence: docData.cr_number ? 0.75 : 0.4,
-      data: docData,
-      steps,
+    {
+      const reconciled = reconcileWithWathq(wathqData, docData)
+      return {
+        source: wathqData ? 'wathq_api' : 'document_ocr',
+        confidence: wathqData ? 1.0 : docData.cr_number ? 0.75 : 0.4,
+        data: reconciled.data,
+        steps,
+        mismatches: reconciled.mismatches,
+      }
     }
   }
 
@@ -265,11 +345,15 @@ export async function extractCRData(params: {
 
   if (!htmlContent) {
     steps.push('Could not reach MC website — using document data only')
-    return {
-      source: 'document_ocr',
-      confidence: docData.cr_number ? 0.75 : 0.4,
-      data: docData,
-      steps,
+    {
+      const reconciled = reconcileWithWathq(wathqData, docData)
+      return {
+        source: wathqData ? 'wathq_api' : 'document_ocr',
+        confidence: wathqData ? 1.0 : docData.cr_number ? 0.75 : 0.4,
+        data: reconciled.data,
+        steps,
+        mismatches: reconciled.mismatches,
+      }
     }
   }
 
@@ -304,11 +388,13 @@ export async function extractCRData(params: {
       docData.barcode_url = barcodeUrl
       steps.push('Successfully extracted data from MC verification page')
 
+      const reconciled = reconcileWithWathq(wathqData, docData)
       return {
-        source: 'qr_webpage',
-        confidence: 0.95,
-        data: docData,
+        source: wathqData ? 'wathq_api' : 'qr_webpage',
+        confidence: wathqData ? 1.0 : 0.95,
+        data: reconciled.data,
         steps,
+        mismatches: reconciled.mismatches,
       }
     }
   } catch (err) {
@@ -316,10 +402,14 @@ export async function extractCRData(params: {
   }
 
   steps.push('MC page parsing failed — using document data only')
-  return {
-    source: 'document_ocr',
-    confidence: docData.cr_number ? 0.75 : 0.4,
-    data: docData,
-    steps,
+  {
+    const reconciled = reconcileWithWathq(wathqData, docData)
+    return {
+      source: wathqData ? 'wathq_api' : 'document_ocr',
+      confidence: wathqData ? 1.0 : docData.cr_number ? 0.75 : 0.4,
+      data: reconciled.data,
+      steps,
+      mismatches: reconciled.mismatches,
+    }
   }
 }

@@ -272,8 +272,8 @@ async function executeToolCall(
 
       if (toolInput.date_from) query = query.gte('date', toolInput.date_from as string)
       if (toolInput.date_to) query = query.lte('date', toolInput.date_to as string)
-      if (toolInput.type) query = query.eq('type', toolInput.type as string)
-      if (toolInput.category) query = query.eq('category', toolInput.category as string)
+      if (toolInput.type) query = query.eq('type', toolInput.type as never)
+      if (toolInput.category) query = query.eq('category', toolInput.category as never)
       if (toolInput.search) query = query.or(
         `description.ilike.%${toolInput.search}%,vendor_or_client.ilike.%${toolInput.search}%`
       )
@@ -291,7 +291,7 @@ async function executeToolCall(
         .eq('is_current', true)
         .order('uploaded_at', { ascending: false })
 
-      if (toolInput.type) query = query.eq('type', toolInput.type as string)
+      if (toolInput.type) query = query.eq('type', toolInput.type as never)
       if (toolInput.search) query = query.ilike('name', `%${toolInput.search}%`)
       if (toolInput.expiry_status) {
         const today = new Date().toISOString().split('T')[0]
@@ -317,8 +317,8 @@ async function executeToolCall(
         .eq('business_id', businessId)
         .order('next_due_date', { ascending: true })
 
-      if (toolInput.type) query = query.eq('type', toolInput.type as string)
-      if (toolInput.frequency) query = query.eq('frequency', toolInput.frequency as string)
+      if (toolInput.type) query = query.eq('type', toolInput.type as never)
+      if (toolInput.frequency) query = query.eq('frequency', toolInput.frequency as never)
       if (toolInput.due_within_days) {
         const futureDate = new Date(
           Date.now() + (toolInput.due_within_days as number) * 86400000
@@ -337,7 +337,7 @@ async function executeToolCall(
         .select('name, nationality, role, start_date, salary, status')
         .eq('business_id', businessId)
 
-      if (toolInput.status) query = query.eq('status', toolInput.status as string)
+      if (toolInput.status) query = query.eq('status', toolInput.status as never)
       if (toolInput.nationality) query = query.ilike('nationality', `%${toolInput.nationality}%`)
       if (toolInput.role) query = query.ilike('role', `%${toolInput.role}%`)
 

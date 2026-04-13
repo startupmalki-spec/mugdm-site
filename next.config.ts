@@ -5,6 +5,9 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Keep Node-native deps out of the Turbopack bundler — exceljs → tmp → rimraf
+  // produces an opaque "Cannot find module 'rimraf-<hash>'" error when bundled.
+  serverExternalPackages: ['exceljs', 'rimraf', 'tmp', 'unzipper'],
   images: {
     formats: ['image/avif', 'image/webp'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
