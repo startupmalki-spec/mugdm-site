@@ -355,6 +355,21 @@
     "unassigned": "Unassigned"
   },
   "bookkeeper": {
+    "agent": {
+      "title": "Reconciliation Agent",
+      "subtitle": "The Matchmaker — proactive insights from your financial data",
+      "allClear": "All clear — your books look good",
+      "duplicatesFound": "Found {count} possible duplicate transactions",
+      "reviewDuplicates": "Review",
+      "vatDueSoon": "VAT filing due in {days} days — estimated liability: {amount} SAR",
+      "viewVatReport": "View Report",
+      "needsReview": "{count} transactions need review (low AI confidence)",
+      "reviewQueue": "Review",
+      "recurringDetected": "Recurring expense: {vendor} ~{amount}/month",
+      "cashFlowNegative": "Cash flow warning: projected deficit of {amount} SAR",
+      "cashFlowPositive": "Cash flow healthy: projected surplus of {amount} SAR",
+      "viewForecast": "View"
+    },
     "title": "Bookkeeper",
     "subtitle": "Track your business finances",
     "moneyIn": "Money In",
@@ -492,7 +507,23 @@
       "revenue": "Revenue",
       "expenses": "Expenses",
       "noData": "No transaction data for this period",
-      "disclaimer": "This report is for estimation purposes only. Consult your accountant for official filings."
+      "disclaimer": "This report is for estimation purposes only. Consult your accountant for official filings.",
+      "balanceSheet": "Balance Sheet",
+      "balanceSheetDescription": "Snapshot of assets, liabilities, and equity",
+      "assets": "Assets",
+      "cashEquivalents": "Cash & Cash Equivalents",
+      "accountsReceivable": "Accounts Receivable",
+      "totalAssets": "Total Assets",
+      "liabilities": "Liabilities",
+      "vatPayable": "VAT Payable",
+      "accountsPayable": "Accounts Payable",
+      "totalLiabilities": "Total Liabilities",
+      "equity": "Equity",
+      "ownerEquity": "Owner's Equity",
+      "retainedEarnings": "Retained Earnings",
+      "totalEquity": "Total Equity",
+      "balanced": "Assets = Liabilities + Equity (Balanced)",
+      "unbalanced": "Warning: Balance sheet does not balance"
     },
     "reconciliation": {
       "title": "Bank Reconciliation",
@@ -537,7 +568,9 @@
       "deleteFirst": "Delete First",
       "deleteSecond": "Delete Second",
       "deleted": "Duplicate transaction deleted",
-      "merged": "Transactions merged"
+      "merged": "Transactions merged",
+      "kept": "Both transactions kept and marked as reviewed",
+      "error": "Failed to resolve duplicate"
     }
   },
   "common": {

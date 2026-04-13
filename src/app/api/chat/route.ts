@@ -16,6 +16,9 @@ import { selectModel } from '@/lib/ai/model-router'
 import { trackUsage } from '@/lib/ai/usage-tracker'
 import { emitServerEvent } from '@/lib/analytics/server-events'
 import { classifyAndRecordFrustration } from '@/lib/intelligence/frustration-classifier'
+import { generateProfitLoss } from '@/lib/bookkeeper/profit-loss'
+import { generateBalanceSheet } from '@/lib/bookkeeper/balance-sheet'
+import { generateVATReport } from '@/lib/bookkeeper/vat-report'
 
 interface ChatRequest {
   message: string
@@ -38,6 +41,7 @@ const ACTION_TOOLS = new Set([
   'mark_obligation_done',
   'add_obligation',
   'import_spreadsheet_data',
+  'generate_report',
 ])
 
 /** Tools that are destructive and require double confirmation */
@@ -70,6 +74,8 @@ function formatActionSummary(
       return `Add obligation "${toolInput.name}" (${toolInput.type}, ${toolInput.frequency}) due ${toolInput.next_due_date}`
     case 'import_spreadsheet_data':
       return `Import ${(toolInput.rows as unknown[])?.length ?? 0} rows as ${toolInput.dataType}`
+    case 'generate_report':
+      return `Generate ${toolInput.report_type} report for ${toolInput.period_start} to ${toolInput.period_end}`
     default:
       return `Execute ${toolName}`
   }
@@ -253,6 +259,30 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ['dataType', 'rows', 'columnMapping'],
     },
   },
+  {
+    name: 'generate_report',
+    description:
+      'Generate a financial report for the business. Use when the user asks about profit/loss, VAT liability, balance sheet, revenue, expenses, or financial performance for a period.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        report_type: {
+          type: 'string',
+          enum: ['profit_loss', 'vat_report', 'balance_sheet'],
+          description: 'Type of financial report to generate.',
+        },
+        period_start: {
+          type: 'string',
+          description: 'Start date in YYYY-MM-DD format.',
+        },
+        period_end: {
+          type: 'string',
+          description: 'End date in YYYY-MM-DD format.',
+        },
+      },
+      required: ['report_type', 'period_start', 'period_end'],
+    },
+  },
 ]
 
 async function executeToolCall(
@@ -415,6 +445,66 @@ async function executeToolCall(
         toolInput.columnMapping as Record<string, string>
       )
       return JSON.stringify(result)
+    }
+
+    case 'generate_report': {
+      const reportType = toolInput.report_type as string
+      const periodStart = toolInput.period_start as string
+      const periodEnd = toolInput.period_end as string
+
+      // Fetch transactions for the period
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('business_id', businessId)
+        .gte('date', periodStart)
+        .lte('date', periodEnd)
+        .order('date')
+
+      const transactions = txData ?? []
+
+      if (reportType === 'profit_loss') {
+        const report = generateProfitLoss(transactions, periodStart, periodEnd)
+        return JSON.stringify({
+          type: 'Profit & Loss',
+          period: `${periodStart} to ${periodEnd}`,
+          totalRevenue: report.totalRevenue,
+          totalExpenses: report.totalExpenses,
+          grossProfit: report.grossProfit,
+          netProfit: report.netProfit,
+          profitMargin: `${report.profitMargin}%`,
+          revenueBreakdown: report.revenue,
+          expenseBreakdown: report.expenses,
+        })
+      }
+
+      if (reportType === 'balance_sheet') {
+        const report = generateBalanceSheet(transactions, periodStart, periodEnd)
+        return JSON.stringify({
+          type: 'Balance Sheet',
+          asOf: periodEnd,
+          assets: report.assets,
+          liabilities: report.liabilities,
+          equity: report.equity,
+          balances: report.balances,
+        })
+      }
+
+      if (reportType === 'vat_report') {
+        const report = generateVATReport(transactions, periodStart, periodEnd)
+        return JSON.stringify({
+          type: 'VAT Report',
+          period: `${periodStart} to ${periodEnd}`,
+          totalSales: report.totalSales,
+          totalPurchases: report.totalPurchases,
+          outputVAT: report.outputVAT,
+          inputVAT: report.inputVAT,
+          netVAT: report.netVAT,
+          transactionCount: report.transactions.length,
+        })
+      }
+
+      return JSON.stringify({ error: `Unknown report type: ${reportType}` })
     }
 
     default:

@@ -355,6 +355,21 @@
     "unassigned": "غير معيّن"
   },
   "bookkeeper": {
+    "agent": {
+      "title": "وكيل المطابقة",
+      "subtitle": "الموفّق — رؤى استباقية من بياناتك المالية",
+      "allClear": "كل شيء على ما يرام — دفاترك منظمة",
+      "duplicatesFound": "تم العثور على {count} عمليات مكررة محتملة",
+      "reviewDuplicates": "مراجعة",
+      "vatDueSoon": "موعد تقديم الضريبة خلال {days} يوم — التقدير: {amount} ر.س",
+      "viewVatReport": "عرض التقرير",
+      "needsReview": "{count} عمليات تحتاج مراجعة (ثقة ذكاء اصطناعي منخفضة)",
+      "reviewQueue": "مراجعة",
+      "recurringDetected": "مصروف متكرر: {vendor} ~{amount}/شهر",
+      "cashFlowNegative": "تحذير تدفق نقدي: عجز متوقع {amount} ر.س",
+      "cashFlowPositive": "تدفق نقدي صحي: فائض متوقع {amount} ر.س",
+      "viewForecast": "عرض"
+    },
     "title": "المحاسب الذكي",
     "subtitle": "تتبع الشؤون المالية لنشاطك التجاري",
     "moneyIn": "الإيرادات",
@@ -492,7 +507,23 @@
       "revenue": "الإيرادات",
       "expenses": "المصروفات",
       "noData": "لا توجد بيانات عمليات لهذه الفترة",
-      "disclaimer": "هذا التقرير لأغراض تقديرية فقط. استشر محاسبك للإقرارات الرسمية."
+      "disclaimer": "هذا التقرير لأغراض تقديرية فقط. استشر محاسبك للإقرارات الرسمية.",
+      "balanceSheet": "الميزانية العمومية",
+      "balanceSheetDescription": "لقطة للأصول والالتزامات وحقوق الملكية",
+      "assets": "الأصول",
+      "cashEquivalents": "النقد وما يعادله",
+      "accountsReceivable": "الذمم المدينة",
+      "totalAssets": "إجمالي الأصول",
+      "liabilities": "الالتزامات",
+      "vatPayable": "ضريبة القيمة المضافة المستحقة",
+      "accountsPayable": "الذمم الدائنة",
+      "totalLiabilities": "إجمالي الالتزامات",
+      "equity": "حقوق الملكية",
+      "ownerEquity": "رأس مال المالك",
+      "retainedEarnings": "الأرباح المحتجزة",
+      "totalEquity": "إجمالي حقوق الملكية",
+      "balanced": "الأصول = الالتزامات + حقوق الملكية (متوازنة)",
+      "unbalanced": "تحذير: الميزانية العمومية غير متوازنة"
     },
     "reconciliation": {
       "title": "مطابقة الحسابات البنكية",
@@ -537,7 +568,9 @@
       "deleteFirst": "حذف الأولى",
       "deleteSecond": "حذف الثانية",
       "deleted": "تم حذف العملية المكررة",
-      "merged": "تم دمج العمليات"
+      "merged": "تم دمج العمليات",
+      "kept": "تم الاحتفاظ بكلتا العمليتين وتمييزهما كمراجعتين",
+      "error": "فشل في حل التكرار"
     }
   },
   "common": {

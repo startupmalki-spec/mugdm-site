@@ -170,6 +170,64 @@ export default function OnboardingPage() {
   const [previewLoading, setPreviewLoading] = useState(false)
   const [confirmedTypes, setConfirmedTypes] = useState<Set<ObligationType>>(new Set())
 
+  /* ─── Draft persistence via sessionStorage ─── */
+  const DRAFT_KEY = 'mugdm-onboarding-draft'
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const draft = JSON.parse(raw) as {
+        data: WizardData
+        step: number
+        crSource: string
+        mainActivityCode: string | null
+        subActivities: string[]
+        hasPhysicalLocation: boolean | null
+        confirmedTypes: string[]
+        savedAt: number
+      }
+      // Discard drafts older than 24 hours
+      if (Date.now() - draft.savedAt > 24 * 60 * 60 * 1000) {
+        sessionStorage.removeItem(DRAFT_KEY)
+        return
+      }
+      setData(draft.data)
+      setStep(draft.step)
+      setCrSource(draft.crSource as typeof crSource)
+      setMainActivityCode(draft.mainActivityCode)
+      setSubActivities(draft.subActivities)
+      setHasPhysicalLocation(draft.hasPhysicalLocation)
+      setConfirmedTypes(new Set(draft.confirmedTypes as ObligationType[]))
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Save draft on changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        sessionStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({
+            data,
+            step,
+            crSource,
+            mainActivityCode,
+            subActivities,
+            hasPhysicalLocation,
+            confirmedTypes: Array.from(confirmedTypes),
+            savedAt: Date.now(),
+          })
+        )
+      } catch { /* quota exceeded — ignore */ }
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [data, step, crSource, mainActivityCode, subActivities, hasPhysicalLocation, confirmedTypes])
+
   /* ─── Generate obligations when profile data changes ─── */
   const obligations = useMemo(() => {
     if (!data.crNumber) return []
@@ -552,6 +610,7 @@ export default function OnboardingPage() {
         // localStorage not available
       }
 
+      sessionStorage.removeItem(DRAFT_KEY)
       router.push('/dashboard')
     } catch {
       setErrors({ submit: tCommon('error') })

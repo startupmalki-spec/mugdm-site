@@ -98,10 +98,12 @@ import {
 } from '@/lib/bookkeeper/export'
 import { generateVATReport, type VATReportData } from '@/lib/bookkeeper/vat-report'
 import { generateProfitLoss, type ProfitLossData } from '@/lib/bookkeeper/profit-loss'
-import { exportVATReportToExcel, exportProfitLossToExcel } from '@/lib/bookkeeper/report-export'
+import { generateBalanceSheet, type BalanceSheetData } from '@/lib/bookkeeper/balance-sheet'
+import { exportVATReportToExcel, exportProfitLossToExcel, exportBalanceSheetToExcel } from '@/lib/bookkeeper/report-export'
 import { TransactionForm } from '@/components/bookkeeper/TransactionForm'
 import { ReceiptCapture } from '@/components/bookkeeper/ReceiptCapture'
 import { PossibleDuplicates } from '@/components/bookkeeper/PossibleDuplicates'
+import { AgentInsights } from '@/components/bookkeeper/AgentInsights'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToastContainer, useToast } from '@/components/ui/toast'
 import type { Transaction, TransactionCategory, TransactionSource } from '@/lib/supabase/types'
@@ -215,7 +217,8 @@ export default function BookkeeperPage() {
   const [vatReport, setVatReport] = useState<VATReportData | null>(null)
   const [plPeriod, setPlPeriod] = useState<PeriodKey>('this_year')
   const [plReport, setPlReport] = useState<ProfitLossData | null>(null)
-  const [activeReportTab, setActiveReportTab] = useState<'vat' | 'pl'>('vat')
+  const [activeReportTab, setActiveReportTab] = useState<'vat' | 'pl' | 'bs'>('vat')
+  const [bsReport, setBsReport] = useState<BalanceSheetData | null>(null)
 
   // Reconciliation state
   const [reconciliationResult, setReconciliationResult] = useState<ReconciliationResult | null>(null)
@@ -365,6 +368,22 @@ export default function BookkeeperPage() {
     [recurringPatterns]
   )
 
+  const lowConfidenceCount = useMemo(
+    () => transactions.filter((tx) => tx.ai_confidence !== null && tx.ai_confidence < 0.7 && !tx.is_reviewed).length,
+    [transactions]
+  )
+
+  const handleScrollToSection = useCallback((section: 'duplicates' | 'review' | 'vat' | 'forecast') => {
+    const sectionIds: Record<string, string> = {
+      duplicates: 'duplicates-section',
+      review: 'review-section',
+      vat: 'reports-section',
+      forecast: 'forecast-section',
+    }
+    const el = document.getElementById(sectionIds[section])
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [])
+
   const handleExportExcel = useCallback(async () => {
     try {
       const blob = await exportTransactionsToExcel(filteredTransactions, 'Business')
@@ -472,26 +491,46 @@ export default function BookkeeperPage() {
     const pair = fuzzyDuplicatePairs[pairIndex]
     if (!pair || !businessId) return
 
-    if (resolution === 'keep_both') {
-      // Nothing to do, just dismiss
-      return
-    }
+    try {
+      const supabase = createClient()
 
-    const supabase = createClient()
-
-    if (resolution === 'delete_a') {
-      await supabase.from('transactions').delete().eq('id', pair.transactionA.id)
-      setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionA.id))
-      showToast(t('duplicates.deleted'), 'success')
-    } else if (resolution === 'delete_b') {
-      await supabase.from('transactions').delete().eq('id', pair.transactionB.id)
-      setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionB.id))
-      showToast(t('duplicates.deleted'), 'success')
-    } else if (resolution === 'merge') {
-      // Keep the first one, delete the second
-      await supabase.from('transactions').delete().eq('id', pair.transactionB.id)
-      setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionB.id))
-      showToast(t('duplicates.merged'), 'success')
+      if (resolution === 'keep_both') {
+        await supabase
+          .from('transactions')
+          .update({ is_reviewed: true })
+          .in('id', [pair.transactionA.id, pair.transactionB.id])
+        setTransactions((prev) =>
+          prev.map((tx) =>
+            tx.id === pair.transactionA.id || tx.id === pair.transactionB.id
+              ? { ...tx, is_reviewed: true }
+              : tx
+          )
+        )
+        showToast(t('duplicates.kept'), 'success')
+      } else if (resolution === 'delete_a') {
+        await supabase.from('transactions').delete().eq('id', pair.transactionA.id)
+        setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionA.id))
+        showToast(t('duplicates.deleted'), 'success')
+      } else if (resolution === 'delete_b') {
+        await supabase.from('transactions').delete().eq('id', pair.transactionB.id)
+        setTransactions((prev) => prev.filter((tx) => tx.id !== pair.transactionB.id))
+        showToast(t('duplicates.deleted'), 'success')
+      } else if (resolution === 'merge') {
+        const keeper = (pair.transactionA.ai_confidence ?? 0) >= (pair.transactionB.ai_confidence ?? 0)
+          ? pair.transactionA
+          : pair.transactionB
+        const discard = keeper.id === pair.transactionA.id ? pair.transactionB : pair.transactionA
+        await supabase.from('transactions').update({ is_reviewed: true }).eq('id', keeper.id)
+        await supabase.from('transactions').delete().eq('id', discard.id)
+        setTransactions((prev) =>
+          prev
+            .filter((tx) => tx.id !== discard.id)
+            .map((tx) => (tx.id === keeper.id ? { ...tx, is_reviewed: true } : tx))
+        )
+        showToast(t('duplicates.merged'), 'success')
+      }
+    } catch {
+      showToast(t('duplicates.error'), 'error')
     }
   }, [fuzzyDuplicatePairs, businessId, showToast, t])
 
@@ -630,6 +669,23 @@ export default function BookkeeperPage() {
     }
   }, [plReport, locale, showToast])
 
+  const handleGenerateBSReport = useCallback(() => {
+    const range = getPeriodRange(plPeriod)
+    const startStr = range.start.toISOString().split('T')[0]
+    const endStr = range.end.toISOString().split('T')[0]
+    const report = generateBalanceSheet(transactions, startStr, endStr)
+    setBsReport(report)
+  }, [transactions, plPeriod])
+
+  const handleExportBSExcel = useCallback(async () => {
+    if (!bsReport) return
+    try {
+      await exportBalanceSheetToExcel(bsReport, 'Business')
+    } catch {
+      showToast(locale === 'ar' ? 'فشل في التصدير' : 'Export failed', 'error')
+    }
+  }, [bsReport, locale, showToast])
+
   const handlePrintReport = useCallback(() => {
     window.print()
   }, [])
@@ -733,6 +789,18 @@ export default function BookkeeperPage() {
             />
           </div>
         </div>
+
+        {/* Agent Insights */}
+        <AgentInsights
+          duplicateCount={fuzzyDuplicatePairs.length}
+          lowConfidenceCount={lowConfidenceCount}
+          recurringPatterns={recurringPatterns}
+          monthlyRecurringCost={monthlyRecurringCost}
+          cashFlowForecast={cashFlowForecast}
+          nextVatDueDate={nextVatDueDate}
+          vatEstimate={vatEstimate?.netVAT ?? null}
+          onScrollTo={handleScrollToSection}
+        />
 
         {/* Period Selector */}
         <div className="flex gap-1 rounded-lg bg-surface-1 p-1">
@@ -1348,6 +1416,18 @@ export default function BookkeeperPage() {
             >
               {t('reports.profitLoss')}
             </button>
+            <button
+              type="button"
+              onClick={() => setActiveReportTab('bs')}
+              className={cn(
+                'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all',
+                activeReportTab === 'bs'
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {t('reports.balanceSheet')}
+            </button>
           </div>
 
           {/* VAT Report Tab */}
@@ -1642,6 +1722,160 @@ export default function BookkeeperPage() {
                     <button
                       type="button"
                       onClick={handleExportPLExcel}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {t('reports.exportExcel')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePrintReport}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      {t('reports.print')}
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground/70">{t('reports.disclaimer')}</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Balance Sheet Tab */}
+          {activeReportTab === 'bs' && (
+            <div>
+              <p className="mb-4 text-sm text-muted-foreground">{t('reports.balanceSheetDescription')}</p>
+
+              {/* Period Selector */}
+              <div className="mb-4 flex flex-wrap items-end gap-3">
+                <div>
+                  <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    {t('reports.selectPeriod')}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={plPeriod}
+                      onChange={(e) => setPlPeriod(e.target.value as PeriodKey)}
+                      className="h-9 appearance-none rounded-lg border border-border bg-surface-1 pe-8 ps-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {PERIOD_KEYS.map((key) => (
+                        <option key={key} value={key}>{getPeriodLabel(key, locale)}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute end-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleGenerateBSReport}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  {t('reports.generate')}
+                </button>
+              </div>
+
+              {/* Balance Sheet Results */}
+              {bsReport && (
+                <div className="space-y-4">
+                  {/* Assets */}
+                  <div className="rounded-lg border border-green-500/20 bg-green-500/5 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-green-400">{t('reports.assets')}</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t('reports.cashEquivalents')}</span>
+                        <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                          {formatSAR(bsReport.assets.cash, locale)} {sarLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t('reports.accountsReceivable')}</span>
+                        <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                          {formatSAR(bsReport.assets.receivables, locale)} {sarLabel}
+                        </span>
+                      </div>
+                      <div className="border-t border-border pt-2">
+                        <div className="flex items-center justify-between text-sm font-semibold">
+                          <span className="text-foreground">{t('reports.totalAssets')}</span>
+                          <span className="tabular-nums text-green-400" dir="ltr">
+                            {formatSAR(bsReport.assets.total, locale)} {sarLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Liabilities */}
+                  <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-red-400">{t('reports.liabilities')}</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t('reports.vatPayable')}</span>
+                        <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                          {formatSAR(bsReport.liabilities.vatPayable, locale)} {sarLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t('reports.accountsPayable')}</span>
+                        <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                          {formatSAR(bsReport.liabilities.payables, locale)} {sarLabel}
+                        </span>
+                      </div>
+                      <div className="border-t border-border pt-2">
+                        <div className="flex items-center justify-between text-sm font-semibold">
+                          <span className="text-foreground">{t('reports.totalLiabilities')}</span>
+                          <span className="tabular-nums text-red-400" dir="ltr">
+                            {formatSAR(bsReport.liabilities.total, locale)} {sarLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Equity */}
+                  <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-4">
+                    <h4 className="mb-3 text-sm font-semibold text-blue-400">{t('reports.equity')}</h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t('reports.ownerEquity')}</span>
+                        <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                          {formatSAR(bsReport.equity.ownerEquity, locale)} {sarLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">{t('reports.retainedEarnings')}</span>
+                        <span className="font-medium tabular-nums text-foreground" dir="ltr">
+                          {formatSAR(bsReport.equity.retainedEarnings, locale)} {sarLabel}
+                        </span>
+                      </div>
+                      <div className="border-t border-border pt-2">
+                        <div className="flex items-center justify-between text-sm font-semibold">
+                          <span className="text-foreground">{t('reports.totalEquity')}</span>
+                          <span className="tabular-nums text-blue-400" dir="ltr">
+                            {formatSAR(bsReport.equity.total, locale)} {sarLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Balance Check */}
+                  <div className={cn(
+                    'rounded-lg border p-3 text-center text-sm font-medium',
+                    bsReport.balances
+                      ? 'border-green-500/20 bg-green-500/5 text-green-400'
+                      : 'border-red-500/20 bg-red-500/5 text-red-400'
+                  )}>
+                    {bsReport.balances ? t('reports.balanced') : t('reports.unbalanced')}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleExportBSExcel}
                       className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-2"
                     >
                       <Download className="h-3.5 w-3.5" />
