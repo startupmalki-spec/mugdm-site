@@ -5,6 +5,7 @@
 //
 // Deno runtime — no imports from Next.js src/.
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
 

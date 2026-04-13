@@ -626,15 +626,22 @@ export function TwinklingStars({
   count?: number;
   className?: string;
 }) {
-  const stars = useRef(
-    Array.from({ length: count }, () => ({
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      size: Math.random() * 2 + 1,
-      delay: Math.random() * 4,
-      duration: Math.random() * 2 + 2,
-    }))
-  ).current;
+  const [stars, setStars] = useState<
+    { left: string; top: string; size: number; delay: number; duration: number }[]
+  >([]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time random init on mount
+    setStars(
+      Array.from({ length: count }, () => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        size: Math.random() * 2 + 1,
+        delay: Math.random() * 4,
+        duration: Math.random() * 2 + 2,
+      }))
+    );
+  }, [count]);
 
   return (
     <div
@@ -729,16 +736,23 @@ export function CosmicDust({
   count?: number;
   className?: string;
 }) {
-  const particles = useRef(
-    Array.from({ length: count }, () => ({
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      size: Math.random() * 2 + 2,
-      opacity: Math.random() * 0.2 + 0.1,
-      driftDuration: Math.random() * 15 + 20,
-      delay: Math.random() * 8,
-    }))
-  ).current;
+  const [particles, setParticles] = useState<
+    { left: string; top: string; size: number; opacity: number; driftDuration: number; delay: number }[]
+  >([]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time random init on mount
+    setParticles(
+      Array.from({ length: count }, () => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        size: Math.random() * 2 + 2,
+        opacity: Math.random() * 0.2 + 0.1,
+        driftDuration: Math.random() * 15 + 20,
+        delay: Math.random() * 8,
+      }))
+    );
+  }, [count]);
 
   return (
     <div
