@@ -250,36 +250,75 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
-  const headers: Record<string, string> = {
-    Authorization: `Bearer ${apiKey}`,
-    Accept: 'application/json',
-  }
-
-  let res: Response
-  try {
-    // Wathq has two endpoints: regular CR (most numbers) and Unified Number
-    // (700-series). Pick by prefix so callers can paste either.
-    const baseUrl = digits.startsWith('7') ? WATHQ_UNIFIED_URL : WATHQ_CR_URL
-    res = await fetch(`${baseUrl}/${digits}`, {
-      method: 'GET',
-      headers,
-      signal: controller.signal,
+  // Wathq's gateway accepts auth in several shapes depending on the app's
+  // configuration; cycle through likely variants on 401/403.
+  const baseUrl = digits.startsWith('7') ? WATHQ_UNIFIED_URL : WATHQ_CR_URL
+  const url = `${baseUrl}/${digits}`
+  const variants: Array<{ name: string; headers: Record<string, string> }> = []
+  if (apiSecret) {
+    const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
+    variants.push({
+      name: 'basic',
+      headers: { Authorization: `Basic ${basic}`, Accept: 'application/json' },
     })
-  } catch (err) {
-    clearTimeout(timer)
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new WathqError('TIMEOUT', 'Wathq request timed out')
+    variants.push({
+      name: 'apiKey+apiSecret',
+      headers: { apiKey, apiSecret, Accept: 'application/json' },
+    })
+    variants.push({
+      name: 'apiKey=secret',
+      headers: { apiKey: apiSecret, Accept: 'application/json' },
+    })
+  }
+  variants.push({
+    name: 'apiKey',
+    headers: { apiKey, Accept: 'application/json' },
+  })
+  variants.push({
+    name: 'bearer',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: 'application/json',
+    },
+  })
+
+  let res: Response | null = null
+  let lastStatus = 0
+  for (const variant of variants) {
+    try {
+      const r = await fetch(url, {
+        method: 'GET',
+        headers: variant.headers,
+        signal: controller.signal,
+      })
+      lastStatus = r.status
+      if (r.status !== 401 && r.status !== 403) {
+        res = r
+        break
+      }
+      // Drain body so the connection can be reused on the next attempt.
+      await r.text().catch(() => {})
+    } catch (err) {
+      clearTimeout(timer)
+      if (err instanceof Error && err.name === 'AbortError') {
+        throw new WathqError('TIMEOUT', 'Wathq request timed out')
+      }
+      throw new WathqError(
+        'NETWORK_ERROR',
+        err instanceof Error ? err.message : 'Network error contacting Wathq'
+      )
     }
-    throw new WathqError(
-      'NETWORK_ERROR',
-      err instanceof Error ? err.message : 'Network error contacting Wathq'
-    )
   }
   clearTimeout(timer)
 
-  if (res.status === 401 || res.status === 403) {
-    throw new WathqError('UNAUTHORIZED', 'Wathq rejected the API key', res.status)
+  if (!res) {
+    throw new WathqError(
+      'UNAUTHORIZED',
+      `Wathq rejected all auth variants (last status ${lastStatus})`,
+      lastStatus
+    )
   }
+
   if (res.status === 404) {
     throw new WathqError('NOT_FOUND', 'CR number not found at Wathq', 404)
   }
