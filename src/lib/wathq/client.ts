@@ -232,6 +232,7 @@ export function isWathqConfigured(): boolean {
  */
 export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   const apiKey = process.env.WATHQ_API_KEY
+  const apiSecret = process.env.WATHQ_API_SECRET
   if (!apiKey) {
     throw new WathqError('NOT_CONFIGURED', 'WATHQ_API_KEY is not set')
   }
@@ -241,6 +242,18 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
     throw new WathqError('INVALID_CR', 'CR number must be 10 digits')
   }
 
+  // Wathq issues a consumer key + secret. Send the key as `apiKey` (their
+  // standard header) and, when a secret is provided, also a Basic auth
+  // header `key:secret` — covers both single-key and key+secret APIs.
+  const headers: Record<string, string> = {
+    apiKey,
+    Accept: 'application/json',
+  }
+  if (apiSecret) {
+    headers.Authorization =
+      'Basic ' + Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
+  }
+
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
 
@@ -248,10 +261,7 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   try {
     res = await fetch(`${WATHQ_BASE_URL}/${digits}`, {
       method: 'GET',
-      headers: {
-        apiKey,
-        Accept: 'application/json',
-      },
+      headers,
       signal: controller.signal,
     })
   } catch (err) {
