@@ -710,6 +710,11 @@
           "saveFailed": "Could not save bill. Please try again."
         }
       }
+    },
+    "outstandingAp": {
+      "title": "Outstanding AP",
+      "countLabel": "{count, plural, =0 {No open bills} one {# open bill} other {# open bills}}",
+      "overdueBadge": "{count, plural, one {# overdue bill} other {# overdue bills}}"
     }
   },
   "common": {
@@ -827,7 +832,12 @@
     "healthPoor": "Action required",
     "healthDescription": "Based on obligations, document validity, and linked proof.",
     "tourChatTitle": "AI Assistant",
-    "tourChatDesc": "Your AI-powered assistant. Ask anything about your business — compliance status, expenses, documents, and more."
+    "tourChatDesc": "Your AI-powered assistant. Ask anything about your business — compliance status, expenses, documents, and more.",
+    "outstandingAp": {
+      "title": "Outstanding AP",
+      "countLabel": "{count, plural, =0 {No open bills} one {# open bill} other {# open bills}}",
+      "overdueBadge": "{count, plural, one {# overdue bill} other {# overdue bills}}"
+    }
   },
   "landing": {
     "nav": {

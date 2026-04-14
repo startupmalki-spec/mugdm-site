@@ -41,6 +41,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Obligation, Document, Transaction } from '@/lib/supabase/types'
 import { GettingStartedChecklist } from '@/components/ui/getting-started-checklist'
 import { TourOverlay, type TourStep } from '@/components/ui/tour-overlay'
+import { OutstandingApCard, OverdueBillsBadge } from '@/components/bookkeeper/OutstandingApCard'
 
 // --- Tour steps ---
 
@@ -746,7 +747,10 @@ export default function DashboardPage() {
 
       {/* Welcome Header */}
       <motion.div variants={ITEM_VARIANTS} data-tour="welcome">
-        <h1 className="text-2xl font-bold text-foreground">{t('welcomeDefault')}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold text-foreground">{t('welcomeDefault')}</h1>
+          <OverdueBillsBadge />
+        </div>
         <p className="mt-1 text-muted-foreground">
           {format(new Date(), 'EEEE, dd MMMM yyyy', {
             locale: locale === 'ar' ? ar : enUS,
@@ -814,13 +818,14 @@ export default function DashboardPage() {
           <ComplianceHealthCard healthScore={displayData.healthScore} />
 
           {/* Status Cards Grid */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <ComplianceCard
               nextObligation={displayData.nextObligation}
               obligationCounts={displayData.obligationCounts}
             />
             <DocumentStatusCard docCounts={displayData.docCounts} />
             <FinancialSummaryCard financials={displayData.financials} />
+            <OutstandingApCard ns="dashboard" />
           </div>
 
           {/* AI Insights Panel */}
