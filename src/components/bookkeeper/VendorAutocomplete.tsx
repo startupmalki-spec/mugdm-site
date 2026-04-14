@@ -225,7 +225,7 @@ export default function VendorAutocomplete({
               >
                 <Plus className="h-4 w-4" />
                 {t('addVendor')}
-                {query.trim() && <span className="text-muted-foreground">"{query.trim()}"</span>}
+                {query.trim() && <span className="text-muted-foreground">&ldquo;{query.trim()}&rdquo;</span>}
               </button>
             </>
           )}

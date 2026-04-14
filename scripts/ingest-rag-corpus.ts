@@ -69,6 +69,7 @@ async function discoverFiles(corpusRoot: string): Promise<FileEntry[]> {
 }
 
 async function ingestOne(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   client: any,
   f: FileEntry,
   dryRun: boolean,
