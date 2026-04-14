@@ -18,6 +18,11 @@ import Anthropic from '@anthropic-ai/sdk'
 
 import { createClient } from '@/lib/supabase/server'
 
+import {
+  listBills,
+  sumApOutstanding,
+  billsDueThisWeek,
+} from '@/lib/agents/bills-chat-tools'
 import { retrieve } from '@/lib/rag/retriever'
 import type {
   OrchestrateParams,
@@ -74,36 +79,19 @@ function renderRagContext(
 const BillsAgent: SubAgent = async (userQuery, ctx) => {
   const supabase = await createClient()
 
-  const [{ data: recent }, { data: dueSoon }, { data: outstanding }] = await Promise.all([
-    supabase
-      .from('bills')
-      .select('id, bill_number, issue_date, due_date, total, status, vendor_id')
-      .eq('business_id', ctx.businessId)
-      .order('issue_date', { ascending: false })
-      .limit(10),
-    supabase
-      .from('bills')
-      .select('id, bill_number, due_date, total, status, vendor_id')
-      .eq('business_id', ctx.businessId)
-      .in('status', ['pending', 'approved', 'overdue'])
-      .order('due_date', { ascending: true })
-      .limit(10),
-    supabase
-      .from('bills')
-      .select('total, status')
-      .eq('business_id', ctx.businessId)
-      .in('status', ['pending', 'approved', 'overdue']),
+  // Use the same bill-aware tool implementations registered on the chat catalog,
+  // so single-agent and multi-agent paths share one code path. RLS scopes by user.
+  void ctx.businessId
+  const [recent, dueThisWeek, outstanding] = await Promise.all([
+    listBills(supabase, { limit: 10 }),
+    billsDueThisWeek(supabase),
+    sumApOutstanding(supabase),
   ])
 
-  const totalOutstanding = (outstanding ?? []).reduce(
-    (sum, b) => sum + Number((b as { total?: number | string }).total ?? 0),
-    0
-  )
-
   const snapshot = {
-    totalOutstandingSAR: totalOutstanding,
-    dueSoon: dueSoon ?? [],
-    recent: recent ?? [],
+    outstanding,
+    dueThisWeek,
+    recent,
   }
 
   const anthropic = new Anthropic()
@@ -125,7 +113,8 @@ const BillsAgent: SubAgent = async (userQuery, ctx) => {
     .map((b) => b.text)
     .join('')
 
-  const sources: OrchestratorSource[] = (dueSoon ?? []).slice(0, 3).map((b) => {
+  const dueSoonArr = Array.isArray(dueThisWeek) ? dueThisWeek : []
+  const sources: OrchestratorSource[] = dueSoonArr.slice(0, 3).map((b) => {
     const bill = b as { id: string; bill_number: string | null }
     return {
       kind: 'db' as const,

@@ -16,6 +16,11 @@ import { selectModel } from '@/lib/ai/model-router'
 import { trackUsage } from '@/lib/ai/usage-tracker'
 import { emitServerEvent } from '@/lib/analytics/server-events'
 import { classifyAndRecordFrustration } from '@/lib/intelligence/frustration-classifier'
+import {
+  BILLS_TOOL_DEFINITIONS,
+  executeBillsToolCall,
+  billsToolsEnabled,
+} from '@/lib/agents/bills-chat-tools'
 
 interface ChatRequest {
   message: string
@@ -75,7 +80,7 @@ function formatActionSummary(
   }
 }
 
-const TOOL_DEFINITIONS: Anthropic.Tool[] = [
+const BASE_TOOL_DEFINITIONS: Anthropic.Tool[] = [
   {
     name: 'query_transactions',
     description:
@@ -255,12 +260,22 @@ const TOOL_DEFINITIONS: Anthropic.Tool[] = [
   },
 ]
 
+const TOOL_DEFINITIONS: Anthropic.Tool[] = [
+  ...BASE_TOOL_DEFINITIONS,
+  ...(billsToolsEnabled() ? BILLS_TOOL_DEFINITIONS : []),
+]
+
 async function executeToolCall(
   toolName: string,
   toolInput: Record<string, unknown>,
   businessId: string,
   supabase: Awaited<ReturnType<typeof createClient>>
 ): Promise<string> {
+  if (billsToolsEnabled()) {
+    const billsResult = await executeBillsToolCall(toolName, toolInput, supabase)
+    if (billsResult !== null) return billsResult
+  }
+
   switch (toolName) {
     case 'query_transactions': {
       let query = supabase
