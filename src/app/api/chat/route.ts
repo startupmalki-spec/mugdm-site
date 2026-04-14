@@ -524,6 +524,20 @@ export async function POST(request: Request) {
       })
     }
 
+    // Multi-agent orchestrator (scaffolding; flag-gated, bypasses existing flow).
+    if (process.env.NEXT_PUBLIC_FEATURE_MULTI_AGENT === 'true') {
+      const { orchestrator } = await import('@/lib/agents/orchestrator')
+      const result = await orchestrator.orchestrate({
+        userQuery: body.message,
+        businessId: body.businessId,
+        conversationHistory: [],
+      })
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     // Get or create conversation
     let conversationId = body.conversationId
 

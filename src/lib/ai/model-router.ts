@@ -25,6 +25,7 @@ type TaskType =
   | 'document_analysis_complex'
   | 'categorization'
   | 'intelligence_classification'
+  | 'bill_analysis'
 
 type Purpose = 'user' | 'intelligence_classification' | 'system'
 
@@ -60,6 +61,7 @@ const SONNET_TASKS = new Set<TaskType>([
   'chat',
   'chat_advisory',
   'insights',
+  'bill_analysis',
 ])
 
 export function selectModel(options: RouteOptions): string {

@@ -6,6 +6,7 @@
     "vault": "Document Vault",
     "calendar": "Compliance Calendar",
     "bookkeeper": "Bookkeeper",
+    "bills": "Bills",
     "chat": "Chat",
     "settings": "Settings",
     "billing": "Billing",
@@ -538,6 +539,42 @@
       "deleteSecond": "Delete Second",
       "deleted": "Duplicate transaction deleted",
       "merged": "Transactions merged"
+    },
+    "bills": {
+      "title": "Bills",
+      "subtitle": "Accounts payable — track and pay vendor bills",
+      "comingSoon": "Bills are coming soon. Check back shortly.",
+      "backToBookkeeper": "Back to Bookkeeper",
+      "addBill": "Add Bill",
+      "addFirstBill": "Add your first bill",
+      "emptyTitle": "No bills yet",
+      "emptySubtitle": "Add your first bill to start tracking what you owe.",
+      "noMatches": "No bills match your filters.",
+      "searchPlaceholder": "Search vendor or bill #",
+      "allVendors": "All vendors",
+      "dueFrom": "Due from",
+      "dueTo": "Due to",
+      "amountMin": "Min amount",
+      "amountMax": "Max amount",
+      "view": "View",
+      "columns": {
+        "vendor": "Vendor",
+        "billNumber": "Bill #",
+        "issueDate": "Issue Date",
+        "dueDate": "Due Date",
+        "amount": "Amount (SAR)",
+        "vat": "VAT",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "draft": "Draft",
+        "pending": "Pending",
+        "approved": "Approved",
+        "paid": "Paid",
+        "overdue": "Overdue",
+        "void": "Void"
+      }
     }
   },
   "common": {

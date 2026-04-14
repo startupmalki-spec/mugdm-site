@@ -410,6 +410,110 @@ export type ZatcaCertificate = {
   created_at: string
 }
 
+// =========================================================================
+// Bills / Accounts Payable (migration 015_bills_schema.sql)
+// =========================================================================
+
+export type BillStatus =
+  | 'draft'
+  | 'pending'
+  | 'approved'
+  | 'paid'
+  | 'overdue'
+  | 'void'
+
+export type PaymentMethod =
+  | 'bank_transfer'
+  | 'cash'
+  | 'card'
+  | 'check'
+  | 'other'
+
+export type Vendor = {
+  id: string
+  business_id: string
+  name_ar: string | null
+  name_en: string | null
+  vat_number: string | null
+  iban: string | null
+  email: string | null
+  phone: string | null
+  default_category: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type Bill = {
+  id: string
+  business_id: string
+  vendor_id: string
+  bill_number: string | null
+  issue_date: string
+  due_date: string
+  subtotal: number
+  vat_amount: number
+  vat_rate: number
+  total: number
+  currency: string
+  status: BillStatus
+  notes: string | null
+  bank_transaction_id: string | null
+  workflow_state: Record<string, unknown>
+  created_by: string | null
+  approved_by: string | null
+  approved_at: string | null
+  paid_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type BillLineItem = {
+  id: string
+  bill_id: string
+  description: string
+  quantity: number
+  unit_price: number
+  amount: number
+  category: string | null
+  cost_center: string | null
+  line_order: number
+}
+
+export type BillAttachment = {
+  id: string
+  bill_id: string
+  storage_key: string
+  filename: string
+  mime_type: string | null
+  uploaded_by: string | null
+  uploaded_at: string
+}
+
+export type BillPayment = {
+  id: string
+  bill_id: string
+  paid_at: string
+  amount: number
+  method: PaymentMethod
+  reference_number: string | null
+  confirmation_attachment_key: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export type BillAuditLog = {
+  id: string
+  bill_id: string
+  user_id: string | null
+  action: 'created' | 'submitted' | 'approved' | 'paid' | 'edited' | 'voided'
+  old_state: Record<string, unknown> | null
+  new_state: Record<string, unknown> | null
+  notes: string | null
+  created_at: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -599,6 +703,59 @@ export type Database = {
         Row: AiUsageLog
         Insert: Partial<AiUsageLog> & { user_id: string; model: string; tokens_in: number; tokens_out: number; cost_estimate: number; purpose: string }
         Update: Partial<AiUsageLog>
+        Relationships: []
+      }
+      vendors: {
+        Row: Vendor
+        Insert: Omit<Vendor, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<Vendor, 'id'>>
+        Relationships: []
+      }
+      bills: {
+        Row: Bill
+        Insert: Omit<Bill, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Omit<Bill, 'id'>>
+        Relationships: []
+      }
+      bill_line_items: {
+        Row: BillLineItem
+        Insert: Omit<BillLineItem, 'id'> & { id?: string }
+        Update: Partial<Omit<BillLineItem, 'id'>>
+        Relationships: []
+      }
+      bill_attachments: {
+        Row: BillAttachment
+        Insert: Omit<BillAttachment, 'id' | 'uploaded_at'> & {
+          id?: string
+          uploaded_at?: string
+        }
+        Update: Partial<Omit<BillAttachment, 'id'>>
+        Relationships: []
+      }
+      bill_payments: {
+        Row: BillPayment
+        Insert: Omit<BillPayment, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<BillPayment, 'id'>>
+        Relationships: []
+      }
+      bill_audit_log: {
+        Row: BillAuditLog
+        Insert: Omit<BillAuditLog, 'id' | 'created_at'> & {
+          id?: string
+          created_at?: string
+        }
+        Update: Partial<Omit<BillAuditLog, 'id'>>
         Relationships: []
       }
     }
