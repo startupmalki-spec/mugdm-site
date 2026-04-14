@@ -7,6 +7,7 @@
     "calendar": "تقويم الالتزامات",
     "bookkeeper": "المحاسب الذكي",
     "bills": "الفواتير",
+    "vendors": "المورّدون",
     "chat": "المحادثة",
     "settings": "الإعدادات",
     "billing": "الفوترة",
@@ -137,6 +138,11 @@
       "baladyPhysicalNote": "هل لدى منشأتك مقر فعلي (مكتب، محل، مستودع)؟",
       "requiredLabel": "إلزامي",
       "suggestedLabel": "مقترح",
+      "notApplicableLabel": "غير منطبق",
+      "requiredLockedNote": "إلزامي لجميع المنشآت السعودية — لا يمكن تعطيله.",
+      "baladyNoPremisesNote": "فعّله إذا كان لمنشأتك مقر فعلي.",
+      "showNotApplicable": "عرض {count} غير منطبق",
+      "hideNotApplicable": "إخفاء غير المنطبق",
       "continue": "تأكيد ومتابعة"
     }
   },
@@ -575,6 +581,12 @@
         "overdue": "متأخرة",
         "void": "ملغاة"
       },
+      "export": {
+        "label": "تصدير إلى Excel",
+        "loading": "جارٍ التصدير…",
+        "tooltip": "تنزيل الفواتير الحالية بصيغة .xlsx",
+        "error": "تعذّر تصدير الفواتير"
+      },
       "detail": {
         "back": "العودة إلى الفواتير",
         "title": "فاتورة",
@@ -650,6 +662,15 @@
           "other": "أخرى"
         }
       },
+      "inbound": {
+        "notificationTitle": "تم استلام فاتورة عبر البريد الإلكتروني",
+        "notificationBody": "تم استيراد {count} مسودة فاتورة من {from}. راجعها في صندوق الفواتير.",
+        "notificationBodyNoFrom": "تم استيراد {count} مسودة فاتورة عبر البريد الإلكتروني. راجعها في صندوق الفواتير.",
+        "reviewAction": "مراجعة الفواتير",
+        "notes": "مستورَد عبر البريد الإلكتروني",
+        "unknownVendor": "مورّد غير معروف (استيراد بريدي)",
+        "placeholderLine": "مرفق مستورَد — يحتاج للمراجعة"
+      },
       "noBusiness": "لا يوجد نشاط تجاري مرتبط بحسابك.",
       "form": {
         "title": "إضافة فاتورة",
@@ -709,7 +730,79 @@
           "totalPositive": "الإجمالي يجب أن يكون أكبر من صفر.",
           "saveFailed": "تعذّر حفظ الفاتورة. حاول مرة أخرى."
         }
+      },
+      "bulk": {
+        "linkLabel": "رفع جماعي",
+        "title": "رفع فواتير متعددة",
+        "subtitle": "أفلت حتى {max} ملف PDF أو صورة دفعة واحدة. نستخرج البيانات وتراجعها قبل الحفظ.",
+        "dropTitle": "أفلت الملفات هنا أو انقر للاستعراض",
+        "dropHint": "PDF أو صورة، حتى {max} ملفات، الحد الأقصى 10 ميغابايت لكل ملف",
+        "queueTitle": "{count, plural, zero {لا توجد ملفات} one {ملف واحد} two {ملفان} few {# ملفات} many {# ملفاً} other {# ملف}} في قائمة الانتظار",
+        "queueProgress": "تم حفظ {saved} من {total}",
+        "clearAll": "مسح الكل",
+        "saveAll": "حفظ الكل ({count})",
+        "done": "تم — عرض الفواتير",
+        "openFullEditor": "فتح المحرّر الكامل",
+        "editWarn": "الحفظ من داخل المحرّر الكامل سينقلك بعيداً عن صفحة الرفع الجماعي. احفظ باقي الصفوف أولاً.",
+        "status": {
+          "queued": "في الانتظار",
+          "uploading": "جارٍ الرفع",
+          "ocr": "جارٍ الاستخراج",
+          "ready": "جاهز",
+          "saving": "جارٍ الحفظ",
+          "saved": "محفوظ",
+          "error": "خطأ"
+        },
+        "fields": {
+          "vendor": "المورّد",
+          "billNumber": "رقم الفاتورة",
+          "total": "الإجمالي",
+          "issueDate": "تاريخ الإصدار",
+          "dueDate": "تاريخ الاستحقاق",
+          "vatRate": "نسبة الضريبة %",
+          "lineItems": "{count, plural, one {بند واحد} two {بندان} few {# بنود} many {# بنداً} other {# بند}}",
+          "moreLineItems": "+{count} المزيد"
+        },
+        "errors": {
+          "maxFiles": "يمكنك رفع حتى {max} ملفاً في المرة الواحدة.",
+          "tooLarge": "الملف {name} يتجاوز 10 ميغابايت وتمّ تخطّيه.",
+          "ocrFailed": "تعذّر استخراج البيانات من هذا الملف.",
+          "saveFailed": "تعذّر حفظ هذه الفاتورة."
+        }
       }
+    },
+    "vendors": {
+      "title": "المورّدون",
+      "subtitle": "تحليلات الإنفاق حسب المورّد.",
+      "comingSoon": "تحليلات المورّدين قادمة قريباً.",
+      "backToBookkeeper": "العودة إلى المحاسب الذكي",
+      "emptyTitle": "لا يوجد مورّدون بعد",
+      "emptySubtitle": "أضف فاتورة لإنشاء أول مورّد.",
+      "topSpend": "أعلى 5 مورّدين إنفاقاً",
+      "spendShare": "نسبة الإنفاق حسب المورّد",
+      "totalSpend": "إجمالي الإنفاق",
+      "billCount": "الفواتير",
+      "lastPaid": "آخر دفعة",
+      "avgCycle": "متوسط دورة الدفع",
+      "days": "{n} يوم",
+      "never": "—",
+      "vendor": "المورّد",
+      "viewDetail": "عرض",
+      "backToVendors": "العودة إلى المورّدين",
+      "detailTitle": "تفاصيل المورّد",
+      "contactInfo": "التواصل",
+      "noEmail": "بدون بريد إلكتروني",
+      "noPhone": "بدون هاتف",
+      "vatNumber": "الرقم الضريبي",
+      "iban": "الآيبان",
+      "billsTitle": "الفواتير",
+      "paymentsTitle": "سجل المدفوعات",
+      "noBills": "لا توجد فواتير لهذا المورّد بعد.",
+      "noPayments": "لا توجد مدفوعات مسجّلة بعد.",
+      "paymentAmount": "المبلغ",
+      "paymentDate": "تاريخ الدفع",
+      "paymentMethod": "الطريقة",
+      "paymentReference": "المرجع"
     },
     "outstandingAp": {
       "title": "الذمم الدائنة المستحقة",

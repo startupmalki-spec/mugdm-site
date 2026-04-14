@@ -7,6 +7,7 @@
     "calendar": "Compliance Calendar",
     "bookkeeper": "Bookkeeper",
     "bills": "Bills",
+    "vendors": "Vendors",
     "chat": "Chat",
     "settings": "Settings",
     "billing": "Billing",
@@ -137,6 +138,11 @@
       "baladyPhysicalNote": "Does your business have physical premises (office, shop, warehouse)?",
       "requiredLabel": "Required",
       "suggestedLabel": "Suggested",
+      "notApplicableLabel": "Not applicable",
+      "requiredLockedNote": "Required for all Saudi businesses — cannot be disabled.",
+      "baladyNoPremisesNote": "Enable if your business has a physical premises.",
+      "showNotApplicable": "Show {count} not applicable",
+      "hideNotApplicable": "Hide not applicable",
       "continue": "Confirm & continue"
     }
   },
@@ -575,6 +581,12 @@
         "overdue": "Overdue",
         "void": "Void"
       },
+      "export": {
+        "label": "Export to Excel",
+        "loading": "Exporting…",
+        "tooltip": "Download current bills as .xlsx",
+        "error": "Failed to export bills"
+      },
       "detail": {
         "back": "Back to bills",
         "title": "Bill",
@@ -650,6 +662,15 @@
           "other": "Other"
         }
       },
+      "inbound": {
+        "notificationTitle": "Bill received via email",
+        "notificationBody": "Ingested {count} draft bill(s) from {from}. Review in the Bills inbox.",
+        "notificationBodyNoFrom": "Ingested {count} draft bill(s) via email. Review in the Bills inbox.",
+        "reviewAction": "Review bills",
+        "notes": "Ingested via email-to-bill",
+        "unknownVendor": "Unknown vendor (email ingest)",
+        "placeholderLine": "Ingested attachment — review required"
+      },
       "noBusiness": "No business found for your account.",
       "form": {
         "title": "Add Bill",
@@ -709,7 +730,79 @@
           "totalPositive": "Total must be greater than 0.",
           "saveFailed": "Could not save bill. Please try again."
         }
+      },
+      "bulk": {
+        "linkLabel": "Bulk upload",
+        "title": "Bulk upload bills",
+        "subtitle": "Drop up to {max} PDFs or images at once. We OCR each one and you review before saving.",
+        "dropTitle": "Drop files here or click to browse",
+        "dropHint": "PDF or image, up to {max} files, each 10MB max",
+        "queueTitle": "{count, plural, one {# file} other {# files}} in queue",
+        "queueProgress": "{saved} of {total} saved",
+        "clearAll": "Clear all",
+        "saveAll": "Save all ({count})",
+        "done": "Done — view bills",
+        "openFullEditor": "Open full editor",
+        "editWarn": "Saving inside the full editor will navigate away from this bulk page. Save other rows first.",
+        "status": {
+          "queued": "Queued",
+          "uploading": "Uploading",
+          "ocr": "Extracting",
+          "ready": "Ready",
+          "saving": "Saving",
+          "saved": "Saved",
+          "error": "Error"
+        },
+        "fields": {
+          "vendor": "Vendor",
+          "billNumber": "Bill #",
+          "total": "Total",
+          "issueDate": "Issue date",
+          "dueDate": "Due date",
+          "vatRate": "VAT %",
+          "lineItems": "{count, plural, one {# line item} other {# line items}}",
+          "moreLineItems": "+{count} more"
+        },
+        "errors": {
+          "maxFiles": "You can only upload up to {max} files at once.",
+          "tooLarge": "{name} exceeds 10MB and was skipped.",
+          "ocrFailed": "Could not extract data from this file.",
+          "saveFailed": "Could not save this bill."
+        }
       }
+    },
+    "vendors": {
+      "title": "Vendors",
+      "subtitle": "Spend analytics across your vendors.",
+      "comingSoon": "Vendor analytics are coming soon.",
+      "backToBookkeeper": "Back to Bookkeeper",
+      "emptyTitle": "No vendors yet",
+      "emptySubtitle": "Add a bill to create your first vendor.",
+      "topSpend": "Top 5 vendors by spend",
+      "spendShare": "Spend share by vendor",
+      "totalSpend": "Total spend",
+      "billCount": "Bills",
+      "lastPaid": "Last paid",
+      "avgCycle": "Avg payment cycle",
+      "days": "{n} days",
+      "never": "—",
+      "vendor": "Vendor",
+      "viewDetail": "View",
+      "backToVendors": "Back to vendors",
+      "detailTitle": "Vendor detail",
+      "contactInfo": "Contact",
+      "noEmail": "No email",
+      "noPhone": "No phone",
+      "vatNumber": "VAT #",
+      "iban": "IBAN",
+      "billsTitle": "Bills",
+      "paymentsTitle": "Payment history",
+      "noBills": "No bills for this vendor yet.",
+      "noPayments": "No payments recorded yet.",
+      "paymentAmount": "Amount",
+      "paymentDate": "Paid on",
+      "paymentMethod": "Method",
+      "paymentReference": "Reference"
     },
     "outstandingAp": {
       "title": "Outstanding AP",

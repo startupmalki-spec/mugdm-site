@@ -6,6 +6,7 @@ import { Link } from '@/i18n/routing'
 import { Plus, Search, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { BillStatus, Vendor } from '@/lib/supabase/types'
+import BillsExportButton from './BillsExportButton'
 
 export interface BillRow {
   id: string
@@ -27,6 +28,7 @@ type VendorOption = Pick<Vendor, 'id' | 'name_ar' | 'name_en'>
 interface Props {
   bills: BillRow[]
   vendors: VendorOption[]
+  businessId: string
 }
 
 const ALL_STATUSES: BillStatus[] = [
@@ -81,7 +83,7 @@ function vendorName(v: VendorOption | BillRow, locale: string): string {
   return en || ar || '—'
 }
 
-export default function BillsList({ bills, vendors }: Props) {
+export default function BillsList({ bills, vendors, businessId }: Props) {
   const t = useTranslations('bookkeeper.bills')
   const locale = useLocale()
 
@@ -142,13 +144,16 @@ export default function BillsList({ bills, vendors }: Props) {
           <h1 className="text-2xl font-semibold text-foreground">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
-        <Link
-          href="/bookkeeper/bills/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-        >
-          <Plus className="h-4 w-4" />
-          {t('addBill')}
-        </Link>
+        <div className="flex items-center gap-2">
+          <BillsExportButton businessId={businessId} />
+          <Link
+            href="/bookkeeper/bills/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            {t('addBill')}
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

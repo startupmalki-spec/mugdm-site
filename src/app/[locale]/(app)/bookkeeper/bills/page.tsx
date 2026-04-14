@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import { Link } from '@/i18n/routing'
 import { requireAuth } from '@/lib/supabase/auth-guard'
 import { createClient } from '@/lib/supabase/server'
+import { Upload } from 'lucide-react'
 import BillsList, { type BillRow } from '@/components/bookkeeper/BillsList'
 import type { Bill, Vendor } from '@/lib/supabase/types'
 
@@ -43,6 +44,7 @@ export default async function BillsPage({ params }: PageProps) {
 
   let bills: BillRow[] = []
   let vendors: Pick<Vendor, 'id' | 'name_ar' | 'name_en'>[] = []
+  let businessId = ''
 
   if (user) {
     const { data: biz } = await supabase
@@ -52,6 +54,7 @@ export default async function BillsPage({ params }: PageProps) {
       .single()
 
     if (biz?.id) {
+      businessId = biz.id
       const { data: billRows } = await supabase
         .from('bills')
         .select(
@@ -87,5 +90,18 @@ export default async function BillsPage({ params }: PageProps) {
     }
   }
 
-  return <BillsList bills={bills} vendors={vendors} />
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Link
+          href="/bookkeeper/bills/bulk"
+          className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-3"
+        >
+          <Upload className="h-4 w-4" />
+          {t('bulk.linkLabel')}
+        </Link>
+      </div>
+      <BillsList bills={bills} vendors={vendors} businessId={businessId} />
+    </div>
+  )
 }

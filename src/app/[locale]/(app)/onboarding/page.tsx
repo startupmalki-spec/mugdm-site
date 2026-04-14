@@ -31,16 +31,11 @@ import {
   type GeneratedObligation,
   type CRData,
 } from '@/lib/compliance/obligation-generator'
-import type { ObligationType, ObligationFrequency } from '@/lib/supabase/types'
-
-interface PreviewedObligation {
-  type: ObligationType
-  name: string
-  applicability: 'REQUIRED' | 'NOT_APPLICABLE' | 'SUGGESTED'
-  reason: { ar: string; en: string } | null
-  frequency: ObligationFrequency
-  next_due_date: string
-}
+import type { ObligationType } from '@/lib/supabase/types'
+import {
+  ObligationReview,
+  type PreviewedObligation,
+} from '@/components/onboarding/ObligationReview'
 
 /* ───────── Types ───────── */
 
@@ -215,11 +210,19 @@ export default function OnboardingPage() {
         const json = (await res.json()) as { obligations: PreviewedObligation[] }
         if (cancelled) return
         setPreviewObligations(json.obligations)
-        // Default-checked: REQUIRED items. BALADY with hasPhysicalLocation=false
-        // defaults OFF (its applicability is already SUGGESTED in that case).
+        // Default-checked: REQUIRED (locked) + SUGGESTED items. BALADY defaults
+        // OFF when the user said they have no physical premises. NOT_APPLICABLE
+        // items are never added.
         const preChecked = new Set<ObligationType>()
         for (const ob of json.obligations) {
-          if (ob.applicability === 'REQUIRED') preChecked.add(ob.type)
+          if (ob.applicability === 'NOT_APPLICABLE') continue
+          if (ob.applicability === 'REQUIRED') {
+            preChecked.add(ob.type)
+            continue
+          }
+          // SUGGESTED — on by default, except BALADY with no premises.
+          if (ob.type === 'BALADY' && hasPhysicalLocation === false) continue
+          preChecked.add(ob.type)
         }
         setConfirmedTypes(preChecked)
       } catch {
@@ -1057,143 +1060,21 @@ export default function OnboardingPage() {
   }
 
   function renderCalendarPreview() {
-    const isArabic = locale === 'ar'
     return (
-      <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center"
-        >
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-            <CalendarCheck className="h-7 w-7 text-primary" />
-          </div>
-          <h2 className="text-xl font-semibold text-foreground">
-            {t('obligationReview.title')}
-          </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t('obligationReview.subtitle')}
-          </p>
-        </motion.div>
-
-        {/* Physical-premises question */}
-        <div className="rounded-xl border border-border bg-card p-4">
-          <p className="mb-2 text-sm font-medium text-foreground">
-            {t('obligationReview.baladyPhysicalNote')}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={hasPhysicalLocation === true ? 'default' : 'outline'}
-              onClick={() => setHasPhysicalLocation(true)}
-            >
-              {tCommon('yes')}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={hasPhysicalLocation === false ? 'default' : 'outline'}
-              onClick={() => setHasPhysicalLocation(false)}
-            >
-              {tCommon('no')}
-            </Button>
-          </div>
-        </div>
-
-        {previewLoading && (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          {previewObligations.map((ob, index) => {
-            const Icon = OBLIGATION_ICONS[ob.type] || CalendarDays
-            const colorClasses = OBLIGATION_COLORS[ob.type] || 'text-blue-400 bg-blue-500/10'
-            const [textColor, bgColor] = colorClasses.split(' ')
-            const checked = confirmedTypes.has(ob.type)
-            const isSuggested = ob.applicability === 'SUGGESTED'
-            const reasonText = ob.reason
-              ? isArabic
-                ? ob.reason.ar
-                : ob.reason.en
-              : null
-
-            return (
-              <motion.label
-                key={ob.type}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05, duration: 0.25 }}
-                className={cn(
-                  'flex cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 transition-colors',
-                  checked
-                    ? 'border-primary/40 bg-primary/5'
-                    : 'border-border bg-card hover:border-border/80'
-                )}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => toggleObligation(ob.type)}
-                  className="mt-1 h-4 w-4 shrink-0 accent-primary"
-                />
-                <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', bgColor)}>
-                  <Icon className={cn('h-4 w-4', textColor)} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">
-                      {t.has(`obligationNames.${ob.type}` as Parameters<typeof t.has>[0])
-                        ? t(`obligationNames.${ob.type}` as Parameters<typeof t>[0])
-                        : ob.name}
-                    </p>
-                    {isSuggested ? (
-                      <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-400">
-                        {t('obligationReview.suggestedLabel')}
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-400">
-                        {t('obligationReview.requiredLabel')}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {t(`frequencyLabels.${ob.frequency}` as Parameters<typeof t>[0])}
-                    {' · '}
-                    {ob.next_due_date}
-                  </p>
-                  {isSuggested && (
-                    <p className="mt-1 text-xs italic text-amber-400/80">
-                      {reasonText ?? t('obligationReview.suggestedNote')}
-                    </p>
-                  )}
-                </div>
-                <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
-              </motion.label>
-            )
-          })}
-        </div>
-
-        {!previewLoading && previewObligations.length === 0 && (
-          <div className="rounded-lg border border-border bg-card p-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t('calendarPreviewSubtitle')}
-            </p>
-          </div>
-        )}
-
-        <div className="flex justify-center pt-2">
-          <Button onClick={handleNext} size="lg" className="gap-2">
-            {t('obligationReview.continue')}
-            <ChevronRight className="h-4 w-4 rtl:rotate-180" />
-          </Button>
-        </div>
-      </div>
+      <ObligationReview
+        obligations={previewObligations}
+        loading={previewLoading}
+        confirmedTypes={confirmedTypes}
+        onToggle={toggleObligation}
+        hasPhysicalLocation={hasPhysicalLocation}
+        onSetPhysicalLocation={setHasPhysicalLocation}
+        onContinue={handleNext}
+      />
     )
   }
 
+  // Legacy inline review render removed — now handled by <ObligationReview />.
+  //
   /* ─── Step 5: Contact Info ─── */
 
   function renderStep5() {
