@@ -60,7 +60,7 @@ export function Contact() {
         <div>
           {/* Spinning conic gradient border */}
           <div
-            className="absolute inset-[-1px] rounded-[17px] p-px pointer-events-none opacity-50"
+            className="absolute inset-[-1px] rounded-2xl p-px pointer-events-none opacity-50"
             style={{
               background: "conic-gradient(from var(--form-angle, 0deg), transparent 60%, rgba(30,64,175,0.4) 80%, transparent 100%)",
               WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
@@ -94,7 +94,7 @@ export function Contact() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="h-12 w-full rounded-[10px] border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2"
+                  className="h-12 w-full rounded-lg border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2"
                 />
                 <input
                   type="email"
@@ -102,7 +102,7 @@ export function Contact() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="h-12 w-full rounded-[10px] border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2"
+                  className="h-12 w-full rounded-lg border border-border bg-surface-1 px-4 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2"
                 />
               </div>
               <textarea
@@ -111,7 +111,7 @@ export function Contact() {
                 rows={5}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="w-full rounded-[10px] border border-border bg-surface-1 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2 resize-none min-h-[120px]"
+                className="w-full rounded-lg border border-border bg-surface-1 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all duration-300 focus:border-primary focus:shadow-[0_0_0_3px_rgba(30,64,175,0.15),0_4px_20px_rgba(30,64,175,0.08)] focus:bg-surface-2 resize-none min-h-[120px]"
               />
               <button
                 type="submit"

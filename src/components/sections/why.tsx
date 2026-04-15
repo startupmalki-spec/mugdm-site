@@ -47,7 +47,7 @@ export function Why() {
                 >
                   {/* Animated gradient border glow */}
                   <div
-                    className="absolute inset-[-1px] rounded-[17px] p-px opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
+                    className="absolute inset-[-1px] rounded-2xl p-px opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
                     style={{
                       background: "linear-gradient(135deg, transparent 30%, rgba(30,64,175,0.5) 50%, transparent 70%)",
                       backgroundSize: "300% 300%",
