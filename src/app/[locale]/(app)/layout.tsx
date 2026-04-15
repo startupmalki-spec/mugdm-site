@@ -26,6 +26,7 @@ import {
   Check,
 } from 'lucide-react'
 import FloatingAssistant from '@/components/chat/FloatingAssistant'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import SetPasswordModal from '@/components/auth/SetPasswordModal'
 import { ParticleNetwork, TwinklingStars, ShootingStar } from '@/lib/animations'
 import { BusinessProvider, useBusiness } from '@/lib/business-context'
@@ -293,6 +294,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Globe className="h-5 w-5 shrink-0" />
             <span>{locale === 'ar' ? 'English' : 'العربية'}</span>
           </button>
+          <ThemeToggle />
           <button
             type="button"
             onClick={handleLogout}
@@ -394,6 +396,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Globe className="h-5 w-5 shrink-0" />
             <span>{locale === 'ar' ? 'English' : 'العربية'}</span>
           </button>
+          <ThemeToggle />
           <button
             type="button"
             onClick={handleLogout}

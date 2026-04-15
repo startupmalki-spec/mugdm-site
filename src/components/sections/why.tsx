@@ -11,7 +11,7 @@ const COUNTER_CONFIG: Record<string, { target: number; prefix: string; suffix: s
   ai: { target: 100, prefix: "", suffix: "%" },
   replaces: { target: 5, prefix: "", suffix: "+" },
 };
-const STATIC_STATS: Record<string, string> = { saudi: "\uD83C\uDDF8\uD83C\uDDE6" };
+const STATIC_STATS: Record<string, string> = { saudi: "KSA" };
 
 export function Why() {
   const t = useTranslations("landing.why");

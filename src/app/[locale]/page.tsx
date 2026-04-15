@@ -2,6 +2,7 @@ import { Navbar } from '@/components/sections/navbar'
 import { Hero } from '@/components/sections/hero'
 import { SocialProof } from '@/components/sections/social-proof'
 import { Stats } from '@/components/sections/stats'
+import { BuiltOn } from '@/components/sections/built-on'
 import { Features } from '@/components/sections/features'
 import { Process } from '@/components/sections/process'
 import { Demo } from '@/components/sections/demo'
@@ -21,6 +22,7 @@ export default function Home() {
         <Hero />
         <ScrollReveal><SocialProof /></ScrollReveal>
         <ScrollReveal><Stats /></ScrollReveal>
+        <ScrollReveal><BuiltOn /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Features /></ScrollReveal>
         <GlowDivider className="my-0" />
