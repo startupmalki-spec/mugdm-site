@@ -254,24 +254,87 @@ interface SingleAttempt {
   parsed: WathqRawResponse | null
 }
 
-async function tryLookupCR(
+/* ───────── OAuth2 client_credentials (THIQAH) ───────── */
+
+const TOKEN_ENDPOINTS = [
+  'https://api.wathq.sa/oauth2/token',
+  'https://api.wathq.sa/token',
+  'https://api.wathq.sa/oauth/v1/access_token',
+  'https://api.wathq.sa/v1/oauth2/token',
+  'https://identity.wathq.sa/oauth2/token',
+  'https://auth.wathq.sa/oauth2/token',
+  'https://sso.wathq.sa/oauth2/token',
+]
+
+interface CachedToken {
+  token: string
+  expiresAt: number
+}
+let tokenCache: CachedToken | null = null
+
+async function fetchBearerToken(
+  apiKey: string,
+  apiSecret: string,
+): Promise<string | null> {
+  const now = Date.now()
+  if (tokenCache && tokenCache.expiresAt - 60_000 > now) return tokenCache.token
+
+  const basic = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
+  for (const endpoint of TOKEN_ENDPOINTS) {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+        body: 'grant_type=client_credentials',
+        signal: controller.signal,
+      })
+      clearTimeout(timer)
+      if (!res.ok) {
+        const body = await res.text().catch(() => '')
+        console.warn(
+          `[wathq] token endpoint ${endpoint} returned ${res.status}: ${body.slice(0, 200)}`,
+        )
+        continue
+      }
+      const json = (await res.json().catch(() => null)) as
+        | { access_token?: string; expires_in?: number }
+        | null
+      if (json?.access_token) {
+        const ttl = (json.expires_in ?? 3600) * 1000
+        tokenCache = { token: json.access_token, expiresAt: now + ttl }
+        console.info(`[wathq] obtained bearer token via ${endpoint}`)
+        return json.access_token
+      }
+    } catch (err) {
+      clearTimeout(timer)
+      console.warn(
+        `[wathq] token exchange failed at ${endpoint}: ${err instanceof Error ? err.message : String(err)}`,
+      )
+    }
+  }
+  return null
+}
+
+type AuthStrategy = 'apiKey' | 'apiKey+secret' | 'apiKey+bearer'
+
+async function singleAttempt(
   base: string,
   crDigits: string,
-  apiKey: string,
+  headers: Record<string, string>,
 ): Promise<SingleAttempt> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
-  // Per Wathq OpenAPI securityDefinitions: single `apiKey` header carrying
-  // the Consumer Key.
-  const headers: Record<string, string> = {
-    apiKey,
-    Accept: 'application/json',
-  }
   let res: Response
   try {
     res = await fetch(buildUrl(base, crDigits), {
       method: 'GET',
-      headers,
+      headers: { Accept: 'application/json', ...headers },
       signal: controller.signal,
     })
   } finally {
@@ -289,6 +352,42 @@ async function tryLookupCR(
   return { status: res.status, ok: res.ok, body, parsed }
 }
 
+function buildAuthStrategies(
+  apiKey: string,
+  apiSecret: string,
+  bearer: string | null,
+): { strategy: AuthStrategy; headers: Record<string, string> }[] {
+  const out: { strategy: AuthStrategy; headers: Record<string, string> }[] = []
+  if (bearer) {
+    out.push({ strategy: 'apiKey+bearer', headers: { apiKey, Authorization: `Bearer ${bearer}` } })
+  }
+  if (apiSecret) {
+    out.push({ strategy: 'apiKey+secret', headers: { apiKey, apiSecret } })
+  }
+  out.push({ strategy: 'apiKey', headers: { apiKey } })
+  return out
+}
+
+async function tryLookupCR(
+  base: string,
+  crDigits: string,
+  apiKey: string,
+  apiSecret: string,
+  bearer: string | null,
+): Promise<SingleAttempt & { strategy: AuthStrategy }> {
+  let last: SingleAttempt = { status: 0, ok: false, body: '', parsed: null }
+  let lastStrategy: AuthStrategy = 'apiKey'
+  for (const { strategy, headers } of buildAuthStrategies(apiKey, apiSecret, bearer)) {
+    const a = await singleAttempt(base, crDigits, headers)
+    last = a
+    lastStrategy = strategy
+    if (a.ok) return { ...a, strategy }
+    // 404 / 429 are definitive — don't try more auth flavors against this base.
+    if (a.status === 404 || a.status === 429) break
+  }
+  return { ...last, strategy: lastStrategy }
+}
+
 /**
  * Look up a CR number via Wathq with automatic base-URL fallback.
  * Throws `WathqError` on any failure (including NOT_CONFIGURED).
@@ -301,11 +400,18 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   if (!apiKey) {
     throw new WathqError('NOT_CONFIGURED', 'WATHQ_API_KEY is not set')
   }
-  void apiSecret // kept for future-proofing; not sent on the wire
-
   const digits = crNumber.replace(/\s/g, '')
   if (!/^\d{10}$/.test(digits)) {
     throw new WathqError('INVALID_CR', 'CR number must be 10 digits')
+  }
+
+  // If apiSecret is set, attempt OAuth2 client_credentials to mint a bearer
+  // token. THIQAH-gated Wathq products commonly require this. If the token
+  // exchange fails (e.g. wrong grant flow for this product) we still proceed
+  // with apiKey-only headers — the per-base loop will surface the real error.
+  let bearer: string | null = null
+  if (apiSecret) {
+    bearer = await fetchBearerToken(apiKey, apiSecret)
   }
 
   const bases = getCandidateBases()
@@ -314,9 +420,9 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   let allDenied = true
 
   for (const base of bases) {
-    let attempt: SingleAttempt
+    let attempt: SingleAttempt & { strategy: AuthStrategy }
     try {
-      attempt = await tryLookupCR(base, digits, apiKey)
+      attempt = await tryLookupCR(base, digits, apiKey, apiSecret, bearer)
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // timeout — try the next base
@@ -334,7 +440,7 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
     lastBodyExcerpt = attempt.body.slice(0, 200)
 
     if (attempt.ok && attempt.parsed) {
-      console.info(`[wathq] lookup succeeded via ${base}`)
+      console.info(`[wathq] lookup succeeded via ${base} (auth=${attempt.strategy})`)
       return mapWathqToCRData(attempt.parsed)
     }
 
@@ -375,20 +481,23 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
 export async function probeWathqAccess(
   apiKey: string,
   testCr: string,
-): Promise<{ base: string; status: number; ok: boolean; bodyExcerpt: string }[]> {
+  apiSecret?: string,
+): Promise<{ base: string; status: number; ok: boolean; bodyExcerpt: string; auth: AuthStrategy }[]> {
   const digits = testCr.replace(/\s/g, '')
   const bases = getCandidateBases()
-  const rows: { base: string; status: number; ok: boolean; bodyExcerpt: string }[] = []
+  const bearer = apiSecret ? await fetchBearerToken(apiKey, apiSecret) : null
+  const rows: { base: string; status: number; ok: boolean; bodyExcerpt: string; auth: AuthStrategy }[] = []
   for (const base of bases) {
     try {
-      const a = await tryLookupCR(base, digits, apiKey)
-      rows.push({ base, status: a.status, ok: a.ok, bodyExcerpt: a.body.slice(0, 400) })
+      const a = await tryLookupCR(base, digits, apiKey, apiSecret ?? '', bearer)
+      rows.push({ base, status: a.status, ok: a.ok, bodyExcerpt: a.body.slice(0, 400), auth: a.strategy })
     } catch (err) {
       rows.push({
         base,
         status: 0,
         ok: false,
         bodyExcerpt: err instanceof Error ? err.message : String(err),
+        auth: 'apiKey',
       })
     }
   }

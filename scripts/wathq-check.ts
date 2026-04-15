@@ -31,13 +31,19 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`[wathq-check] probing CR ${cr} with key ${apiKey.slice(0, 6)}…\n`)
-  const rows = await probeWathqAccess(apiKey, cr)
+  const apiSecret = (process.env.WATHQ_API_SECRET ?? '').trim().replace(/^["']|["']$/g, '')
+  console.log(
+    `[wathq-check] probing CR ${cr} with key ${apiKey.slice(0, 6)}… secret=${apiSecret ? 'present' : 'absent'}\n`,
+  )
+  const rows = await probeWathqAccess(apiKey, cr, apiSecret || undefined)
 
   const baseW = Math.max(...rows.map((r) => r.base.length), 'Base URL'.length)
-  console.log(`${pad('Base URL', baseW)}  Status  OK`)
+  const authW = Math.max(...rows.map((r) => r.auth.length), 'Auth'.length)
+  console.log(`${pad('Base URL', baseW)}  Status  OK  ${pad('Auth', authW)}`)
   for (const r of rows) {
-    console.log(`${pad(r.base, baseW)}  ${pad(String(r.status), 6)}  ${r.ok ? '✓' : '✗'}`)
+    console.log(
+      `${pad(r.base, baseW)}  ${pad(String(r.status), 6)}  ${r.ok ? '✓' : '✗'}   ${pad(r.auth, authW)}`,
+    )
   }
 
   const firstOk = rows.find((r) => r.ok)
