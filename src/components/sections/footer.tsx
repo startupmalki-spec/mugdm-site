@@ -89,8 +89,16 @@ export function Footer() {
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-border text-center text-xs text-muted-foreground">
-          {t("copyright", { year: new Date().getFullYear() })}
+        <div className="mt-8 pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>{t("copyright", { year: new Date().getFullYear() })}</span>
+          <div className="flex items-center gap-5">
+            <Link href="/terms" className="hover:text-foreground transition-colors">
+              {t("terms")}
+            </Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
+              {t("privacy")}
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

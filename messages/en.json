@@ -1,4 +1,10 @@
 {
+  "app": {
+    "theme": {
+      "switchToLight": "Switch to light mode",
+      "switchToDark": "Switch to dark mode"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Business Profile",
@@ -992,6 +998,9 @@
     "socialProof": {
       "caption": "Trusted by founders across Saudi Arabia"
     },
+    "builtOn": {
+      "label": "Built on"
+    },
     "stats": {
       "srHeading": "Mugdm by the numbers",
       "portals": { "value": "8 → 1", "label": "portals replaced by one back office" },
@@ -1122,7 +1131,7 @@
     },
     "howItWorks": {
       "badge": "How It Works",
-      "title": "From zero to smarter in 3 minutes",
+      "title": "From zero to fully set up in under an hour",
       "subtitle": "No training. No onboarding calls. Just sign up and let Mugdm do the heavy lifting.",
       "step1": {
         "number": "01",
@@ -1246,30 +1255,6 @@
         "assistantMessage2": "Late Chamber of Commerce renewal typically incurs a fee of SAR 500-2,000 depending on your business type. I'd recommend scheduling it this week.",
         "placeholder": "Type your message..."
       }
-    },
-    "testimonials": {
-      "badge": "Social Proof",
-      "title": "Trusted by",
-      "titleGradient": "real businesses",
-      "subtitle": "See what Saudi entrepreneurs are saying about Mugdm.",
-      "ahmed": {
-        "name": "Ahmed S.",
-        "role": "Restaurant Owner",
-        "quote": "Mugdm replaced my Excel spreadsheets and my accountant's monthly visits. I save 10+ hours a week."
-      },
-      "sarah": {
-        "name": "Sarah M.",
-        "role": "Trading Company",
-        "quote": "The AI bookkeeper caught a duplicate GOSI payment I would have missed. Paid for itself in the first month."
-      },
-      "khalid": {
-        "name": "Khalid R.",
-        "role": "Construction",
-        "quote": "Finally, one place for all my compliance documents. No more WhatsApp reminders to myself."
-      },
-      "statBusinesses": "Businesses",
-      "statDocuments": "Documents Processed",
-      "statDeadlines": "In Deadlines Tracked"
     },
     "pricing": {
       "badge": "Pricing",
