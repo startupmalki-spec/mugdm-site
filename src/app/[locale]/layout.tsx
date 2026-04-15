@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Inter, Noto_Sans_Arabic } from 'next/font/google'
+import { Inter, IBM_Plex_Sans_Arabic } from 'next/font/google'
 import Script from 'next/script'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
@@ -12,9 +12,10 @@ const inter = Inter({
   display: 'swap',
 })
 
-const notoSansArabic = Noto_Sans_Arabic({
+const arabicFont = IBM_Plex_Sans_Arabic({
   subsets: ['arabic'],
-  variable: '--font-noto-arabic',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-arabic',
   display: 'swap',
 })
 
@@ -104,8 +105,8 @@ export default async function LocaleLayout({
         />
       </head>
       <body
-        className={`${inter.variable} ${notoSansArabic.variable} min-h-screen bg-background text-foreground antialiased ${
-          isRtl ? 'font-[var(--font-noto-arabic)]' : 'font-[var(--font-inter)]'
+        className={`${inter.variable} ${arabicFont.variable} min-h-screen bg-background text-foreground antialiased ${
+          isRtl ? 'font-[var(--font-arabic)]' : 'font-[var(--font-inter)]'
         }`}
       >
         <NextIntlClientProvider messages={messages}>

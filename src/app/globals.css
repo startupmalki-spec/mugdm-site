@@ -283,6 +283,12 @@ body {
 
 html { scroll-behavior: smooth; }
 
+/* P1.6 — x-height parity for Arabic type. IBM Plex Arabic renders slightly
+   smaller than Inter at the same computed size, so nudge 4% up on [lang="ar"]. */
+[lang="ar"] body {
+  font-size: 1.04em;
+}
+
 .text-gradient {
   background: linear-gradient(135deg, #1E40AF, #3B82F6, #60A5FA);
   -webkit-background-clip: text;

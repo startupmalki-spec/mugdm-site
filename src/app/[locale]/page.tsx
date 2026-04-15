@@ -1,11 +1,12 @@
 import { Navbar } from '@/components/sections/navbar'
 import { Hero } from '@/components/sections/hero'
 import { SocialProof } from '@/components/sections/social-proof'
-import { Services } from '@/components/sections/services'
+import { Stats } from '@/components/sections/stats'
+import { Features } from '@/components/sections/features'
 import { Process } from '@/components/sections/process'
 import { Demo } from '@/components/sections/demo'
 import { Why } from '@/components/sections/why'
-// import { Testimonials } from '@/components/sections/testimonials'
+import { Testimonials } from '@/components/sections/testimonials'
 import { Pricing } from '@/components/sections/pricing'
 import { Contact } from '@/components/sections/contact'
 import { Footer } from '@/components/sections/footer'
@@ -19,14 +20,17 @@ export default function Home() {
       <main>
         <Hero />
         <ScrollReveal><SocialProof /></ScrollReveal>
+        <ScrollReveal><Stats /></ScrollReveal>
         <GlowDivider className="my-0" />
-        <ScrollReveal><Services /></ScrollReveal>
+        <ScrollReveal><Features /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Process /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Demo /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Why /></ScrollReveal>
+        <GlowDivider className="my-0" />
+        <ScrollReveal><Testimonials /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Pricing /></ScrollReveal>
         <GlowDivider className="my-0" />

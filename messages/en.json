@@ -992,6 +992,113 @@
     "socialProof": {
       "caption": "Trusted by founders across Saudi Arabia"
     },
+    "stats": {
+      "srHeading": "Mugdm by the numbers",
+      "portals": { "value": "8 → 1", "label": "portals replaced by one back office" },
+      "hours": { "value": "80+ hrs", "label": "saved per founder, per year" },
+      "setup": { "value": "< 4 hrs", "label": "from signup to full setup" }
+    },
+    "featuresIntro": {
+      "badge": "The full back office",
+      "title": "Everything you stand up on day one — automated.",
+      "subtitle": "Five modules covering the whole lifecycle, from filing your CR to running payroll to closing the books."
+    },
+    "featureIncorporation": {
+      "eyebrow": "Incorporation",
+      "title": "Stand up a company without leaving your laptop.",
+      "description": "CR filing, Chamber of Commerce, GOSI and MOHR registrations — handled in one guided flow that talks to every portal for you.",
+      "bullets": {
+        "0": "Wathq-powered CR lookup with auto-filled legal data",
+        "1": "Chamber + GOSI + MOHR registration orchestrated end-to-end",
+        "2": "Saudization thresholds and activity codes mapped automatically"
+      },
+      "cta": "See how it works",
+      "screenshotPlaceholder": "Incorporation flow"
+    },
+    "featureBanking": {
+      "eyebrow": "Banking & cards",
+      "title": "Open an account and start spending on day one.",
+      "description": "Partner-powered corporate banking and cards, wired into the Mugdm ledger so every swipe is already categorized.",
+      "bullets": {
+        "0": "IBAN + corporate cards from day-one onboarding",
+        "1": "Every transaction auto-categorized against your COA",
+        "2": "Founder cards, vendor cards, spending limits in one screen"
+      },
+      "cta": "See how it works",
+      "screenshotPlaceholder": "Banking dashboard"
+    },
+    "featurePayroll": {
+      "eyebrow": "WPS + payroll",
+      "title": "Run payroll the way Mudad wants it.",
+      "description": "Salaries, GOSI contributions, WPS file generation — one click, zero spreadsheet gymnastics, fully audit-ready.",
+      "bullets": {
+        "0": "Mudad integration for WPS filing in seconds",
+        "1": "Iqama and GOSI status tracked per employee",
+        "2": "Payslips generated automatically in Arabic and English"
+      },
+      "cta": "See how it works",
+      "screenshotPlaceholder": "Payroll run"
+    },
+    "featureTax": {
+      "eyebrow": "Zakat + VAT",
+      "title": "Filings you don't have to think about.",
+      "description": "Fatoora-connected bookkeeping, quarterly or monthly VAT returns, annual Zakat — prepared from the same ledger your invoices already live in.",
+      "bullets": {
+        "0": "ZATCA Fatoora e-invoicing built in",
+        "1": "VAT return pre-filled, ready to submit",
+        "2": "Zakat base computed from your actual books, not guesses"
+      },
+      "cta": "See how it works",
+      "screenshotPlaceholder": "VAT return preview"
+    },
+    "featureVault": {
+      "eyebrow": "Document vault + AI assistant",
+      "title": "Every document, every deadline, every answer.",
+      "description": "CR, GOSI certs, Zakat clearance, contracts — uploaded once, watched for expiry, searchable by a founder-context AI that actually understands your business.",
+      "bullets": {
+        "0": "Expiry watchdog for every Saudi compliance doc",
+        "1": "Ask the AI in plain Arabic or English — it cites the source",
+        "2": "Team permissions so the right person sees the right file"
+      },
+      "cta": "See how it works",
+      "screenshotPlaceholder": "Document vault"
+    },
+    "testimonials": {
+      "badge": "Customer voices",
+      "title": "Founders building on Mugdm.",
+      "subtitle": "Quotes land here as our first cohort goes live. Want your company on this page?",
+      "placeholderQuote": "Your quote could be here — founders who ship with Mugdm in the early cohort get featured across marketing.",
+      "earlyCustomerCta": "Become an early customer"
+    },
+    "pricingPage": {
+      "metaTitle": "Pricing — Mugdm",
+      "metaDescription": "Transparent pricing for Mugdm. Pick a plan that fits your stage, upgrade when you grow. Covers incorporation, banking, WPS, Zakat, VAT, and bookkeeping."
+    },
+    "pricingFaq": {
+      "title": "Frequently asked",
+      "items": {
+        "0": {
+          "q": "Do I need to pay for incorporation separately?",
+          "a": "No. Standing up your CR, Chamber, GOSI, and MOHR registrations is included on every paid plan. Government fees are passed through at cost with no markup."
+        },
+        "1": {
+          "q": "Is there a free trial?",
+          "a": "You can use the document vault and AI assistant free, up to a monthly limit. Any plan unlocks the full back-office — incorporation, banking, payroll, Zakat, and VAT."
+        },
+        "2": {
+          "q": "Can I switch plans later?",
+          "a": "Yes. Upgrade or downgrade any time — billing is prorated to the day."
+        },
+        "3": {
+          "q": "Do you support multiple entities under one account?",
+          "a": "Yes. Founders running more than one company can manage all of them from a single Mugdm login with scoped permissions per entity."
+        },
+        "4": {
+          "q": "What happens to my data if I cancel?",
+          "a": "You can export everything — documents, ledger, payroll history — for 60 days after cancellation. Nothing gets deleted without an explicit confirmation."
+        }
+      }
+    },
     "features": {
       "badge": "Features",
       "title": "Stop juggling. Start growing.",
@@ -1077,13 +1184,16 @@
       "sendAnother": "Send another message",
       "errorMessage": "Something went wrong. Please try again or email us directly.",
       "emailLabel": "contact@mugdm.com",
-      "meetingLabel": "Book a call"
+      "meetingLabel": "Book a call",
+      "emailCta": "Email us",
+      "bookCall": "Book a call"
     },
     "footer": {
       "features": "Features",
       "howItWorks": "How It Works",
       "whyMugdm": "Why Mugdm",
       "contact": "Contact",
+      "pricing": "Pricing",
       "copyright": "All rights reserved",
       "product": "Product",
       "company": "Company",
