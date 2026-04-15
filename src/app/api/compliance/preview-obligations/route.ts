@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import {
   generateObligationsWithApplicability,
   type CRData,
+  type GeneratedObligation,
 } from '@/lib/compliance/obligation-generator'
+import { classifyByIsic } from '@/lib/compliance/isic-rules'
 
 interface PreviewPayload {
   cr_number?: string
@@ -58,8 +60,40 @@ export async function POST(request: Request) {
 
     const obligations = generateObligationsWithApplicability(crData)
 
+    // Surface NOT_APPLICABLE items separately so the review UI can offer a
+    // collapsible reveal. `generateObligationsWithApplicability` filters these
+    // out, so we re-classify via ISIC rules to recover them.
+    const hasIsic = Boolean(
+      (crData.isicCode && crData.isicCode.trim()) ||
+        (crData.subActivityCodes && crData.subActivityCodes.length > 0)
+    )
+    const presentTypes = new Set(obligations.map((o) => o.type))
+    const notApplicable: GeneratedObligation[] = []
+    if (hasIsic) {
+      const classified = classifyByIsic(
+        crData.isicCode ?? null,
+        crData.subActivityCodes ?? []
+      )
+      const fallbackDue = new Date(new Date().getFullYear() + 1, 0, 1)
+        .toISOString()
+        .split('T')[0]
+      for (const r of classified) {
+        if (r.applicability !== 'NOT_APPLICABLE') continue
+        if (presentTypes.has(r.type)) continue
+        notApplicable.push({
+          type: r.type,
+          name: r.type,
+          description: r.reason.en,
+          frequency: 'ANNUAL',
+          next_due_date: fallbackDue,
+          applicability: 'NOT_APPLICABLE',
+          reason: r.reason,
+        })
+      }
+    }
+
     return NextResponse.json({
-      obligations: obligations.map((o) => ({
+      obligations: [...obligations, ...notApplicable].map((o) => ({
         type: o.type,
         name: o.name,
         applicability: o.applicability ?? 'REQUIRED',

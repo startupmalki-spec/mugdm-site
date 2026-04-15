@@ -73,6 +73,7 @@ import {
   getCategoryColor,
   type DateRange,
 } from '@/lib/bookkeeper/calculations'
+import { OutstandingApCard } from '@/components/bookkeeper/OutstandingApCard'
 import {
   detectRecurringExpenses,
   calculateMonthlyRecurringCost,
@@ -825,7 +826,7 @@ export default function BookkeeperPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           {/* Money In */}
           <motion.div
             custom={0}
@@ -925,6 +926,9 @@ export default function BookkeeperPage() {
               <ArrowUpRight className="h-3 w-3" />
             </Link>
           </motion.div>
+
+          {/* Outstanding AP (feature-flagged, renders null if bills feature off) */}
+          <OutstandingApCard ns="bookkeeper" />
         </div>
 
         {/* Charts Section - lazy loaded to reduce initial bundle size */}

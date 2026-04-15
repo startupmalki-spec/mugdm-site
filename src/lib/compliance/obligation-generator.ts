@@ -417,6 +417,82 @@ export function generateObligationsWithApplicability(
   return enriched
 }
 
+/* ───────── Bill ↔ VAT-obligation linking ───────── */
+
+/**
+ * Minimal shape required to link a bill to a VAT obligation. Avoids importing
+ * the full Bill type so this helper compiles before the bills schema lands.
+ */
+export interface BillLike {
+  id: string
+  issue_date: string | null
+  status?: string | null
+}
+
+/**
+ * Given a ZATCA_VAT obligation and a list of bills, return the IDs of bills
+ * whose `issue_date` falls inside the obligation's reporting period.
+ *
+ * The obligation's reporting period is derived from `next_due_date` and
+ * `frequency` (quarterly = 3-month window ending in the month BEFORE the due
+ * month; monthly = the month before the due month). This is intentionally a
+ * pure function — callers pass in already-fetched bills.
+ *
+ * No-ops (returns []) for any non-VAT obligation.
+ */
+export function linkBillsToVatObligation(
+  obligation: {
+    type: ObligationType
+    frequency: ObligationFrequency
+    next_due_date: string
+  },
+  bills: BillLike[]
+): string[] {
+  if (obligation.type !== 'ZATCA_VAT') return []
+  const { start, end } = getVatObligationPeriod(
+    obligation.frequency,
+    obligation.next_due_date
+  )
+  const startStr = toDateString(start)
+  const endStr = toDateString(end)
+  const out: string[] = []
+  for (const b of bills) {
+    if (!b.issue_date) continue
+    if (b.issue_date >= startStr && b.issue_date <= endStr) out.push(b.id)
+  }
+  return out
+}
+
+/**
+ * Compute the reporting [start, end] window for a VAT obligation given its
+ * filing frequency and the next due date. Saudi VAT returns are due by the
+ * last day of the month FOLLOWING the period (e.g. Q1 ends Mar 31, return
+ * due Apr 30; Jan return due Feb 28/29).
+ *
+ * QUARTERLY: window = 3 calendar months ending in the month before the due
+ * month. MONTHLY: window = the calendar month before the due month. Other
+ * frequencies fall back to a one-month window before the due month.
+ */
+export function getVatObligationPeriod(
+  frequency: ObligationFrequency,
+  nextDueDate: string
+): { start: Date; end: Date } {
+  const due = new Date(nextDueDate)
+  // Period ends in the month BEFORE the due month.
+  const periodEndYear =
+    due.getMonth() === 0 ? due.getFullYear() - 1 : due.getFullYear()
+  const periodEndMonth = due.getMonth() === 0 ? 11 : due.getMonth() - 1
+  // Last day of that month.
+  const end = new Date(periodEndYear, periodEndMonth + 1, 0)
+
+  let monthsBack = 1
+  if (frequency === 'QUARTERLY') monthsBack = 3
+  else if (frequency === 'MONTHLY') monthsBack = 1
+
+  const start = new Date(periodEndYear, periodEndMonth - (monthsBack - 1), 1)
+  return { start, end }
+}
+
 /**
  * Convert generated obligations into database-ready seeds for a specific business.
  */
