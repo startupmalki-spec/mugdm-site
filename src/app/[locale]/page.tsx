@@ -21,18 +21,23 @@ export default function Home() {
       <main>
         <Hero />
         <ScrollReveal><SocialProof /></ScrollReveal>
-        <ScrollReveal><Stats /></ScrollReveal>
-        <ScrollReveal><BuiltOn /></ScrollReveal>
-        <GlowDivider className="my-0" />
-        <ScrollReveal><Features /></ScrollReveal>
+
+        {/* Warm band — dual-tone marketing (P2.1). Sits between dark hero and dark CTA. */}
+        <div data-theme-section="warm">
+          <ScrollReveal><Stats /></ScrollReveal>
+          <ScrollReveal><BuiltOn /></ScrollReveal>
+          <GlowDivider className="my-0" />
+          <ScrollReveal><Features /></ScrollReveal>
+          <GlowDivider className="my-0" />
+          <ScrollReveal><Testimonials /></ScrollReveal>
+        </div>
+
         <GlowDivider className="my-0" />
         <ScrollReveal><Process /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Demo /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Why /></ScrollReveal>
-        <GlowDivider className="my-0" />
-        <ScrollReveal><Testimonials /></ScrollReveal>
         <GlowDivider className="my-0" />
         <ScrollReveal><Pricing /></ScrollReveal>
         <GlowDivider className="my-0" />
