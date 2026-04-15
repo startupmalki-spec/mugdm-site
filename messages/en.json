@@ -5,6 +5,152 @@
       "switchToDark": "Switch to dark mode"
     }
   },
+  "productPage": {
+    "payroll": {
+      "meta": {
+        "title": "Payroll & WPS — Mugdm",
+        "description": "Run payroll the way Mudad wants it. Salaries, GOSI contributions, WPS file generation — automated and audit-ready."
+      },
+      "hero": {
+        "eyebrow": "WPS + payroll",
+        "title": "Payroll that clears with Mudad on the first try.",
+        "description": "Salaries, GOSI contributions, WPS files, payslips — Mugdm handles the whole run so you never chase a rejection notice again.",
+        "primaryCta": "Start running payroll",
+        "secondaryCta": "Talk to us"
+      },
+      "how": {
+        "eyebrow": "How it works",
+        "title": "One payroll cycle, four moves.",
+        "steps": {
+          "0": { "title": "Add your team", "description": "Import employees from your HR file or add them one by one. Iqama, IBAN, salary components — all validated as you type." },
+          "1": { "title": "Run the cycle", "description": "Pick a pay period. Mugdm calculates gross, GOSI, deductions, and net for every employee in seconds." },
+          "2": { "title": "File with Mudad", "description": "One click generates the WPS file and submits it. You see the Mudad acceptance receipt in the same screen." },
+          "3": { "title": "Ship payslips", "description": "Bilingual payslips (AR + EN) emailed or downloaded. Audit trail archived forever." }
+        }
+      },
+      "screenshotPlaceholder": "Payroll run screen",
+      "benefits": {
+        "title": "What changes when payroll is automated.",
+        "subtitle": "Less spreadsheet gymnastics, fewer Mudad rejections, zero end-of-month panic.",
+        "items": {
+          "0": { "title": "Mudad-native WPS", "description": "Generates the exact file format Mudad expects — no manual reformatting, no silent rejections." },
+          "1": { "title": "GOSI on autopilot", "description": "Contributions calculated against current thresholds and synced so your books match the portal." },
+          "2": { "title": "Iqama + visa watchdog", "description": "Expiry alerts before a missed renewal turns into a salary hold." },
+          "3": { "title": "Audit-ready forever", "description": "Every run, every payslip, every WPS receipt — archived with the source inputs. Regulator-ready on day 1." }
+        }
+      },
+      "faq": {
+        "title": "Payroll questions, answered.",
+        "items": {
+          "0": { "q": "Do you support Saudi and non-Saudi employees together?", "a": "Yes. Saudization ratios, GOSI contribution rates, and WPS requirements adjust per employee type automatically." },
+          "1": { "q": "Can I run off-cycle payments (bonuses, terminations)?", "a": "Yes. Off-cycle runs, end-of-service settlements, and bonus payments all route through the same WPS pipeline." },
+          "2": { "q": "What happens if Mudad rejects a file?", "a": "Mugdm surfaces the exact rejection reason, maps it to the employee or field that caused it, and lets you re-submit after the fix — usually in under a minute." },
+          "3": { "q": "Do we have to move our existing HR data?", "a": "Only what payroll needs. Mugdm runs alongside your existing HRIS — you don't have to rip anything out to start." }
+        }
+      },
+      "cta": {
+        "title": "Stop dreading payday.",
+        "description": "Ten minutes to set up, under a minute per run after that.",
+        "button": "Start running payroll"
+      }
+    },
+    "bookkeeping": {
+      "meta": {
+        "title": "AI Bookkeeping — Mugdm",
+        "description": "Fatoora-connected bookkeeping that categorizes every transaction, flags what matters, and keeps your VAT ready before ZATCA asks."
+      },
+      "hero": {
+        "eyebrow": "AI bookkeeping",
+        "title": "Close your books without opening a spreadsheet.",
+        "description": "Every invoice, every bank transaction, every ZATCA e-invoice — categorized automatically, reconciled daily, filed-ready at month-end.",
+        "primaryCta": "Try the bookkeeper",
+        "secondaryCta": "Talk to us"
+      },
+      "how": {
+        "eyebrow": "How it works",
+        "title": "From receipt to ready-to-file.",
+        "steps": {
+          "0": { "title": "Connect your sources", "description": "Bank feeds, Fatoora e-invoices, receipts you snap on your phone — Mugdm pulls them all into one ledger." },
+          "1": { "title": "AI categorizes", "description": "Transactions land in the right COA account automatically. Mugdm learns your patterns so the hit rate climbs week over week." },
+          "2": { "title": "Review the exceptions", "description": "Anything low-confidence or unusual surfaces in a review queue. Approve in a click, no data entry." },
+          "3": { "title": "Close the month", "description": "Trial balance, P&L, VAT position — one button, ready to hand to your accountant or file yourself." }
+        }
+      },
+      "screenshotPlaceholder": "Bookkeeping ledger view",
+      "benefits": {
+        "title": "What you get.",
+        "subtitle": "Real books, not Excel with dreams.",
+        "items": {
+          "0": { "title": "Saudi COA out of the box", "description": "Standard Saudi chart of accounts pre-loaded and editable. Add your own accounts any time." },
+          "1": { "title": "VAT-ready ledger", "description": "Every entry tags VAT correctly so your return is a read, not a rebuild." },
+          "2": { "title": "Fatoora e-invoice ingestion", "description": "Outgoing e-invoices auto-posted. Incoming supplier invoices parsed and matched." },
+          "3": { "title": "Founder-mode reports", "description": "Runway, margin, burn — the numbers you actually look at, in plain language." }
+        }
+      },
+      "faq": {
+        "title": "Bookkeeping questions, answered.",
+        "items": {
+          "0": { "q": "Do I still need an accountant?", "a": "Often, yes — for advisory and sign-off. But Mugdm removes the data-entry and categorization work that usually fills their hours, so their fee shrinks." },
+          "1": { "q": "How does the AI categorize Saudi-specific transactions?", "a": "It's trained on Saudi merchant patterns, GOSI / ZATCA / Balady / Mudad payments, and the vocabulary local banks use in their transaction memos." },
+          "2": { "q": "Can I import historical books?", "a": "Yes. CSV, QuickBooks, Xero, Zoho — Mugdm maps accounts and imports balances so you don't lose your past year." },
+          "3": { "q": "What about multi-entity founders?", "a": "One login, multiple entities, consolidated reporting. Inter-company entries flagged automatically." }
+        }
+      },
+      "cta": {
+        "title": "Ship your first month-end without the spreadsheet.",
+        "description": "Connect a bank, connect Fatoora, watch it close itself.",
+        "button": "Try the bookkeeper"
+      }
+    },
+    "zakatVat": {
+      "meta": {
+        "title": "Zakat & VAT — Mugdm",
+        "description": "VAT returns pre-filled from your ledger, annual Zakat computed from real books. Fatoora e-invoicing built in."
+      },
+      "hero": {
+        "eyebrow": "Zakat + VAT",
+        "title": "Filings you don't have to think about.",
+        "description": "Fatoora-integrated e-invoicing, quarterly or monthly VAT returns, annual Zakat base — all prepared from the same ledger your business already runs on.",
+        "primaryCta": "Automate filings",
+        "secondaryCta": "Talk to us"
+      },
+      "how": {
+        "eyebrow": "How it works",
+        "title": "From invoice to ZATCA, no spreadsheet.",
+        "steps": {
+          "0": { "title": "Invoice in Mugdm", "description": "Every outgoing invoice goes through Fatoora Phase 2 with the QR, signature, and XML ZATCA wants." },
+          "1": { "title": "Ledger tags VAT", "description": "Input and output VAT tagged per line automatically. Exemptions and zero-rated items handled correctly." },
+          "2": { "title": "Return pre-fills", "description": "At period-end the VAT return is already built. Review, adjust if needed, submit." },
+          "3": { "title": "Zakat from the books", "description": "Annual Zakat base computed from actual equity and adjustments — not a guess from last year's return." }
+        }
+      },
+      "screenshotPlaceholder": "VAT return preview",
+      "benefits": {
+        "title": "Why Mugdm for Zakat + VAT.",
+        "subtitle": "Compliance depth with a founder-grade interface.",
+        "items": {
+          "0": { "title": "Fatoora Phase 2 ready", "description": "Clearance and reporting modes both supported. Signed XML, QR codes, and UUIDs all handled for you." },
+          "1": { "title": "Monthly or quarterly VAT", "description": "Filing frequency auto-detected from your revenue tier; threshold crossings surfaced in advance." },
+          "2": { "title": "Zakat without shortcuts", "description": "Real equity-based computation, not a rule-of-thumb on revenue. Audit trail for every adjustment." },
+          "3": { "title": "Corrections handled cleanly", "description": "Credit notes, amended returns, refunds — all posted correctly back to the ledger and to ZATCA." }
+        }
+      },
+      "faq": {
+        "title": "Zakat & VAT, cleared up.",
+        "items": {
+          "0": { "q": "What if my revenue is under the VAT threshold?", "a": "Mugdm still tracks VAT for you — so the day you cross 375K SAR you're not scrambling backward. Voluntary registration is a toggle if you want it earlier." },
+          "1": { "q": "Do you actually submit to ZATCA or just prepare the return?", "a": "Both, depending on your plan. Preparation is always included; direct submission is on the plans that include filing assistance." },
+          "2": { "q": "Can Mugdm handle mixed VAT-rated activities?", "a": "Yes. Per-line VAT rates including exempt, zero-rated, and standard are supported out of the box." },
+          "3": { "q": "What about prior-year Zakat disputes?", "a": "Mugdm's ledger gives you a defensible base and history, which is the single biggest lever in a Zakat dispute. We don't represent you before ZATCA, but we give your accountant everything they need." }
+        }
+      },
+      "cta": {
+        "title": "Filings should be a read, not a rebuild.",
+        "description": "Let Mugdm prepare your VAT and Zakat from the same books your business already runs on.",
+        "button": "Automate my filings"
+      }
+    }
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Business Profile",

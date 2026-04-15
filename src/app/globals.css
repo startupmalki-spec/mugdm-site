@@ -283,6 +283,30 @@ body {
 
 html { scroll-behavior: smooth; }
 
+/* P2.1 — Dual-tone marketing. Warm band sits between dark hero and dark CTA.
+   Scoped token overrides, so the section is warm regardless of the root .dark class. */
+[data-theme-section="warm"] {
+  --color-background: #FAF7F0;
+  --color-foreground: #1a1a2e;
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1a2e;
+  --color-muted: #f0ece0;
+  --color-muted-foreground: #5a5a72;
+  --color-border: #e8e3d2;
+  --color-surface-0: #FAF7F0;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f3efe5;
+  --color-surface-3: #e8e3d2;
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+[data-theme-section="warm"] .text-gradient {
+  background: linear-gradient(135deg, #1E40AF, #3B82F6, #60A5FA);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* P1.6 — x-height parity for Arabic type. IBM Plex Arabic renders slightly
    smaller than Inter at the same computed size, so nudge 4% up on [lang="ar"]. */
 [lang="ar"] body {
