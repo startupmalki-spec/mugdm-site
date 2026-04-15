@@ -4,7 +4,34 @@ import { useRef, useEffect, useState, useCallback } from "react";
 import { motion, useInView, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 
-/* ─── Scroll-triggered reveal wrapper ─── */
+/* ─── Scroll-triggered reveal wrapper (pure IntersectionObserver, no framer) ─── */
+function useInViewOnce(rootMargin = "-80px") {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (!("IntersectionObserver" in window)) return true;
+    return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || shown) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) {
+            setShown(true);
+            io.unobserve(e.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shown, rootMargin]);
+  return { ref, shown };
+}
+
 export function Reveal({
   children,
   delay = 0,
@@ -16,37 +43,31 @@ export function Reveal({
   direction?: "up" | "down" | "left" | "right" | "none";
   className?: string;
 }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
-
-  const directionMap = {
-    up: { y: 40, x: 0 },
-    down: { y: -40, x: 0 },
-    left: { x: 60, y: 0 },
-    right: { x: -60, y: 0 },
-    none: { x: 0, y: 0 },
+  const { ref, shown } = useInViewOnce();
+  const offset: Record<string, string> = {
+    up: "translate3d(0, 40px, 0)",
+    down: "translate3d(0, -40px, 0)",
+    left: "translate3d(60px, 0, 0)",
+    right: "translate3d(-60px, 0, 0)",
+    none: "translate3d(0, 0, 0)",
   };
-
-  const { x, y } = directionMap[direction];
-
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, x, y }}
-      animate={isInView ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, x, y }}
-      transition={{
-        duration: 0.7,
-        delay,
-        ease: [0.25, 0.8, 0.25, 1],
-      }}
       className={className}
+      style={{
+        opacity: shown ? 1 : 0,
+        transform: shown ? "translate3d(0,0,0)" : offset[direction],
+        transition: `opacity 700ms cubic-bezier(0.25,0.8,0.25,1) ${delay}s, transform 700ms cubic-bezier(0.25,0.8,0.25,1) ${delay}s`,
+        willChange: "opacity, transform",
+      }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 }
 
-/* ─── Staggered children reveal ─── */
+/* ─── Staggered children reveal (pure IO; uses CSS custom property on each child) ─── */
 export function StaggerContainer({
   children,
   stagger = 0.1,
@@ -56,23 +77,11 @@ export function StaggerContainer({
   stagger?: number;
   className?: string;
 }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: "-80px" });
-
+  const { ref, shown } = useInViewOnce();
   return (
-    <motion.div
-      ref={ref}
-      initial="hidden"
-      animate={isInView ? "visible" : "hidden"}
-      variants={{
-        visible: {
-          transition: { staggerChildren: stagger },
-        },
-      }}
-      className={className}
-    >
+    <div ref={ref} className={className} data-stagger={shown ? "visible" : "hidden"} style={{ "--stagger": `${stagger}s` } as React.CSSProperties}>
       {children}
-    </motion.div>
+    </div>
   );
 }
 
@@ -83,21 +92,7 @@ export function StaggerItem({
   children: React.ReactNode;
   className?: string;
 }) {
-  return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 40 },
-        visible: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: 0.6, ease: [0.25, 0.8, 0.25, 1] },
-        },
-      }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+  return <div className={`stagger-item ${className}`}>{children}</div>;
 }
 
 /* ─── Text character animation ─── */

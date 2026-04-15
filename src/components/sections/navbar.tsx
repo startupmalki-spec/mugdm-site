@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import { useTranslations, useLocale } from "next-intl";
+import { Link, usePathname } from "@/i18n/routing";
 import { createClient } from "@/lib/supabase/client";
 
 const NAV_KEYS = [
@@ -16,6 +16,10 @@ const NAV_KEYS = [
 
 export function Navbar() {
   const t = useTranslations("landing.nav");
+  const locale = useLocale();
+  const pathname = usePathname();
+  const otherLocale = locale === "ar" ? "en" : "ar";
+  const otherLocaleLabel = locale === "ar" ? "English" : "العربية";
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -73,6 +77,14 @@ export function Navbar() {
             </a>
           ))}
           <Link
+            href={pathname}
+            locale={otherLocale}
+            aria-label={locale === "ar" ? "Switch to English" : "التبديل إلى العربية"}
+            className="inline-flex items-center justify-center h-9 px-4 rounded-full border border-border bg-surface-1/60 text-xs font-medium text-muted-foreground transition-all duration-200 hover:text-foreground hover:border-primary/40 hover:bg-surface-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          >
+            {otherLocaleLabel}
+          </Link>
+          <Link
             href={isLoggedIn ? "/dashboard" : "/signup"}
             className="inline-flex items-center justify-center gap-2 h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium transition-all duration-200 shadow-[0_4px_15px_rgba(30,64,175,0.25)] hover:bg-[#1E3A8A] hover:shadow-[0_6px_25px_rgba(30,64,175,0.4)] hover:-translate-y-px active:scale-[0.98]"
           >
@@ -103,6 +115,14 @@ export function Navbar() {
                 {t(link.key)}
               </a>
             ))}
+            <Link
+              href={pathname}
+              locale={otherLocale}
+              onClick={() => setMobileOpen(false)}
+              className="inline-flex items-center justify-center h-9 px-4 rounded-full border border-border bg-surface-1/60 text-xs font-medium text-muted-foreground hover:text-foreground hover:border-primary/40"
+            >
+              {otherLocaleLabel}
+            </Link>
             <Link
               href={isLoggedIn ? "/dashboard" : "/signup"}
               className="inline-flex items-center justify-center h-10 px-6 rounded-lg bg-primary text-primary-foreground text-sm font-medium mt-2"

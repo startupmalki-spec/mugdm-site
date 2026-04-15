@@ -116,7 +116,7 @@ export function Hero() {
       >
         {/* Badge */}
         <div
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-8"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-surface-1 text-xs text-muted-foreground mb-4"
           style={{ animation: "fade-down 0.6s ease-out forwards" }}
         >
           <span
@@ -124,6 +124,15 @@ export function Hero() {
             style={{ animation: "pulse 2s infinite" }}
           />
           {t("badge")}
+        </div>
+
+        {/* Founder tagline (P0.5) */}
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-accent/30 bg-accent/10 text-[11px] uppercase tracking-[0.14em] text-accent mb-6"
+          style={{ animation: "fade-down 0.6s ease-out 0.08s forwards", opacity: 0 }}
+        >
+          <span aria-hidden="true">⎯</span>
+          {t("founderTagline")}
         </div>
 
         {/* Headline */}

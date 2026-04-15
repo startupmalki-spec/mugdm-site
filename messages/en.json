@@ -981,12 +981,16 @@
     },
     "hero": {
       "badge": "Your Business's Second Brain",
-      "headline1": "Everything Your Business Needs.",
-      "headline2": "One Place.",
-      "description": "Mugdm handles your documents, deadlines, bookkeeping, and team — so you can focus on what matters: growing your business. Think of it as an AI-powered COO that never sleeps.",
-      "cta": "Get Started Free",
+      "founderTagline": "Built in Saudi, for Saudi founders",
+      "headline1": "Run your company.",
+      "headline2": "Not 8 portals.",
+      "description": "Incorporation, WPS, Zakat, VAT, bookkeeping — automated in one back office so you can focus on growing the business, not the paperwork.",
+      "cta": "Start your company",
       "secondaryCta": "See How It Works",
       "scroll": "Scroll"
+    },
+    "socialProof": {
+      "caption": "Trusted by founders across Saudi Arabia"
     },
     "features": {
       "badge": "Features",
