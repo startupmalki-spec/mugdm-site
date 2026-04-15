@@ -7,19 +7,14 @@ import Image from "next/image";
 /* ─── Scroll-triggered reveal wrapper (pure IntersectionObserver, no framer) ─── */
 function useInViewOnce(rootMargin = "-80px") {
   const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(() => {
+    if (typeof window === "undefined") return false;
+    if (!("IntersectionObserver" in window)) return true;
+    return !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  });
   useEffect(() => {
     const el = ref.current;
     if (!el || shown) return;
-    if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
-      setShown(true);
-      return;
-    }
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) {
-      setShown(true);
-      return;
-    }
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((e) => {
