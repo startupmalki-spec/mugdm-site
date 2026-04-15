@@ -31,10 +31,16 @@ const STATUS_BY_CODE: Record<WathqErrorCode, number> = {
   INVALID_CR: 400,
   NOT_FOUND: 404,
   UNAUTHORIZED: 502,
+  SUBSCRIPTION_DENIED: 503,
   RATE_LIMITED: 429,
   UPSTREAM_ERROR: 502,
   TIMEOUT: 504,
   NETWORK_ERROR: 502,
+}
+
+const FRIENDLY_MESSAGE_BY_CODE: Partial<Record<WathqErrorCode, string>> = {
+  SUBSCRIPTION_DENIED:
+    'Your Wathq subscription does not grant access to this CR. This is expected on a Trial subscription with real CRs. Upload the CR document to continue.',
 }
 
 export async function POST(request: Request) {
@@ -140,7 +146,8 @@ export async function POST(request: Request) {
     const code: WathqErrorCode =
       err instanceof WathqError ? err.code : 'UPSTREAM_ERROR'
     const message =
-      err instanceof Error ? err.message : 'Wathq lookup failed'
+      FRIENDLY_MESSAGE_BY_CODE[code] ??
+      (err instanceof Error ? err.message : 'Wathq lookup failed')
 
     await recordWathqLookup(user.id, crDigits, false, code).catch(() => {})
 
