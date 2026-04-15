@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { NextIntlClientProvider } from 'next-intl'
 import { getMessages } from 'next-intl/server'
 import { routing } from '@/i18n/routing'
+import { DemoModeBadge } from '@/components/DemoModeBadge'
 import '../globals.css'
 
 const inter = Inter({
@@ -110,6 +111,7 @@ export default async function LocaleLayout({
         }`}
       >
         <NextIntlClientProvider messages={messages}>
+          {/* <DemoModeBadge /> — hidden for investor pitch; toggle back on for internal demos */}
           {children}
         </NextIntlClientProvider>
       </body>

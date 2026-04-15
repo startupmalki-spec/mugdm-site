@@ -24,11 +24,17 @@ export function Features() {
         </div>
       </section>
 
-      <FeatureBlock namespace="landing.featureIncorporation" icon={Building2} />
-      <FeatureBlock namespace="landing.featureBanking" icon={Landmark} reverse />
-      <FeatureBlock namespace="landing.featurePayroll" icon={Users} />
-      <FeatureBlock namespace="landing.featureTax" icon={Receipt} reverse />
-      <FeatureBlock namespace="landing.featureVault" icon={FileLock2} />
+      {/*
+        Only shipping ZATCA e-invoicing + AI vault/chat today. Incorporation,
+        Banking, and Payroll blocks are pre-launch overclaims — re-enable them
+        module-by-module as each ships so the site never promises what the
+        product doesn't do.
+      */}
+      {/* <FeatureBlock namespace="landing.featureIncorporation" icon={Building2} /> */}
+      {/* <FeatureBlock namespace="landing.featureBanking" icon={Landmark} reverse /> */}
+      {/* <FeatureBlock namespace="landing.featurePayroll" icon={Users} /> */}
+      <FeatureBlock namespace="landing.featureTax" icon={Receipt} />
+      <FeatureBlock namespace="landing.featureVault" icon={FileLock2} reverse />
     </div>
   );
 }

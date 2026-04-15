@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { isDemoModeClient } from "@/lib/demo-mode";
 
 type Theme = "light" | "dark";
 
@@ -27,6 +28,7 @@ function applyTheme(theme: Theme) {
 
 export function ThemeToggle({ className = "" }: { className?: string }) {
   const t = useTranslations("app.theme");
+  const [isDemo, setIsDemo] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return "dark";
     const stored = readStoredTheme();
@@ -34,7 +36,13 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   });
 
   useEffect(() => {
-    applyTheme(theme);
+    const demo = isDemoModeClient();
+    setIsDemo(demo);
+    if (demo) {
+      applyTheme("dark");
+    } else {
+      applyTheme(theme);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -49,6 +57,9 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
+
+  // Hide the toggle entirely in demo mode — UI should not offer light mode.
+  if (isDemo) return null;
 
   const toggle = () => {
     const next: Theme = theme === "dark" ? "light" : "dark";

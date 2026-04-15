@@ -244,6 +244,11 @@ export function mapWathqToCRData(raw: WathqRawResponse): WathqLookupResult {
 /* ───────── Public API ───────── */
 
 export function isWathqConfigured(): boolean {
+  // In demo mode we are "configured" via the mock — UI gating should pass.
+  // In demo mode we are "configured" via the mock — UI gating should pass.
+  // Note: this is sync and conservative — always returns true when real key
+  // is present. Demo-only path is gated at call time via isDemoModeServer().
+  if (process.env.NEXT_PUBLIC_MUGDM_DEMO_ALLOWED === 'true') return true
   return Boolean(process.env.WATHQ_API_KEY && process.env.WATHQ_API_KEY.trim())
 }
 
@@ -393,6 +398,14 @@ async function tryLookupCR(
  * Throws `WathqError` on any failure (including NOT_CONFIGURED).
  */
 export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
+  // Demo-mode short-circuit — return mocked Mugdm CR data. Active only
+  // when the request has the mugdm_demo cookie (session-scoped).
+  const { isDemoModeServer } = await import('@/lib/demo-mode')
+  if (await isDemoModeServer()) {
+    const { lookupCRMock } = await import('./mock-client')
+    return lookupCRMock(crNumber)
+  }
+
   const stripQuotes = (v?: string) =>
     v?.trim().replace(/^["']|["']$/g, '') ?? ''
   const apiKey = stripQuotes(process.env.WATHQ_API_KEY)

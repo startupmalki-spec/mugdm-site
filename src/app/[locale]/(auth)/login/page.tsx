@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import Image from 'next/image'
 import { Link, useRouter } from '@/i18n/routing'
 import { createClient } from '@/lib/supabase/client'
+import { isDemoModeClient } from '@/lib/demo-mode'
 import { ParticleNetwork, TwinklingStars } from '@/lib/animations'
 
 type AuthTab = 'magic_link' | 'password'
@@ -15,6 +16,17 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<AuthTab>('magic_link')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+
+  // Session-scoped demo pre-fill: only fires if the mugdm_demo cookie is
+  // present (set by middleware when a user hits ?demo=1). Real visitors
+  // always see a blank form.
+  useEffect(() => {
+    if (isDemoModeClient()) {
+      setActiveTab('password')
+      setEmail('demo@mugdm.sa')
+      setPassword('MugdmDemo2026!')
+    }
+  }, [])
   const [isLoading, setIsLoading] = useState(false)
   const [isSent, setIsSent] = useState(false)
   const [error, setError] = useState<string | null>(null)

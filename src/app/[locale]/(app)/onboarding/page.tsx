@@ -198,7 +198,7 @@ export default function OnboardingPage() {
     } catch {
       sessionStorage.removeItem(DRAFT_KEY)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [])
 
   // Save draft on changes (debounced)

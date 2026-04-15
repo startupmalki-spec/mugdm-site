@@ -47,20 +47,16 @@ export function Navbar() {
     >
       <nav className="max-w-[1280px] mx-auto px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center group">
+          {/* Use the neutral wordmark everywhere — no purple brand variant.
+              If this isn't the right file, swap 'logo-wordmark.png' for one
+              of: 1-transparent / 7-transparent / 8-transparent / 9.png in
+              /public/brand/. */}
           <Image
-            src="/brand/1-transparent.png"
+            src="/brand/logo-wordmark.jpg"
             alt="Mugdm"
             width={140}
             height={40}
-            className="hidden h-10 w-auto transition-transform duration-300 group-hover:scale-105 dark:block"
-            priority
-          />
-          <Image
-            src="/brand/2-transparent.png"
-            alt="Mugdm"
-            width={140}
-            height={40}
-            className="h-10 w-auto transition-transform duration-300 group-hover:scale-105 dark:hidden"
+            className="h-10 w-auto transition-transform duration-300 group-hover:scale-105"
             priority
           />
         </Link>

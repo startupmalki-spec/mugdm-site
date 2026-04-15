@@ -41,8 +41,36 @@ function getLocaleFromPath(pathname: string): string {
   return match ? match[1] : routing.defaultLocale
 }
 
+const DEMO_COOKIE_NAME = 'mugdm_demo'
+const DEMO_COOKIE_MAX_AGE = 60 * 60 * 8 // 8 hours
+
+function isDemoAllowed(): boolean {
+  return (
+    process.env.NEXT_PUBLIC_MUGDM_DEMO_ALLOWED === 'true' ||
+    process.env.MUGDM_DEMO_MODE === 'true' ||
+    process.env.NEXT_PUBLIC_MUGDM_DEMO_MODE === 'true'
+  )
+}
+
 export default async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
+
+  // Session-scoped demo activation: ?demo=1 on any path sets the cookie
+  // and redirects to the clean URL. Gated by the kill-switch env var so
+  // prod can hard-disable demo regardless of link shares.
+  if (searchParams.get('demo') === '1' && isDemoAllowed()) {
+    const clean = new URL(request.url)
+    clean.searchParams.delete('demo')
+    const res = NextResponse.redirect(clean)
+    res.cookies.set(DEMO_COOKIE_NAME, '1', {
+      path: '/',
+      maxAge: DEMO_COOKIE_MAX_AGE,
+      sameSite: 'lax',
+      secure: true,
+      httpOnly: false, // client-side badge + login pre-fill need to read it
+    })
+    return res
+  }
 
   // Run next-intl locale routing
   const intlResponse = intlMiddleware(request)

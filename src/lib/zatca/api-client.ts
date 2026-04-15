@@ -459,6 +459,12 @@ export async function clearInvoice(
   csid: { binarySecurityToken: string; secret: string },
   options?: { invoiceHash?: string; uuid?: string },
 ): Promise<ZatcaClearanceResponse> {
+  // Demo-mode short-circuit (session-scoped via mugdm_demo cookie).
+  const { isDemoModeServer } = await import('@/lib/demo-mode');
+  if (await isDemoModeServer()) {
+    const { clearInvoiceMock } = await import('./mock-api-client');
+    return clearInvoiceMock(invoiceXml, csid, options);
+  }
   const { data } = await zatcaRequest<ZatcaClearanceResponse>({
     endpoint: '/invoices/clearance/single',
     method: 'POST',
@@ -486,6 +492,12 @@ export async function reportInvoice(
   csid: { binarySecurityToken: string; secret: string },
   options?: { invoiceHash?: string; uuid?: string },
 ): Promise<ZatcaReportingResponse> {
+  // Demo-mode short-circuit (session-scoped via mugdm_demo cookie).
+  const { isDemoModeServer } = await import('@/lib/demo-mode');
+  if (await isDemoModeServer()) {
+    const { reportInvoiceMock } = await import('./mock-api-client');
+    return reportInvoiceMock(invoiceXml, csid, options);
+  }
   const { data } = await zatcaRequest<ZatcaReportingResponse>({
     endpoint: '/invoices/reporting/single',
     method: 'POST',

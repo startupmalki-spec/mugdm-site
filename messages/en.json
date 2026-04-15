@@ -1134,9 +1134,9 @@
     "hero": {
       "badge": "Your Business's Second Brain",
       "founderTagline": "Built in Saudi, for Saudi founders",
-      "headline1": "Run your company.",
-      "headline2": "Not 8 portals.",
-      "description": "Incorporation, WPS, Zakat, VAT, bookkeeping — automated in one back office so you can focus on growing the business, not the paperwork.",
+      "headline1": "Your all-in-one Second Brain",
+      "headline2": "for business.",
+      "description": "One platform for everything a Saudi founder has to file, pay, or prove.",
       "cta": "Start your company",
       "secondaryCta": "See How It Works",
       "scroll": "Scroll"
@@ -1149,9 +1149,22 @@
     },
     "stats": {
       "srHeading": "Mugdm by the numbers",
-      "portals": { "value": "8 → 1", "label": "portals replaced by one back office" },
-      "hours": { "value": "80+ hrs", "label": "saved per founder, per year" },
-      "setup": { "value": "< 4 hrs", "label": "from signup to full setup" }
+      "eyebrow": "THE PAIN, QUANTIFIED",
+      "portals": {
+        "value": "8 → 1",
+        "label": "Government portals replaced",
+        "subtext": "Qiwa · Mudad · GOSI · ZATCA · Chamber · Absher Business · Muqeem · Fatoora"
+      },
+      "hours": {
+        "value": "80+ hrs",
+        "label": "Saved per founder per year",
+        "subtext": "On compliance and admin work"
+      },
+      "ledger": {
+        "value": "One ledger",
+        "label": "Every invoice, bill, and filing",
+        "subtext": "Unified from the first transaction"
+      }
     },
     "featuresIntro": {
       "badge": "The full back office",
@@ -1196,12 +1209,12 @@
     },
     "featureTax": {
       "eyebrow": "Zakat + VAT",
-      "title": "Filings you don't have to think about.",
-      "description": "Fatoora-connected bookkeeping, quarterly or monthly VAT returns, annual Zakat — prepared from the same ledger your invoices already live in.",
+      "title": "Your books and your tax return, same ledger.",
+      "description": "ZATCA-cleared e-invoicing, auto-rolling VAT summary, and Zakat base computed from your actual books — so when filing day comes, the numbers are already there.",
       "bullets": {
-        "0": "ZATCA Fatoora e-invoicing built in",
-        "1": "VAT return pre-filled, ready to submit",
-        "2": "Zakat base computed from your actual books, not guesses"
+        "0": "ZATCA Fatoora Phase 2 e-invoicing, built in",
+        "1": "VAT summary auto-calculated from every invoice and bill",
+        "2": "Zakat base computed from your live GL — no spreadsheet scramble"
       },
       "cta": "See how it works",
       "screenshotPlaceholder": "VAT return preview"

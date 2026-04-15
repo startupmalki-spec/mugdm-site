@@ -8,7 +8,13 @@
     "build:turbopack": "next build",
     "start": "next start",
     "lint": "eslint",
-    "wathq:check": "tsx scripts/wathq-check.ts"
+    "wathq:check": "tsx scripts/wathq-check.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "demo:seed": "tsx scripts/seed-demo-user.ts",
+    "demo:reset": "tsx scripts/seed-demo-user.ts --reset"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
@@ -59,6 +65,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vitest/coverage-v8": "^4.1.4",
     "@vitest/ui": "^4.1.4",
     "dotenv": "^16.4.5",
     "eslint": "^9",

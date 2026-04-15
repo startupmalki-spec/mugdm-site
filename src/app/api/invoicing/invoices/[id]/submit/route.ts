@@ -121,6 +121,45 @@ export async function POST(
       )
     }
 
+    // P0 demo-mode short-circuit. Skips signing + cert decryption (which
+    // require a real CSID) and writes a realistic cleared-invoice record
+    // so the UI flips Draft → Cleared exactly like in production.
+    const { isDemoModeServer } = await import('@/lib/demo-mode')
+    if (await isDemoModeServer()) {
+      const { clearInvoiceMock } = await import('@/lib/zatca/mock-api-client')
+      const fakeXml = `<Invoice id="${id}"><demo>true</demo></Invoice>`
+      const result = await clearInvoiceMock(
+        fakeXml,
+        { binarySecurityToken: 'demo', secret: 'demo' },
+      )
+      const isSimplified = invoice.invoice_type === 'simplified'
+      const submittedAt = new Date().toISOString()
+      const { error: upErr } = await supabase
+        .from('invoices')
+        .update({
+          zatca_status: isSimplified ? 'reported' : 'cleared',
+          zatca_uuid: (result.raw as { uuid: string }).uuid,
+          zatca_hash: result.invoiceHash ?? null,
+          zatca_qr_code: result.qrCode ?? null,
+          zatca_xml: fakeXml,
+          zatca_submitted_at: submittedAt,
+          zatca_cleared_at: submittedAt,
+          zatca_response: result as unknown as object,
+        } as never)
+        .eq('id', id)
+      if (upErr) {
+        console.error('[invoices/:id/submit][demo] update failed:', upErr)
+        return bilingualError('خطأ غير متوقّع.', 'Unexpected error.', 500)
+      }
+      return NextResponse.json({
+        ok: true,
+        demo: true,
+        zatca_status: isSimplified ? 'reported' : 'cleared',
+        zatca_uuid: (result.raw as { uuid: string }).uuid,
+        cleared_at: submittedAt,
+      })
+    }
+
     // Ownership.
     const { data: seller } = await supabase
       .from('businesses')

@@ -67,6 +67,13 @@ export function GettingStartedChecklist() {
   const [state, setState] = useState<ChecklistState>(DEFAULT_STATE)
   const [collapsed, setCollapsed] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
+
+  useEffect(() => {
+    // Session-scoped demo check; hides checklist for the demo session only.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    import('@/lib/demo-mode').then((m) => setIsDemo(m.isDemoModeClient()))
+  }, [])
 
   // Load state from localStorage
   useEffect(() => {
@@ -118,8 +125,8 @@ export function GettingStartedChecklist() {
   const completedCount = TASKS.filter((task) => state[task.key]).length
   const allDone = completedCount === TASKS.length
 
-  // Don't render if dismissed, not loaded, or checklist not activated
-  if (!loaded || state.dismissed || !state.showChecklist) return null
+  // Don't render if dismissed, not loaded, demo session, or not activated
+  if (isDemo || !loaded || state.dismissed || !state.showChecklist) return null
 
   // Auto-dismiss if all tasks done
   if (allDone && !state.dismissed) {

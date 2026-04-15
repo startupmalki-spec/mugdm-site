@@ -45,7 +45,7 @@ export function FeatureBlock({ namespace, icon: Icon, reverse = false, bulletCou
                 >
                   <Check size={12} className="text-primary" strokeWidth={3} />
                 </span>
-                <span className="text-[15px] text-foreground/90 leading-snug">{b}</span>
+                <span className="text-[15px] text-foreground leading-snug">{b}</span>
               </li>
             ))}
           </ul>
