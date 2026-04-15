@@ -17,15 +17,35 @@
 
 import type { CRAgentData, CROwner } from '@/lib/agents/cr-agent'
 
-const WATHQ_CR_URL = 'https://api.wathq.sa/v5/commercialregistration/info'
-const WATHQ_UNIFIED_URL = 'https://api.wathq.sa/v5/commercialregistration/unified'
+const DEFAULT_BASE_URLS = [
+  'https://api.wathq.sa/v5',
+  'https://api.wathq.sa/v5/trial',
+  'https://apidev.wathq.sa/v5',
+]
 const REQUEST_TIMEOUT_MS = 10_000
+
+function getCandidateBases(): string[] {
+  const fromEnv = process.env.WATHQ_BASE_URLS?.trim()
+  if (!fromEnv) return DEFAULT_BASE_URLS
+  return fromEnv
+    .split(',')
+    .map((s) => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+}
+
+function buildUrl(base: string, crDigits: string): string {
+  const path = crDigits.startsWith('7')
+    ? 'commercialregistration/unified'
+    : 'commercialregistration/info'
+  return `${base.replace(/\/+$/, '')}/${path}/${crDigits}`
+}
 
 export type WathqErrorCode =
   | 'NOT_CONFIGURED'
   | 'INVALID_CR'
   | 'NOT_FOUND'
   | 'UNAUTHORIZED'
+  | 'SUBSCRIPTION_DENIED'
   | 'RATE_LIMITED'
   | 'UPSTREAM_ERROR'
   | 'TIMEOUT'
@@ -227,13 +247,53 @@ export function isWathqConfigured(): boolean {
   return Boolean(process.env.WATHQ_API_KEY && process.env.WATHQ_API_KEY.trim())
 }
 
+interface SingleAttempt {
+  status: number
+  ok: boolean
+  body: string
+  parsed: WathqRawResponse | null
+}
+
+async function tryLookupCR(
+  base: string,
+  crDigits: string,
+  apiKey: string,
+): Promise<SingleAttempt> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  // Per Wathq OpenAPI securityDefinitions: single `apiKey` header carrying
+  // the Consumer Key.
+  const headers: Record<string, string> = {
+    apiKey,
+    Accept: 'application/json',
+  }
+  let res: Response
+  try {
+    res = await fetch(buildUrl(base, crDigits), {
+      method: 'GET',
+      headers,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timer)
+  }
+  const body = await res.text().catch(() => '')
+  let parsed: WathqRawResponse | null = null
+  if (res.ok) {
+    try {
+      parsed = JSON.parse(body) as WathqRawResponse
+    } catch {
+      parsed = null
+    }
+  }
+  return { status: res.status, ok: res.ok, body, parsed }
+}
+
 /**
- * Look up a CR number via Wathq.
+ * Look up a CR number via Wathq with automatic base-URL fallback.
  * Throws `WathqError` on any failure (including NOT_CONFIGURED).
  */
 export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
-  // Wathq's THIQAH gateway requires both Consumer Key and Consumer Secret
-  // as separate headers (apiKey + apiSecret).
   const stripQuotes = (v?: string) =>
     v?.trim().replace(/^["']|["']$/g, '') ?? ''
   const apiKey = stripQuotes(process.env.WATHQ_API_KEY)
@@ -241,77 +301,96 @@ export async function lookupCR(crNumber: string): Promise<WathqLookupResult> {
   if (!apiKey) {
     throw new WathqError('NOT_CONFIGURED', 'WATHQ_API_KEY is not set')
   }
+  void apiSecret // kept for future-proofing; not sent on the wire
 
   const digits = crNumber.replace(/\s/g, '')
   if (!/^\d{10}$/.test(digits)) {
     throw new WathqError('INVALID_CR', 'CR number must be 10 digits')
   }
 
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const bases = getCandidateBases()
+  let lastStatus: number | undefined
+  let lastBodyExcerpt = ''
+  let allDenied = true
 
-  // Per Wathq OpenAPI securityDefinitions: single `apiKey` header carrying
-  // the Consumer Key.
-  const headers: Record<string, string> = {
-    apiKey,
-    Accept: 'application/json',
-  }
-  void apiSecret // kept for future-proofing; not sent on the wire
-
-  // Wathq has two endpoints: regular CR vs Unified Number (700-series).
-  const baseUrl = digits.startsWith('7') ? WATHQ_UNIFIED_URL : WATHQ_CR_URL
-
-  let res: Response
-  try {
-    res = await fetch(`${baseUrl}/${digits}`, {
-      method: 'GET',
-      headers,
-      signal: controller.signal,
-    })
-  } catch (err) {
-    clearTimeout(timer)
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new WathqError('TIMEOUT', 'Wathq request timed out')
+  for (const base of bases) {
+    let attempt: SingleAttempt
+    try {
+      attempt = await tryLookupCR(base, digits, apiKey)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // timeout — try the next base
+        lastStatus = undefined
+        lastBodyExcerpt = 'request timed out'
+        continue
+      }
+      lastStatus = undefined
+      lastBodyExcerpt =
+        err instanceof Error ? err.message : 'network error contacting Wathq'
+      continue
     }
+
+    lastStatus = attempt.status
+    lastBodyExcerpt = attempt.body.slice(0, 200)
+
+    if (attempt.ok && attempt.parsed) {
+      console.info(`[wathq] lookup succeeded via ${base}`)
+      return mapWathqToCRData(attempt.parsed)
+    }
+
+    if (attempt.status === 404) {
+      // Definitive: this CR doesn't exist on the gateway path; don't keep trying.
+      throw new WathqError('NOT_FOUND', 'CR number not found at Wathq', 404)
+    }
+    if (attempt.status === 429) {
+      throw new WathqError('RATE_LIMITED', 'Wathq rate limit hit', 429)
+    }
+    if (attempt.status === 401 || attempt.status === 403) {
+      // Subscription/access issue — try the next base.
+      continue
+    }
+    // Any other non-2xx (5xx etc.) — try the next base, but mark we hit
+    // something that wasn't simply "denied" so we can disambiguate later.
+    allDenied = false
+  }
+
+  if (allDenied) {
     throw new WathqError(
-      'NETWORK_ERROR',
-      err instanceof Error ? err.message : 'Network error contacting Wathq'
+      'SUBSCRIPTION_DENIED',
+      `Wathq key valid but subscription does not grant access to this resource (likely Trial-only or pending propagation). last status=${lastStatus ?? 'n/a'} body="${lastBodyExcerpt}"`,
+      lastStatus,
     )
   }
-  clearTimeout(timer)
+  throw new WathqError(
+    'UPSTREAM_ERROR',
+    `Wathq returned HTTP ${lastStatus ?? 'unknown'} across all candidate bases. body="${lastBodyExcerpt}"`,
+    lastStatus,
+  )
+}
 
-  if (res.status === 401 || res.status === 403) {
-    console.warn(
-      '[wathq] Wathq API auth failed (likely propagation delay on a fresh app) — falling back to document upload',
-      { status: res.status }
-    )
-    throw new WathqError(
-      'UNAUTHORIZED',
-      'Wathq rejected the API key',
-      res.status
-    )
+/**
+ * Diagnostic-only helper. Hits every candidate base URL with the given test
+ * CR using only the `apiKey` header. Returns one row per base. Never throws.
+ */
+export async function probeWathqAccess(
+  apiKey: string,
+  testCr: string,
+): Promise<{ base: string; status: number; ok: boolean; bodyExcerpt: string }[]> {
+  const digits = testCr.replace(/\s/g, '')
+  const bases = getCandidateBases()
+  const rows: { base: string; status: number; ok: boolean; bodyExcerpt: string }[] = []
+  for (const base of bases) {
+    try {
+      const a = await tryLookupCR(base, digits, apiKey)
+      rows.push({ base, status: a.status, ok: a.ok, bodyExcerpt: a.body.slice(0, 400) })
+    } catch (err) {
+      rows.push({
+        base,
+        status: 0,
+        ok: false,
+        bodyExcerpt: err instanceof Error ? err.message : String(err),
+      })
+    }
   }
-
-  if (res.status === 404) {
-    throw new WathqError('NOT_FOUND', 'CR number not found at Wathq', 404)
-  }
-  if (res.status === 429) {
-    throw new WathqError('RATE_LIMITED', 'Wathq rate limit hit', 429)
-  }
-  if (!res.ok) {
-    throw new WathqError(
-      'UPSTREAM_ERROR',
-      `Wathq returned HTTP ${res.status}`,
-      res.status
-    )
-  }
-
-  let raw: WathqRawResponse
-  try {
-    raw = (await res.json()) as WathqRawResponse
-  } catch {
-    throw new WathqError('UPSTREAM_ERROR', 'Wathq returned non-JSON body')
-  }
-
-  return mapWathqToCRData(raw)
+  return rows
 }

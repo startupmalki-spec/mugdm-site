@@ -398,6 +398,11 @@ export default function OnboardingPage() {
         }
       }
       if (!res.ok || !json.ok || !json.wizard) {
+        if (json.code === 'SUBSCRIPTION_DENIED') {
+          setWathqError(t('wathqSubscriptionDenied'))
+          setShowUploadFallback(true)
+          return
+        }
         setWathqError(t('wathqLookupFailed'))
         return
       }

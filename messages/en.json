@@ -76,6 +76,7 @@
     "wathqLookingUp": "Verifying with the Ministry of Commerce…",
     "wathqOrUpload": "Don't have your CR number? Upload the document instead.",
     "wathqLookupFailed": "We couldn't fetch this CR. You can upload the document instead.",
+    "wathqSubscriptionDenied": "Live CR lookup isn't active for your environment yet. Upload your CR document and we'll extract it automatically.",
     "step2Title": "Confirm Business Profile",
     "step2Description": "Verify and complete the extracted information",
     "step3Title": "Contact Information",
