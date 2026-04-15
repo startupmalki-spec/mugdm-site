@@ -2,6 +2,7 @@ import ExcelJS from 'exceljs'
 import { downloadBlob } from '@/lib/bookkeeper/export'
 import type { VATReportData } from '@/lib/bookkeeper/vat-report'
 import type { ProfitLossData } from '@/lib/bookkeeper/profit-loss'
+import type { BalanceSheetData } from '@/lib/bookkeeper/balance-sheet'
 
 const HEADER_FILL: ExcelJS.Fill = {
   type: 'pattern',
@@ -167,4 +168,88 @@ export async function exportProfitLossToExcel(
   })
   const dateStr = report.period.start.replace(/-/g, '')
   downloadBlob(blob, `profit-loss-${dateStr}.xlsx`)
+}
+
+/**
+ * Export a Balance Sheet to Excel (.xlsx) and trigger download.
+ */
+export async function exportBalanceSheetToExcel(
+  report: BalanceSheetData,
+  businessName: string
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'Mugdm Bookkeeper'
+  workbook.created = new Date()
+
+  const sheet = workbook.addWorksheet('Balance Sheet')
+
+  // Title
+  sheet.addRow([`${businessName} - Balance Sheet`])
+  sheet.mergeCells('A1:C1')
+  const titleRow = sheet.getRow(1)
+  titleRow.font = { bold: true, size: 14 }
+  titleRow.alignment = { horizontal: 'center' }
+
+  // Period
+  sheet.addRow([`As of: ${report.period.end}`])
+  sheet.mergeCells('A2:C2')
+  sheet.getRow(2).alignment = { horizontal: 'center' }
+
+  sheet.addRow([]) // blank row
+
+  // Assets section
+  const assetsHeader = sheet.addRow(['Assets', '', 'Amount (SAR)'])
+  assetsHeader.font = HEADER_FONT
+  assetsHeader.fill = HEADER_FILL
+
+  sheet.addRow(['', 'Cash & Cash Equivalents', report.assets.cash])
+  sheet.addRow(['', 'Accounts Receivable', report.assets.receivables])
+
+  const totalAssetsRow = sheet.addRow(['', 'Total Assets', report.assets.total])
+  totalAssetsRow.font = { bold: true }
+
+  sheet.addRow([]) // blank row
+
+  // Liabilities section
+  const liabHeader = sheet.addRow(['Liabilities', '', 'Amount (SAR)'])
+  liabHeader.font = HEADER_FONT
+  liabHeader.fill = HEADER_FILL
+
+  sheet.addRow(['', 'VAT Payable', report.liabilities.vatPayable])
+  sheet.addRow(['', 'Accounts Payable', report.liabilities.payables])
+
+  const totalLiabRow = sheet.addRow(['', 'Total Liabilities', report.liabilities.total])
+  totalLiabRow.font = { bold: true }
+
+  sheet.addRow([]) // blank row
+
+  // Equity section
+  const equityHeader = sheet.addRow(['Equity', '', 'Amount (SAR)'])
+  equityHeader.font = HEADER_FONT
+  equityHeader.fill = HEADER_FILL
+
+  sheet.addRow(['', "Owner's Equity", report.equity.ownerEquity])
+  sheet.addRow(['', 'Retained Earnings', report.equity.retainedEarnings])
+
+  const totalEquityRow = sheet.addRow(['', 'Total Equity', report.equity.total])
+  totalEquityRow.font = { bold: true }
+
+  sheet.addRow([]) // blank row
+
+  // Balance check
+  const balanceRow = sheet.addRow(['', 'Assets = Liabilities + Equity', report.balances ? 'Balanced' : 'Unbalanced'])
+  balanceRow.font = { bold: true, color: { argb: report.balances ? 'FF22c55e' : 'FFef4444' } }
+
+  // Column widths
+  sheet.getColumn(1).width = 18
+  sheet.getColumn(2).width = 30
+  sheet.getColumn(3).width = 18
+  sheet.getColumn(3).numFmt = '#,##0.00'
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const dateStr = report.period.end.replace(/-/g, '')
+  downloadBlob(blob, `balance-sheet-${dateStr}.xlsx`)
 }

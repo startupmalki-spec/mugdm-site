@@ -3,14 +3,13 @@
 import { useState, useCallback } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { motion, AnimatePresence } from 'framer-motion'
-import { GitCompareArrows, Check, Merge, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { GitCompareArrows, Check, Merge, Trash2, ChevronDown, ChevronUp, Loader2 } from 'lucide-react'
 import { formatSAR } from '@/lib/bookkeeper/calculations'
 import type { FuzzyDuplicatePair, DuplicateResolution } from '@/lib/bookkeeper/duplicate-detection'
 
 interface PossibleDuplicatesProps {
   pairs: FuzzyDuplicatePair[]
-  onResolve: (pairIndex: number, resolution: DuplicateResolution) => void
+  onResolve: (pairIndex: number, resolution: DuplicateResolution) => void | Promise<void>
 }
 
 export function PossibleDuplicates({ pairs, onResolve }: PossibleDuplicatesProps) {
@@ -20,11 +19,17 @@ export function PossibleDuplicates({ pairs, onResolve }: PossibleDuplicatesProps
 
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
   const [resolvedIndices, setResolvedIndices] = useState<Set<number>>(new Set())
+  const [loadingIndex, setLoadingIndex] = useState<number | null>(null)
 
   const handleResolve = useCallback(
-    (index: number, resolution: DuplicateResolution) => {
-      onResolve(index, resolution)
-      setResolvedIndices((prev) => new Set([...prev, index]))
+    async (index: number, resolution: DuplicateResolution) => {
+      setLoadingIndex(index)
+      try {
+        await onResolve(index, resolution)
+        setResolvedIndices((prev) => new Set([...prev, index]))
+      } finally {
+        setLoadingIndex(null)
+      }
     },
     [onResolve]
   )
@@ -126,40 +131,51 @@ export function PossibleDuplicates({ pairs, onResolve }: PossibleDuplicatesProps
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(index, 'keep_both')}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20"
-                      >
-                        <Check className="h-3.5 w-3.5" />
-                        {t('keepBoth')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(index, 'merge')}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-500/20"
-                      >
-                        <Merge className="h-3.5 w-3.5" />
-                        {t('merge')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(index, 'delete_a')}
-                        className={cn(
-                          'inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20'
-                        )}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {t('deleteFirst')}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleResolve(index, 'delete_b')}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        {t('deleteSecond')}
-                      </button>
+                      {loadingIndex === index ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground">
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          {t('title')}...
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleResolve(index, 'keep_both')}
+                            disabled={loadingIndex !== null}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            {t('keepBoth')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResolve(index, 'merge')}
+                            disabled={loadingIndex !== null}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 transition-colors hover:bg-purple-500/20 disabled:opacity-50"
+                          >
+                            <Merge className="h-3.5 w-3.5" />
+                            {t('merge')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResolve(index, 'delete_a')}
+                            disabled={loadingIndex !== null}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {t('deleteFirst')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleResolve(index, 'delete_b')}
+                            disabled={loadingIndex !== null}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {t('deleteSecond')}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </motion.div>
                 )}

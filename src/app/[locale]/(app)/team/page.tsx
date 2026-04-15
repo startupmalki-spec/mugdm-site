@@ -121,22 +121,68 @@ interface MemberMeta {
 
 const ANNUAL_LEAVE_DAYS = 21
 
+const EMPTY_META: MemberMeta = { documents: [], salaryHistory: [], leaves: [] }
+
 function getMemberMetaKey(memberId: string): string {
   return `mugdm-team-meta-${memberId}`
 }
 
 function getMemberMeta(memberId: string): MemberMeta {
-  if (typeof window === 'undefined') return { documents: [], salaryHistory: [], leaves: [] }
+  if (typeof window === 'undefined') return EMPTY_META
   try {
     const raw = localStorage.getItem(getMemberMetaKey(memberId))
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
-  return { documents: [], salaryHistory: [], leaves: [] }
+  return EMPTY_META
 }
 
 function setMemberMeta(memberId: string, meta: MemberMeta) {
   if (typeof window === 'undefined') return
   localStorage.setItem(getMemberMetaKey(memberId), JSON.stringify(meta))
+}
+
+/** Fetch metadata from DB and merge into localStorage cache. */
+async function fetchMemberMetaFromDB(memberId: string): Promise<MemberMeta> {
+  try {
+    const res = await fetch(`/api/team/metadata?member_id=${memberId}`)
+    if (!res.ok) return getMemberMeta(memberId)
+    const { metadata } = await res.json() as {
+      metadata: { metadata_type: string; data: Record<string, unknown> }[]
+    }
+    const meta: MemberMeta = { documents: [], salaryHistory: [], leaves: [] }
+    for (const row of metadata) {
+      if (row.metadata_type === 'document') meta.documents.push(row.data as unknown as EmployeeDocument)
+      else if (row.metadata_type === 'salary_change') meta.salaryHistory.push(row.data as unknown as SalaryChange)
+      else if (row.metadata_type === 'leave_record') meta.leaves.push(row.data as unknown as LeaveRecord)
+    }
+    // Update local cache
+    setMemberMeta(memberId, meta)
+    return meta
+  } catch {
+    return getMemberMeta(memberId)
+  }
+}
+
+/** Write-through: save to localStorage immediately, persist to DB async. */
+function persistMetaToDB(memberId: string, businessId: string, type: 'document' | 'salary_change' | 'leave_record', data: unknown) {
+  fetch('/api/team/metadata', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ team_member_id: memberId, business_id: businessId, metadata_type: type, data }),
+  }).catch(() => { /* fail silently — localStorage still has the data */ })
+}
+
+/** Migrate localStorage data to DB on first load per member. */
+async function migrateLocalStorageToDB(memberId: string, businessId: string) {
+  const migrationKey = `mugdm-team-meta-migrated-${memberId}`
+  if (typeof window === 'undefined' || localStorage.getItem(migrationKey)) return
+  const meta = getMemberMeta(memberId)
+  const hasData = meta.documents.length > 0 || meta.salaryHistory.length > 0 || meta.leaves.length > 0
+  if (!hasData) { localStorage.setItem(migrationKey, '1'); return }
+  for (const doc of meta.documents) persistMetaToDB(memberId, businessId, 'document', doc)
+  for (const sc of meta.salaryHistory) persistMetaToDB(memberId, businessId, 'salary_change', sc)
+  for (const lv of meta.leaves) persistMetaToDB(memberId, businessId, 'leave_record', lv)
+  localStorage.setItem(migrationKey, '1')
 }
 
 function calculateDaysBetween(start: string, end: string): number {
@@ -169,14 +215,23 @@ function addAuditLog(action: string) {
 
 function MemberDetailPanel({
   member,
+  businessId,
   onClose,
 }: {
   member: TeamMember
+  businessId: string
   onClose: () => void
 }) {
   const t = useTranslations('team')
   const tCommon = useTranslations('common')
   const [meta, setMeta] = useState<MemberMeta>(() => getMemberMeta(member.id))
+
+  // Fetch from DB on mount and migrate any localStorage-only data
+  useEffect(() => {
+    if (!businessId) return
+    migrateLocalStorageToDB(member.id, businessId)
+    fetchMemberMetaFromDB(member.id).then(setMeta)
+  }, [member.id, businessId])
   const [showLeaveForm, setShowLeaveForm] = useState(false)
   const [leaveStart, setLeaveStart] = useState('')
   const [leaveEnd, setLeaveEnd] = useState('')
@@ -212,10 +267,11 @@ function MemberDetailPanel({
       const updated = { ...meta, documents: [...meta.documents, doc] }
       setMeta(updated)
       setMemberMeta(member.id, updated)
+      persistMetaToDB(member.id, businessId, 'document', doc)
       addAuditLog(`Attached document "${file.name}" to ${member.name}`)
     }
     input.click()
-  }, [meta, member.id, member.name])
+  }, [meta, member.id, member.name, businessId])
 
   const handleAddLeave = useCallback(() => {
     if (!leaveStart || !leaveEnd) return
@@ -230,11 +286,12 @@ function MemberDetailPanel({
     const updated = { ...meta, leaves: [...meta.leaves, record] }
     setMeta(updated)
     setMemberMeta(member.id, updated)
+    persistMetaToDB(member.id, businessId, 'leave_record', record)
     addAuditLog(`Recorded ${leaveType} leave for ${member.name}: ${days} days`)
     setShowLeaveForm(false)
     setLeaveStart('')
     setLeaveEnd('')
-  }, [leaveStart, leaveEnd, leaveType, meta, member.id, member.name])
+  }, [leaveStart, leaveEnd, leaveType, meta, member.id, member.name, businessId])
 
   const handleRemoveLeave = useCallback((id: string) => {
     const updated = { ...meta, leaves: meta.leaves.filter((l) => l.id !== id) }
@@ -1058,13 +1115,11 @@ export default function TeamPage() {
       const oldSalary = editingMember.salary
       const newSalary = form.salary ? Number(form.salary) : null
       if (oldSalary && newSalary && oldSalary !== newSalary) {
+        const salaryChange: SalaryChange = { from: oldSalary, to: newSalary, date: new Date().toISOString() }
         const meta = getMemberMeta(editingMember.id)
-        meta.salaryHistory.push({
-          from: oldSalary,
-          to: newSalary,
-          date: new Date().toISOString(),
-        })
+        meta.salaryHistory.push(salaryChange)
         setMemberMeta(editingMember.id, meta)
+        persistMetaToDB(editingMember.id, businessId, 'salary_change', salaryChange)
         addAuditLog(`Updated salary for ${editingMember.name}: SAR ${formatSAR(oldSalary)} to SAR ${formatSAR(newSalary)}`)
       }
 
@@ -1205,6 +1260,7 @@ export default function TeamPage() {
                   {detailMember?.id === member.id && (
                     <MemberDetailPanel
                       member={member}
+                      businessId={businessId ?? ''}
                       onClose={() => setDetailMember(null)}
                     />
                   )}

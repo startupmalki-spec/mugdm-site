@@ -21,6 +21,12 @@ import {
   executeBillsToolCall,
   billsToolsEnabled,
 } from '@/lib/agents/bills-chat-tools'
+import { generateProfitLoss } from '@/lib/bookkeeper/profit-loss'
+import { generateBalanceSheet } from '@/lib/bookkeeper/balance-sheet'
+import { generateVATReport } from '@/lib/bookkeeper/vat-report'
+import { generateDashboardAlerts } from '@/lib/cross-module/dashboard-alerts'
+import { calculateComplianceHealthScore } from '@/lib/compliance/cross-module'
+import { calculateSummary, calculateVATEstimate } from '@/lib/bookkeeper/calculations'
 
 interface ChatRequest {
   message: string
@@ -43,6 +49,7 @@ const ACTION_TOOLS = new Set([
   'mark_obligation_done',
   'add_obligation',
   'import_spreadsheet_data',
+  'generate_report',
 ])
 
 /** Tools that are destructive and require double confirmation */
@@ -75,6 +82,10 @@ function formatActionSummary(
       return `Add obligation "${toolInput.name}" (${toolInput.type}, ${toolInput.frequency}) due ${toolInput.next_due_date}`
     case 'import_spreadsheet_data':
       return `Import ${(toolInput.rows as unknown[])?.length ?? 0} rows as ${toolInput.dataType}`
+    case 'generate_report':
+      return `Generate ${toolInput.report_type} report for ${toolInput.period_start} to ${toolInput.period_end}`
+    case 'check_business_health':
+      return 'Run comprehensive business health check'
     default:
       return `Execute ${toolName}`
   }
@@ -258,6 +269,40 @@ const BASE_TOOL_DEFINITIONS: Anthropic.Tool[] = [
       required: ['dataType', 'rows', 'columnMapping'],
     },
   },
+  {
+    name: 'generate_report',
+    description:
+      'Generate a financial report for the business. Use when the user asks about profit/loss, VAT liability, balance sheet, revenue, expenses, or financial performance for a period.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        report_type: {
+          type: 'string',
+          enum: ['profit_loss', 'vat_report', 'balance_sheet'],
+          description: 'Type of financial report to generate.',
+        },
+        period_start: {
+          type: 'string',
+          description: 'Start date in YYYY-MM-DD format.',
+        },
+        period_end: {
+          type: 'string',
+          description: 'End date in YYYY-MM-DD format.',
+        },
+      },
+      required: ['report_type', 'period_start', 'period_end'],
+    },
+  },
+  {
+    name: 'check_business_health',
+    description:
+      'Comprehensive business health check across all modules. Use when user asks: "how is my business?", "what needs attention?", "am I on track?", "give me a summary", "business status", or any general status question.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {},
+      required: [],
+    },
+  },
 ]
 
 const TOOL_DEFINITIONS: Anthropic.Tool[] = [
@@ -430,6 +475,137 @@ async function executeToolCall(
         toolInput.columnMapping as Record<string, string>
       )
       return JSON.stringify(result)
+    }
+
+    case 'generate_report': {
+      const reportType = toolInput.report_type as string
+      const periodStart = toolInput.period_start as string
+      const periodEnd = toolInput.period_end as string
+
+      // Fetch transactions for the period
+      const { data: txData } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('business_id', businessId)
+        .gte('date', periodStart)
+        .lte('date', periodEnd)
+        .order('date')
+
+      const transactions = txData ?? []
+
+      if (reportType === 'profit_loss') {
+        const report = generateProfitLoss(transactions, periodStart, periodEnd)
+        return JSON.stringify({
+          type: 'Profit & Loss',
+          period: `${periodStart} to ${periodEnd}`,
+          totalRevenue: report.totalRevenue,
+          totalExpenses: report.totalExpenses,
+          grossProfit: report.grossProfit,
+          netProfit: report.netProfit,
+          profitMargin: `${report.profitMargin}%`,
+          revenueBreakdown: report.revenue,
+          expenseBreakdown: report.expenses,
+        })
+      }
+
+      if (reportType === 'balance_sheet') {
+        const report = generateBalanceSheet(transactions, periodStart, periodEnd)
+        return JSON.stringify({
+          type: 'Balance Sheet',
+          asOf: periodEnd,
+          assets: report.assets,
+          liabilities: report.liabilities,
+          equity: report.equity,
+          balances: report.balances,
+        })
+      }
+
+      if (reportType === 'vat_report') {
+        const report = generateVATReport(transactions, periodStart, periodEnd)
+        return JSON.stringify({
+          type: 'VAT Report',
+          period: `${periodStart} to ${periodEnd}`,
+          totalSales: report.totalSales,
+          totalPurchases: report.totalPurchases,
+          outputVAT: report.outputVAT,
+          inputVAT: report.inputVAT,
+          netVAT: report.netVAT,
+          transactionCount: report.transactions.length,
+        })
+      }
+
+      return JSON.stringify({ error: `Unknown report type: ${reportType}` })
+    }
+
+    case 'check_business_health': {
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 86400000).toISOString().split('T')[0]
+
+      const [bizRes, docsRes, obsRes, txRes, teamRes] = await Promise.all([
+        supabase.from('businesses').select('*').eq('id', businessId).single(),
+        supabase.from('documents').select('*').eq('business_id', businessId).eq('is_current', true),
+        supabase.from('obligations').select('*').eq('business_id', businessId).order('next_due_date'),
+        supabase.from('transactions').select('*').eq('business_id', businessId).gte('date', ninetyDaysAgo),
+        supabase.from('team_members').select('*').eq('business_id', businessId).eq('status', 'ACTIVE' as never),
+      ])
+
+      const docs = (docsRes.data ?? []) as unknown as { id: string; type: string; expiry_date?: string | null; is_current?: boolean; archived_at?: string | null }[]
+      const obs = (obsRes.data ?? []) as unknown as { id: string; type: string; name: string; next_due_date: string; last_completed_at?: string | null }[]
+      const txs = (txRes.data ?? []) as unknown as { id: string; type: string; amount: number; date: string; is_reviewed?: boolean; ai_confidence?: number | null }[]
+      const team = (teamRes.data ?? []) as unknown as { id: string; nationality: string; status: string; salary?: number | null }[]
+      const biz = bizRes.data as Record<string, unknown> | null
+
+      // Compliance score
+      const healthResult = calculateComplianceHealthScore(docs as never[], obs as never[])
+
+      // Alerts
+      const alerts = generateDashboardAlerts({
+        business: { cr_expiry_date: biz?.cr_expiry_date as string | null, contact_phone: biz?.contact_phone as string | null, contact_email: biz?.contact_email as string | null },
+        documents: docs,
+        obligations: obs,
+        transactions: txs,
+      })
+
+      // Financials (this month)
+      const thisMonth = new Date().toISOString().slice(0, 7)
+      const monthTx = txs.filter((tx) => tx.date.startsWith(thisMonth))
+      const monthIncome = monthTx.filter((tx) => tx.type === 'INCOME').reduce((s, tx) => s + tx.amount, 0)
+      const monthExpenses = monthTx.filter((tx) => tx.type === 'EXPENSE').reduce((s, tx) => s + tx.amount, 0)
+      const vatLiability = Math.round((monthIncome * 0.15 / 1.15 - monthExpenses * 0.15 / 1.15) * 100) / 100
+
+      // Team
+      const saudiCount = team.filter((m) => m.nationality?.toLowerCase() === 'saudi').length
+      const saudiPct = team.length > 0 ? Math.round((saudiCount / team.length) * 100) : 0
+
+      // Unreviewed
+      const unreviewedCount = txs.filter((tx) => tx.is_reviewed === false && typeof tx.ai_confidence === 'number' && tx.ai_confidence < 0.7).length
+
+      // Next deadline
+      const nextOb = obs.find((ob) => !ob.last_completed_at || new Date(ob.next_due_date) > new Date())
+      const nextDeadline = nextOb ? {
+        name: nextOb.name,
+        date: nextOb.next_due_date,
+        days: Math.ceil((new Date(nextOb.next_due_date).getTime() - Date.now()) / 86400000),
+      } : null
+
+      // Grade
+      const score = healthResult.score
+      const grade = score >= 90 ? 'A' : score >= 70 ? 'B' : score >= 50 ? 'C' : score >= 30 ? 'D' : 'F'
+
+      const criticalAlerts = alerts.filter((a) => a.severity === 'critical')
+      const warningAlerts = alerts.filter((a) => a.severity === 'warning')
+
+      return JSON.stringify({
+        compliance_score: score,
+        compliance_grade: grade,
+        critical_alerts: criticalAlerts.length,
+        warning_alerts: warningAlerts.length,
+        top_alerts: [...criticalAlerts, ...warningAlerts].slice(0, 5).map((a) => a.title.en),
+        financials: { month_income: monthIncome, month_expenses: monthExpenses, month_net: monthIncome - monthExpenses, vat_liability: Math.max(0, vatLiability) },
+        team: { headcount: team.length, saudization_pct: saudiPct },
+        documents: { total: docs.length, expired: docs.filter((d) => d.expiry_date && new Date(d.expiry_date) < new Date()).length },
+        unreviewed_transactions: unreviewedCount,
+        next_deadline: nextDeadline,
+      })
     }
 
     default:

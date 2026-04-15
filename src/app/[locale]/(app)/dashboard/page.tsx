@@ -27,7 +27,7 @@ import { differenceInDays, format, startOfMonth } from 'date-fns'
 import { ar, enUS } from 'date-fns/locale'
 
 import { Link } from '@/i18n/routing'
-import type { Insight } from '@/app/api/insights/route'
+import { generateDashboardAlerts, type DashboardAlert } from '@/lib/cross-module/dashboard-alerts'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ToastContainer, useToast } from '@/components/ui/toast'
@@ -98,6 +98,7 @@ interface DashboardData {
   obligationCounts: ObligationCounts
   financials: Financials
   healthScore: ComplianceHealthScore
+  alerts: DashboardAlert[]
 }
 
 // --- Data fetching ---
@@ -173,7 +174,22 @@ async function fetchDashboardData(): Promise<DashboardData | null> {
     obligations
   )
 
-  return { docCounts, nextObligation, obligationCounts, financials, healthScore }
+  // Fetch unreviewed transaction count for alerts
+  const { data: allTxForAlerts } = (await supabase
+    .from('transactions')
+    .select('id, is_reviewed, ai_confidence, date')
+    .eq('business_id', businessId)) as unknown as {
+      data: { id: string; is_reviewed: boolean; ai_confidence: number | null; date: string }[] | null
+    }
+
+  const alerts = generateDashboardAlerts({
+    business: { cr_expiry_date: (business as Record<string, unknown>).cr_expiry_date as string | null, contact_phone: (business as Record<string, unknown>).contact_phone as string | null, contact_email: (business as Record<string, unknown>).contact_email as string | null },
+    documents: allDocs as { id: string; type: string; expiry_date?: string | null; is_current?: boolean; archived_at?: string | null }[],
+    obligations,
+    transactions: (allTxForAlerts ?? []) as { id: string; is_reviewed?: boolean; ai_confidence?: number | null; date: string }[],
+  })
+
+  return { docCounts, nextObligation, obligationCounts, financials, healthScore, alerts }
 }
 
 // --- Components ---
@@ -466,103 +482,21 @@ function FinancialSummaryCard({ financials }: { financials: Financials }) {
   )
 }
 
-function AiWarningsCard() {
+const SEVERITY_CONFIG = {
+  critical: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20' },
+  warning: { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  info: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  success: { color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+}
+
+function DashboardAlertsPanel({ alerts }: { alerts: DashboardAlert[] }) {
   const t = useTranslations('dashboard')
+  const locale = useLocale()
+  const [showAll, setShowAll] = useState(false)
 
-  return (
-    <motion.div variants={ITEM_VARIANTS}>
-      <div className="rounded-xl border border-border bg-card p-5">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-medium text-foreground">{t('attentionNeeded')}</h3>
-        </div>
-
-        <div className="mt-4 flex items-center gap-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
-          <div>
-            <p className="text-sm font-medium text-emerald-400">{t('allGood')}</p>
-            <p className="text-xs text-muted-foreground">{t('allGoodDescription')}</p>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
-
-// --- Insights cache helpers ---
-
-const INSIGHTS_CACHE_KEY = 'mugdm_insights_cache'
-const INSIGHTS_CACHE_TTL = 24 * 60 * 60 * 1000 // 24 hours
-
-function getCachedInsights(): Insight[] | null {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = localStorage.getItem(INSIGHTS_CACHE_KEY)
-    if (!raw) return null
-    const { insights, timestamp } = JSON.parse(raw)
-    if (Date.now() - timestamp > INSIGHTS_CACHE_TTL) {
-      localStorage.removeItem(INSIGHTS_CACHE_KEY)
-      return null
-    }
-    return insights
-  } catch {
-    return null
-  }
-}
-
-function setCachedInsights(insights: Insight[]) {
-  if (typeof window === 'undefined') return
-  try {
-    localStorage.setItem(
-      INSIGHTS_CACHE_KEY,
-      JSON.stringify({ insights, timestamp: Date.now() })
-    )
-  } catch {
-    // localStorage may be full
-  }
-}
-
-const PRIORITY_CONFIG = {
-  high: { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', icon: AlertCircle },
-  medium: { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Lightbulb },
-  low: { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', icon: Lightbulb },
-}
-
-function AiInsightsPanel() {
-  const t = useTranslations('dashboard')
-  const [insights, setInsights] = useState<Insight[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(false)
-
-  const fetchInsights = useCallback(async (force = false) => {
-    if (!force) {
-      const cached = getCachedInsights()
-      if (cached) {
-        setInsights(cached)
-        setIsLoading(false)
-        return
-      }
-    }
-
-    setIsLoading(true)
-    setError(false)
-    try {
-      const res = await fetch('/api/insights')
-      if (!res.ok) throw new Error('Failed')
-      const data = await res.json()
-      const insightsList = data.insights ?? []
-      setInsights(insightsList)
-      setCachedInsights(insightsList)
-    } catch {
-      setError(true)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchInsights()
-  }, [fetchInsights])
+  const criticalCount = alerts.filter((a) => a.severity === 'critical').length
+  const warningCount = alerts.filter((a) => a.severity === 'warning').length
+  const visible = showAll ? alerts : alerts.slice(0, 5)
 
   return (
     <motion.div variants={ITEM_VARIANTS}>
@@ -570,70 +504,60 @@ function AiInsightsPanel() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold text-foreground">{t('aiInsights')}</h3>
+            <h3 className="text-sm font-semibold text-foreground">{t('smartAlerts')}</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => fetchInsights(true)}
-            disabled={isLoading}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-surface-2 hover:text-foreground disabled:opacity-50"
-            title={t('refreshInsights')}
-          >
-            {isLoading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5">
+            {criticalCount > 0 && (
+              <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-bold text-red-400">{criticalCount}</span>
             )}
-          </button>
+            {warningCount > 0 && (
+              <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-400">{warningCount}</span>
+            )}
+            {criticalCount === 0 && warningCount === 0 && (
+              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400">{t('allGood')}</span>
+            )}
+          </div>
         </div>
 
-        <div className="mt-4 space-y-3">
-          {isLoading && insights.length === 0 ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="h-16 animate-pulse rounded-lg bg-surface-2" />
-              ))}
-            </div>
-          ) : error ? (
-            <div className="flex items-center gap-3 rounded-lg bg-red-500/5 border border-red-500/10 p-3">
-              <AlertCircle className="h-5 w-5 shrink-0 text-red-400" />
-              <p className="text-sm text-red-400">{t('insightsError')}</p>
-            </div>
-          ) : insights.length === 0 ? (
-            <div className="flex items-center gap-3 rounded-lg bg-emerald-500/5 border border-emerald-500/10 p-3">
-              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-400" />
-              <div>
-                <p className="text-sm font-medium text-emerald-400">{t('allGood')}</p>
-                <p className="text-xs text-muted-foreground">{t('allGoodDescription')}</p>
+        <div className="mt-4 space-y-2">
+          {visible.map((alert) => {
+            const config = SEVERITY_CONFIG[alert.severity]
+            const title = locale === 'ar' ? alert.title.ar : alert.title.en
+            const desc = locale === 'ar' ? alert.description.ar : alert.description.en
+            return (
+              <div
+                key={alert.id}
+                className={cn('flex items-start gap-3 rounded-lg border p-3', config.border, config.bg)}
+              >
+                <div className={cn('mt-0.5 shrink-0 h-4 w-4', config.color)}>
+                  <AlertCircle className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className={cn('text-sm font-medium', config.color)}>{title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{desc}</p>
+                </div>
+                {alert.action && (
+                  <Link
+                    href={alert.action.href as '/calendar' | '/vault' | '/bookkeeper' | '/team' | '/profile'}
+                    className="shrink-0 rounded-md bg-white/10 px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-white/20"
+                  >
+                    {locale === 'ar' ? alert.action.label.ar : alert.action.label.en}
+                  </Link>
+                )}
               </div>
-            </div>
-          ) : (
-            insights.map((insight, i) => {
-              const config = PRIORITY_CONFIG[insight.priority] || PRIORITY_CONFIG.low
-              const Icon = config.icon
-              return (
-                <Link
-                  key={i}
-                  href={insight.action_url as '/calendar' | '/vault' | '/bookkeeper' | '/team' | '/profile'}
-                  className={cn(
-                    'group flex items-start gap-3 rounded-lg border p-3 transition-all hover:bg-surface-2',
-                    config.border,
-                    config.bg
-                  )}
-                >
-                  <div className="mt-0.5 shrink-0">
-                    <Icon className={cn('h-4 w-4', config.color)} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={cn('text-sm font-medium', config.color)}>{insight.title}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{insight.description}</p>
-                  </div>
-                  <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-                </Link>
-              )
-            })
-          )}
+            )
+          })}
         </div>
+
+        {alerts.length > 5 && !showAll && (
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            className="mt-3 text-xs font-medium text-primary hover:underline"
+          >
+            {t('showAll', { count: alerts.length })}
+          </button>
+        )}
       </div>
     </motion.div>
   )
@@ -731,6 +655,7 @@ export default function DashboardPage() {
     obligationCounts: { upcoming: 0, dueSoon: 0, overdue: 0 },
     financials: { moneyIn: 0, moneyOut: 0 },
     healthScore: { score: 0, breakdown: { obligationsUpToDate: 0, documentsValid: 0, obligationsWithProof: 0, noOverdueBonus: 0 } },
+    alerts: [],
   }
 
   const displayData = data ?? emptyData
@@ -828,17 +753,14 @@ export default function DashboardPage() {
             <OutstandingApCard ns="dashboard" />
           </div>
 
-          {/* AI Insights Panel */}
-          <AiInsightsPanel />
+          {/* Smart Alerts */}
+          <DashboardAlertsPanel alerts={displayData.alerts} />
 
           {/* Weekly Action Items */}
           <WeeklyActionItems
             obligationCounts={displayData.obligationCounts}
             nextObligation={displayData.nextObligation}
           />
-
-          {/* AI Warnings (legacy) */}
-          <AiWarningsCard />
         </>
       )}
 

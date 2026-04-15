@@ -1,0 +1,1 @@
+ALTER TABLE businesses ADD COLUMN IF NOT EXISTS last_data_update TIMESTAMPTZ DEFAULT now();
